@@ -54,9 +54,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="mesher\delMesher.h">
       <Filter>头文件\mesher</Filter>
     </ClInclude>

@@ -167,9 +167,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="ReadMe.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="mesher\aabb.h" />
     <ClInclude Include="core\arithmetic.h" />
     <ClInclude Include="core\element.h" />
@@ -200,7 +197,6 @@
     <ClCompile Include="mesher\delMesher.cpp" />
     <ClCompile Include="core\eigenslover.cpp" />
     <ClCompile Include="core\element.cpp" />
-    <ClCompile Include="oder.cpp" />
     <ClCompile Include="core\forcer.cpp" />
     <ClCompile Include="material\hooke.cpp" />
     <ClCompile Include="intergrator\newmark.cpp" />
@@ -213,6 +209,7 @@
     <ClCompile Include="core\stdafx.cpp" />
     <ClCompile Include="element\tetelement.cpp" />
     <ClCompile Include="mesh\tetmesh.cpp" />
+    <ClCompile Include="oder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ClassDiagram.cd" />
