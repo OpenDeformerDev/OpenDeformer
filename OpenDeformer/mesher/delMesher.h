@@ -80,12 +80,6 @@ namespace ODER{
 		static Labeler labeler;
 	};
 
-	struct vertex_pointer_compare{
-		bool operator()(const Vertex *left, const Vertex *right) const{
-			return *left < *right;
-		}
-	};
-
 	class VertexListNode{
 	public:
 		VertexListNode() :currentVert(0x1), next(NULL){}
