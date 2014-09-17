@@ -110,8 +110,6 @@ void DelTriangulator::deleteTriangle(Vertex *a, Vertex *b, Vertex *c){
 	removeFromTopology(a, b, c);
 	removeFromTopology(b, c, a);
 	removeFromTopology(c, a, b);
-
-
 }
 
 Face DelTriangulator::findPosition(Vertex *u, const Face &f, const DelVector &n) const{
@@ -688,7 +686,9 @@ void DelMesher::triangulation3D(){
 		t = findPosition(vertices[i], rt);
 		insertVertex(vertices[i], t, &rt, true);
 	}
-	std::sort(vertices.begin(), vertices.end(), vertex_pointer_compare());
+	std::sort(vertices.begin(), vertices.end(), [](const Vertex *left, const Vertex *right){
+		return *left < *right;
+	});
 }
 
 bool DelMesher::Adjacent(const Segment &s, Vertex **w) const{

@@ -75,8 +75,8 @@ namespace ODER{
 		return randomSeed % choices;
 	}
 
-	inline void hashCombine(size_t& seed, size_t val){
-		seed ^= std::hash<size_t>()(val)+0x9e3779b9 + (seed << 6) + (seed >> 2);
+	template<class T> inline void hashCombine(size_t& seed, T val){
+		seed ^= std::hash<T>()(val)+0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 
 	inline void Severe(const char *error){
