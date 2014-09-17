@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="头文件\mesher">
+      <UniqueIdentifier>{6c5c7d33-aef7-4482-9344-f14953210bd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\mesher">
+      <UniqueIdentifier>{e46a4eea-39aa-4265-8755-5f24c6567fb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\mesh">
+      <UniqueIdentifier>{5e89a5ea-51ee-4269-ab88-9a7f2838a237}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\mesh">
+      <UniqueIdentifier>{de9f680c-c72d-48b4-944d-d96f2fc53573}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\shader">
+      <UniqueIdentifier>{c594763d-f60b-47ef-8921-7407285e18c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\material">
+      <UniqueIdentifier>{2a20659b-424c-4800-ae53-83d85de0530c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\intergrator">
+      <UniqueIdentifier>{1b743412-022f-4e49-a257-6548c9697774}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\intergrator">
+      <UniqueIdentifier>{1f336634-3f15-4d86-a36a-6f08a6b664df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\core">
+      <UniqueIdentifier>{44e78eab-b303-4ac6-b7ab-77330b52e6fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\core">
+      <UniqueIdentifier>{7ea96c9e-4e6a-46c2-8347-cc0f0c35259f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\element">
+      <UniqueIdentifier>{17b69de4-7610-467b-bc4f-2cde9724591c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\element">
+      <UniqueIdentifier>{dfe8e608-e428-4220-85aa-2f85ad85c3e8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\material">
+      <UniqueIdentifier>{2136ad92-4009-412c-974d-c325e04700e8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mesher\delMesher.h">
+      <Filter>头文件\mesher</Filter>
+    </ClInclude>
+    <ClInclude Include="mesh\tetmesh.h">
+      <Filter>头文件\mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="material\hooke.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
+    <ClInclude Include="intergrator\newmark.h">
+      <Filter>头文件\intergrator</Filter>
+    </ClInclude>
+    <ClInclude Include="core\forcer.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\eigenslover.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\constrainer.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\intergrator.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\latool.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mecMaterial.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\memory.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mesh.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\mesher.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\sparseMatrix.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\stdafx.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\datastructure.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="InitShader.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mesher\aabb.h">
+      <Filter>头文件\mesher</Filter>
+    </ClInclude>
+    <ClInclude Include="mesher\predicate.h">
+      <Filter>头文件\mesher</Filter>
+    </ClInclude>
+    <ClInclude Include="core\arithmetic.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\element.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="element\tetelement.h">
+      <Filter>头文件\element</Filter>
+    </ClInclude>
+    <ClInclude Include="core\nodeIndexer.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\oder.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="mesher\delMesher.cpp">
+      <Filter>源文件\mesher</Filter>
+    </ClCompile>
+    <ClCompile Include="mesh\tetmesh.cpp">
+      <Filter>源文件\mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="material\hooke.cpp">
+      <Filter>源文件\material</Filter>
+    </ClCompile>
+    <ClCompile Include="intergrator\newmark.cpp">
+      <Filter>源文件\intergrator</Filter>
+    </ClCompile>
+    <ClCompile Include="core\eigenslover.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\constrainer.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\forcer.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\intergrator.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\latool.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\memory.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\mesh.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\sparseMatrix.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\stdafx.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\element.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="element\tetelement.cpp">
+      <Filter>源文件\element</Filter>
+    </ClCompile>
+    <ClCompile Include="core\nodeIndexer.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="oder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\test.vs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="shader\test.fs">
+      <Filter>源文件\shader</Filter>
+    </None>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+</Project>
