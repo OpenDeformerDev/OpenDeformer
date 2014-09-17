@@ -12,7 +12,13 @@
 /*                                                                           */
 /*****************************************************************************/
 
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_MESHER_PREDICATE_H
+#define ODER_MESHER_PREDICATE_H
+
 #include "oder.h"
 #include "latool.h"
 #include "arithmetic.h"
@@ -1833,3 +1839,5 @@ template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, c
 		return false;
 }
 }
+
+#endif

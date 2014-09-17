@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_MESHER_DELMESHER_H
+#define ODER_MESHER_DELMESHER_H
+
 #include "memory.h"
 #include "mesher.h"
 #include "predicate.h"
@@ -438,6 +444,8 @@ namespace ODER{
 		return (std::hash<int>()(x->getLabel()) & ODD_MAKE) == (std::hash<int>()(y->getLabel()) & ODD_MAKE);
 	}
 }
+
+#endif
 
 
 

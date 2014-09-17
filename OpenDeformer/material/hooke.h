@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_MATERIAL_HOOKE_H
+#define ODER_MATERIAL_HOOKE_H
+
 #include "mecMaterial.h"
 #include "mesh.h"
 #include "element.h"
@@ -13,3 +19,5 @@ namespace ODER{
 		double D[3];
 	};
 }
+
+#endif

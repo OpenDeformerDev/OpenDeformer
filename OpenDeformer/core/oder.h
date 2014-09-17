@@ -1,9 +1,13 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_ODER_H
+#define ODER_CORE_ODER_H
 
 #include <vector>
 #include <map>
 #include <algorithm>
-#include <allocators>
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>
@@ -36,7 +40,7 @@ namespace ODER{
 #define DEFAULT_POOL_OBJ_COUNT 128
 #define GL_BUFFER_OFFSET( offset ) ((GLvoid*) (offset))
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #define ODER_DEBUG
 #endif
 
@@ -83,3 +87,5 @@ namespace ODER{
 		perror(error);
 	}
 }
+
+#endif

@@ -1,6 +1,12 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
 #include "oder.h"
 #include "memory.h"
+
+#ifndef ODER_CORE_SPARSEMARTIX_H
+#define ODER_CORE_SPARSEMARTIX_H
 
 namespace ODER{
 	class SparseMatrixAssembler{
@@ -35,3 +41,5 @@ namespace ODER{
 		friend class EigenSlover;
 	};
 }
+
+#endif

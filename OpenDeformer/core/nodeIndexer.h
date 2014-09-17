@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_NODEINDEXER_H
+#define ODER_CORE_NODEINDEXER_H
+
 #include "oder.h"
 #include "memory.h"
 
@@ -17,3 +23,5 @@ namespace ODER{
 		vector<int> constrainIndices;
 	};
 }
+
+#endif

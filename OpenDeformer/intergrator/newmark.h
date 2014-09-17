@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_INTERGRATOR_NEWMARK_H
+#define ODER_INTERGRATOR_NEWMARK_H
+
 #include "oder.h"
 #include "intergrator.h"
 #include "eigenslover.h"
@@ -20,3 +26,5 @@ namespace ODER{
 		double *basises;
 	};
 }
+
+#endif

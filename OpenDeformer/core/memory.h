@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_MEMORY_H
+#define ODER_CORE_MEMORY_H
+
 #include "oder.h"
 
 namespace ODER{
@@ -162,3 +168,5 @@ namespace ODER{
 	}
 	void freeAligned(void *);
 }
+
+#endif

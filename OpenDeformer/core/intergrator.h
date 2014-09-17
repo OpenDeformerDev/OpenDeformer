@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_INTERGRATOR_H
+#define ODER_CORE_INTERGRATOR_H
+
 #include "oder.h"
 #include "memory.h"
 #include "mecMaterial.h"
@@ -31,3 +37,5 @@ namespace ODER{
 		double* externalVirtualWork;
 	};
 }
+
+#endif

@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_CONSTRAINER_H
+#define ODER_CORE_CONSTRAINER_H
+
 #include "oder.h"
 #include "memory.h"
 #include "latool.h"
@@ -30,3 +36,5 @@ namespace ODER{
 		Reference<Mesh> mesh;
 	};
 }
+
+#endif

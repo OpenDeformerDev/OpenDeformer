@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_MESH_H
+#define ODER_CORE_MESH_H
+
 #include "oder.h"
 #include "memory.h"
 #include "latool.h"
@@ -33,3 +39,5 @@ namespace ODER{
 		int *surfaces;
 	};
 }
+
+#endif

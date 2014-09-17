@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_MESH_TETMESH_H
+#define ODER_MESH_TETMESH_H
+
 #include "oder.h"
 #include "mesh.h"
 
@@ -15,4 +21,6 @@ namespace ODER{
 		int getCloestElement(const Vector &v) const { return -1; }
 	};
 }
+
+#endif
 

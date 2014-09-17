@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_ARITHMETRIC_H
+#define ODER_CORE_ARITHMETRIC_H
+
 #include "oder.h"
 
 #define ABOSOLUTE_GREATER(x, y) ((x)>(y)) == ((x)>(-y)) //returns ture if |x| > |y|
@@ -224,3 +230,5 @@ namespace ODER{
 	template<class FT> FT ExactArthmeticer<FT>::epsilon = FT(1.0);
 	template<class FT> FT ExactArthmeticer<FT>::splitter = FT(1.0);
 }
+
+#endif

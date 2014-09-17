@@ -1,6 +1,8 @@
+#if defined(_MSC_VER)
 #pragma once
-#ifndef ODER_EIGENSLOVER
-#define ODER_EIGENSLOVER
+#endif
+#ifndef ODER_CORE_EIGENSLOVER_H
+#define ODER_CORE_EIGENSLOVER_H
 
 #include "oder.h"
 #include "sparseMatrix.h"

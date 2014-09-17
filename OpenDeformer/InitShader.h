@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_INITSHADER_H
+#define ODER_INITSHADER_H
+
 #include <iostream>
 #include "oder.h"
 
@@ -88,3 +94,5 @@ namespace ODER{
 		return program;
 	}
 }
+
+#endif

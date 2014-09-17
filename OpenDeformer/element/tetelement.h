@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_ELEMENT_TETELEMENT_H
+#define ODER_ELEMENT_TETELEMENT_H
+
 #include "oder.h"
 #include "element.h"
 #include "tetmesh.h"
@@ -23,3 +29,5 @@ namespace ODER{
 		void getSurfVirtualWorks(double surfForce[3], double *result) const;
 	};
 }
+
+#endif

@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_CORE_FORCER_H
+#define ODER_CORE_FORCER_H
+
 #include "oder.h"
 #include "latool.h"
 #include "memory.h"
@@ -19,3 +25,5 @@ namespace ODER{
 		map<int, double> virtualWorks;
 	};
 }
+
+#endif

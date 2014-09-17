@@ -1,4 +1,10 @@
+#if defined(_MSC_VER)
 #pragma once
+#endif
+
+#ifndef ODER_MESHER_AABB_H
+#define ODER_MESHER_AABB_H
+
 #include "oder.h"
 #include "latool.h"
 
@@ -59,3 +65,5 @@ namespace ODER{
 		Point pMin, pMax;
 	};
 }
+
+#endif
