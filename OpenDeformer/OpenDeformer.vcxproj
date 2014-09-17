@@ -76,6 +76,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>.\core;.\3rd Party\ARPACK++;.\mesh;.\mesher;.\intergrator;.\3rd Party\LAPACK;.\material;.\element;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -137,7 +138,7 @@
       <FloatingPointModel>Fast</FloatingPointModel>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>F:\Documents\Visual Studio 2013\Projects\OpenDeformer\OpenDeformer\3rd Party\ARPACK++;F:\Documents\Visual Studio 2013\Projects\OpenDeformer\OpenDeformer\3rd Party\LAPACK;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
     </ClCompile>
     <Link>
@@ -146,7 +147,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>glew32s.lib;freeglut.lib;libf2c.lib;BLAS.lib;clapack.lib;tmglib.lib;SuperLU_win32.lib;arpack_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>F:\Documents\Visual Studio 2013\Projects\OpenDeformer\OpenDeformer\3rd Party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>.\3rd Party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -206,7 +207,6 @@
     <ClCompile Include="core\mesh.cpp" />
     <ClCompile Include="core\nodeIndexer.cpp" />
     <ClCompile Include="core\sparseMatrix.cpp" />
-    <ClCompile Include="core\stdafx.cpp" />
     <ClCompile Include="element\tetelement.cpp" />
     <ClCompile Include="mesh\tetmesh.cpp" />
     <ClCompile Include="oder.cpp" />

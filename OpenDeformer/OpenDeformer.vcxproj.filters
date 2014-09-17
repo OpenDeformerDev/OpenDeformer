@@ -164,9 +164,6 @@
     <ClCompile Include="core\sparseMatrix.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
-    <ClCompile Include="core\stdafx.cpp">
-      <Filter>源文件\core</Filter>
-    </ClCompile>
     <ClCompile Include="core\element.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
