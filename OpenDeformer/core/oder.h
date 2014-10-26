@@ -59,7 +59,7 @@ namespace ODER{
 	struct Facet;
 	template<class FT> struct VectorBase;
 	struct Vector;
-	struct Tensor2;
+	template<class FT> struct Tensor2;
 	struct Quaternion;
 	class MecMaterial;
 	class Mesher;

@@ -12,7 +12,6 @@ namespace ODER{
 	class TetMesh : public Mesh{
 	public:
 		TetMesh(int numN, int numE, int numS) : Mesh(numN, numE, numS, 4, 3){}
-		void generateMassMatrix(const MecMaterial &material, const NodeIndexer &indexer, SparseMatrixAssembler& m) const;
 		Element* getEmptyElement() const;
 		Element* getEmptyMaterialElement(MarterialType type) const;
 		Facet* getEmptyFacet() const;

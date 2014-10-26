@@ -71,7 +71,7 @@ namespace ODER{
 		}
 
 
-		inline Tensor2 operator^(const VectorBase& v) const;
+		Tensor2<FT> operator^(const VectorBase& v) const;
 
 		FT operator[](int i) const{
 			Assert(i > -1 && i<3);
@@ -111,7 +111,7 @@ namespace ODER{
 		FT x, y, z;
 	};
 
-	struct Vector : public VectorBase < float > {
+	struct Vector : public VectorBase <float> {
 		Vector() : VectorBase(){}
 		Vector(float xx, float yy, float zz) :VectorBase(xx, yy, zz){}
 		Vector(const Vector &v) : VectorBase(v){}
@@ -121,17 +121,23 @@ namespace ODER{
 		}
 	};
 
-	struct Tensor2{
+	template<class FT> struct Tensor2{
 		Tensor2(){
-			m[0][0] = m[1][1] = m[2][2] = 1.0f;
+			m[0][0] = m[1][1] = m[2][2] = FT(1.0);
 			m[0][1] = m[0][2] =
 				m[1][0] = m[1][2] =
-				m[2][0] = m[2][1] = 0.0f;
+				m[2][0] = m[2][1] = 0.0;
 		}
-		Tensor2(float mat[3][3]);
-		Tensor2(float m00, float m01, float m02,
-			float m10, float m11, float m12,
-			float m20, float m21, float m22);
+		Tensor2(FT mat[3][3]){
+			memcpy(m, mat, 9 * sizeof(FT));
+		}
+		Tensor2(FT m00, FT m01, FT m02,
+			FT m10, FT m11, FT m12,
+			FT m20, FT m21, FT m22){
+			m[0][0] = m00; m[0][1] = m01; m[0][2] = m02;
+			m[1][0] = m10; m[1][1] = m11; m[1][2] = m12;
+			m[2][0] = m20; m[2][1] = m21; m[2][2] = m22;
+		}
 		bool operator==(const Tensor2& mat) const{
 			for (int i = 0; i < 3; i++){
 				for (int j = 0; j < 3; j++){
@@ -160,12 +166,12 @@ namespace ODER{
 			}
 			return r;
 		}
-		Vector operator*(const Vector& v) const{
-			float x = v.x, y = v.y, z = v.z;
-			return Vector(m[0][0] * x + m[0][1] * y + m[0][2] * z, m[1][0] * x + m[1][1] * y + m[1][2] * z, m[2][0] * x + m[2][1] * y + m[2][2] * z);
+		VectorBase<FT> operator*(const VectorBase<FT>& v) const{
+			FT x = v.x, y = v.y, z = v.z;
+			return VectorBase<FT>(m[0][0] * x + m[0][1] * y + m[0][2] * z, m[1][0] * x + m[1][1] * y + m[1][2] * z, m[2][0] * x + m[2][1] * y + m[2][2] * z);
 		}
-		float operator$(const Tensor2& t) const{
-			float ret = 0.f;
+		FT operator&(const Tensor2& t) const{
+			FT ret = 0.f;
 			for (int i = 0; i < 3; i++){
 				for (int j = 0; j < 3; j++){
 					ret += m[i][j] * t.m[i][j];
@@ -173,10 +179,49 @@ namespace ODER{
 			}
 			return ret;
 		}
-		float determinant() const;
-		friend Tensor2 Inverse(const Tensor2&);
-		friend Tensor2 Transpose(const Tensor2&);
-		float m[3][3];
+		FT operator()(int row, int column) const{
+			Assert(row > -1 && row < 3 && column > -1 && column < 3);
+			return m[row][column];
+		}
+		FT& operator()(int row, int column){
+			Assert(row > -1 && row < 3 && column > -1 && column < 3);
+			return m[row][column];
+		}
+		FT Determinant() const{
+			return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+				- m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+				+ m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+		}
+		friend Tensor2 Inverse(const Tensor2&){
+			Tensor2 r;
+
+			FT det = tensor.Determinant();
+
+			Assert(fabsf(det) > 1e-7);
+
+			FT invDet = 1.f / det;
+			r.m[0][0] = (tensor.m[1][1] * tensor.m[2][2] - tensor.m[1][2] * tensor.m[2][1])*invDet;
+			r.m[0][1] = (tensor.m[0][2] * tensor.m[2][1] - tensor.m[0][1] * tensor.m[2][2])*invDet;
+			r.m[0][2] = (tensor.m[0][1] * tensor.m[1][2] - tensor.m[0][2] * tensor.m[1][1])*invDet;
+			r.m[1][0] = (tensor.m[1][2] * tensor.m[2][0] - tensor.m[1][0] * tensor.m[2][2])*invDet;
+			r.m[1][1] = (tensor.m[0][0] * tensor.m[2][2] - tensor.m[0][2] * tensor.m[2][0])*invDet;
+			r.m[1][2] = (tensor.m[0][2] * tensor.m[1][0] - tensor.m[0][0] * tensor.m[1][2])*invDet;
+			r.m[2][0] = (tensor.m[1][0] * tensor.m[2][1] - tensor.m[1][1] * tensor.m[2][0])*invDet;
+			r.m[2][1] = (tensor.m[0][1] * tensor.m[2][0] - tensor.m[0][0] * tensor.m[2][1])*invDet;
+			r.m[2][2] = (tensor.m[0][0] * tensor.m[1][1] - tensor.m[0][1] * tensor.m[1][0])*invDet;
+
+			return r;
+		}
+		friend Tensor2 Transpose(const Tensor2&){
+			Tensor2 ret;
+			for (int i = 0; i < 3; i++){
+				for (int j = 0; j < 3; j++){
+					ret.m[i][j] = m.m[j][i];
+				}
+			}
+			return ret;
+		}
+		FT m[3][3];
 	};
 
 	struct Mat4{
@@ -332,8 +377,8 @@ namespace ODER{
 		*v2 = v0 % *v1;
 	}
 
-	inline Tensor2 VectorBase<float>::operator^(const VectorBase<float>& v) const{
-		Tensor2 ret;
+	template<class FT> Tensor2<FT> VectorBase<FT>::operator^(const VectorBase<FT>& v) const{
+		Tensor2<FT> ret;
 		for (int i = 0; i < 3; i++){
 			for (int j = 0; j < 3; j++){
 				ret.m[i][j] = (*this)[i] * v[j];
@@ -402,11 +447,11 @@ namespace ODER{
 
 			int row = rowPermute[i];
 			int column = columnPermute[i];
-			FT scale = 1.f / A[order*row + column];
-			for (int j = i + 1; j < 3; j++){
+			FT scale = FT(1.0) / A[order*row + column];
+			for (int j = i + 1; j < order; j++){
 				int subRow = rowPermute[j];
 				FT lower = scale*A[order*subRow + column];
-				for (int k = i + 1; k < 3; k++){
+				for (int k = i + 1; k < order; k++){
 					int subColumn = columnPermute[k];
 					A[order*subRow + subColumn] -= lower * A[order*row + subColumn];
 				}
@@ -425,6 +470,70 @@ namespace ODER{
 			}
 			result[column] = (rhs[row] - dot) / A[order*row + column];
 		}
+	}
+
+	template<class FUN, class FT> FT findRoot(FUN f, FT start, FT end, FT epsilon = FT(2e-8), FT tolerance = 0.0){
+		FT a = start, b = end, c = start, d = 0.0, e = 0.0;
+		FT fa = f(a), fb = f(b), fc = fa;
+
+#define MAX_ITER 1000
+		for (int i = 0; i < MAX_ITER; i++){
+#undef MAX_ITER
+			if (fb > 0.0 && fc > 0.0 || fb < 0.0 && fc < 0.0){
+				c = a; fc = fa;
+				d = e = c - b;
+			}
+			if (fabs(fc) < fabs(fb)){
+				a = b; b = c; c = a;
+				fa = fb; fb = fc; fc = fa;
+			}
+
+			FT tol = FT(2.0)*FT(epsilon)*fabs(b) + tolerance;
+			FT m = FT(0.5)*(b - c);
+			
+			if (fabs(m) < tol || fb == FT(0.0)) return b;
+			if (fabs(e) >= tol && fa > fb){
+				//inverse quadratic
+				FT s = fa / fb;
+				FT p = 0.0, q = 0.0;
+				if (a == c){
+					p = FT(2.0)*m*s;
+					q = FT(1.0) - s;
+				}
+				else{
+					FT t = fa / fc;
+					FT r = fb / fc;
+					p = s(FT(2.0)*t*(r - t)*m - (FT(1.0) - r)*(b - a));
+					q = (t - FT(1.0))*(r - FT(1.0))*(s - FT(1.0));
+				}
+				if (p > 0.0) q = -q;
+				else p = -p;
+
+				if (FT(2.0)*p < min(FT(3.0)*q*m - fabs(tol*q), fabs(e*q))){
+					e = d;
+					d = p / q;
+				}
+				else{
+					//bisection
+					d = m;
+					e = d;
+				}
+			}
+			else{
+				//bisection
+				d = m;
+				e = d;
+			}
+			a = b;
+			fa = fb;
+			if (fabs(d) > tol)
+				b += d;
+			else
+				b += (m > 0 ? tol : -tol);
+			fb = f(b);
+		}
+		Error("max iteration in ODER::findRoot");
+		return 0.0;
 	}
 }
 

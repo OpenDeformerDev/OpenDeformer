@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "DelMesher.h"
 
-using namespace ODER;
+namespace ODER{
 
 Predicator<REAL> DelTriangulator::predicator;
 Labeler Vertex::labeler;
@@ -2539,3 +2539,5 @@ start:
 
 	return mesh;
 }
+}
+

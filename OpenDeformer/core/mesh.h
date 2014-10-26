@@ -16,7 +16,6 @@ namespace ODER{
 	public:
 		Mesh() :numNodes(0), numElements(0), numSurfaces(0), numNodesPerElement(0), numVertPerSur(0){}
 		Mesh(int numN, int numE, int numS, int numNPE, int numVPS = 3);
-		virtual void generateMassMatrix(const MecMaterial &material, const NodeIndexer &indexer, SparseMatrixAssembler &m) const = 0;
 		virtual Element* getEmptyElement() const = 0;
 		virtual Element* getEmptyMaterialElement(MarterialType type) const = 0;
 		virtual Facet* getEmptyFacet() const = 0;

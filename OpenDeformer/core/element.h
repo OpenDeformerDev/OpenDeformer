@@ -17,7 +17,9 @@ namespace ODER{
 		virtual void setVolume() = 0;
 		virtual void setBMatrixs() = 0;
 		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
+		virtual void generateSubMassMatrix(double *result) const = 0;
 		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
+		virtual void Intergration(double *C, double *nlpart, double *nnpart) const = 0;
 		virtual void setNodeIndexs(int elementIndex);
 		~Element();
 

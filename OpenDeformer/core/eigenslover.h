@@ -1,6 +1,7 @@
 #if defined(_MSC_VER)
 #pragma once
 #endif
+
 #ifndef ODER_CORE_EIGENSLOVER_H
 #define ODER_CORE_EIGENSLOVER_H
 

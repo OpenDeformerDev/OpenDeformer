@@ -20,7 +20,14 @@ namespace ODER{
 	class MecMaterial : public ReferenceCounted{
 	public:
 		MecMaterial(double rho, MarterialType t) :density(rho), type(t){}
+		void generateMassMatrix(const Reference<Mesh> &mesh, const NodeIndexer &indexer, SparseMatrixAssembler& matrix) const;
 		virtual void generateStiffnessMatrix(const Reference<Mesh> &mesh, const NodeIndexer &indexer, SparseMatrixAssembler& matrix) const = 0;
+		virtual void getNodeForces(double *ds, double *forces) const{
+			Severe("MecMaterial::getNodeForces is not implemented");
+		}
+		virtual void preprocessWithReduction(const Reference<Mesh> &mesh, const NodeIndexer &indexer, int dofs, const double *basises){
+			Severe("MecMaterial::preprocessWithReduction is not implemented");
+		}
 		double getDensity() const{ return density; }
 
 	protected:

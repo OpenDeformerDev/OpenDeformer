@@ -168,6 +168,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="material\stvk.h" />
     <ClInclude Include="mesher\aabb.h" />
     <ClInclude Include="core\arithmetic.h" />
     <ClInclude Include="core\element.h" />
@@ -195,6 +196,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
+    <ClCompile Include="core\MecMaterial.cpp" />
+    <ClCompile Include="material\stvk.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />
     <ClCompile Include="core\eigenslover.cpp" />
     <ClCompile Include="core\element.cpp" />

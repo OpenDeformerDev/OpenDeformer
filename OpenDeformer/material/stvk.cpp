@@ -1,21 +1,24 @@
 #include "stdafx.h"
-#include "hooke.h"
+#include "stvk.h"
 #include "nodeIndexer.h"
 
 namespace ODER{
-	HookeMaterial::HookeMaterial(double rho, double YOUNGS, double POSSION)
-		:MecMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Linear)),
-		youngs(YOUNGS), possion(POSSION){
-		//Lame prameters
-		double lambda = possion*youngs / ((1.0 + possion)*(1.0 - 2.0*possion));
-		double mu = youngs / (2.0*(1.0 + possion));
+	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, const Reference<Mesh> &mesh, int orderNum)
+		:MecMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear)),
+		lambda(lameFirst), mu(lameSecond), orders(orderNum){
 
 		D[0] = lambda + 2.0 * mu;
 		D[1] = lambda;
 		D[2] = mu;
+
+		intergration[0] = NULL;
+		intergration[1] = NULL;
+
+
+		loadParameter = allocAligned<double>(orders);
 	}
 
-	void HookeMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const NodeIndexer &indexer, SparseMatrixAssembler& matrix) const{
+	void StVKMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const NodeIndexer &indexer, SparseMatrixAssembler& matrix) const{
 		const int numNodesPerElement = mesh->numNodesPerElement;
 		double subStiffness[3 * 3];
 
@@ -59,4 +62,28 @@ namespace ODER{
 
 		delete element;
 	}
+
+	void StVKMaterial::preprocessWithReduction(const Reference<Mesh> &mesh, const NodeIndexer &indexer, int dofs, const double *basises){
+		const int numNodes = mesh->numNodes;
+		const int numNodePerElement = mesh->numNodesPerElement;
+		double *mem = allocAligned<double>(2 * dofs);
+		intergration[0] = mem;
+		intergration[1] = mem + dofs;
+
+	}
+
+	void StVKMaterial::getNodeForces(double *ds, double *forces) const{
+		for (int i = 0; i < orders; i++){
+
+		}
+	}
+
+	StVKMaterial::~StVKMaterial(){
+		if (intergration[0])
+		    freeAligned(intergration[0]);
+		freeAligned(loadParameter);
+	}
+
 }
+
+

@@ -126,6 +126,9 @@
     <ClInclude Include="core\oder.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
+    <ClInclude Include="material\stvk.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -175,6 +178,12 @@
     </ClCompile>
     <ClCompile Include="oder.cpp">
       <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="material\stvk.cpp">
+      <Filter>源文件\material</Filter>
+    </ClCompile>
+    <ClCompile Include="core\MecMaterial.cpp">
+      <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
