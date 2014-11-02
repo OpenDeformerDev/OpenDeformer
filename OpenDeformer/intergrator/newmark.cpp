@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include "newmark.h"
 #include "nodeIndexer.h"
+#include "forcer.h"
 
 namespace ODER{
-	NewmarkIntergrator::NewmarkIntergrator(int totalDOFS, double beta, double gamma, const SparseMatrix &M, const SparseMatrix &K, int DOFS, double massDamp, double stiffDamp, double ts)
-		:Intergrator(DOFS, massDamp, stiffDamp, ts){
+	NewmarkIntergrator::NewmarkIntergrator(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const Reference<MecMaterial> &mater)
+		:Intergrator(DOFS, massDamp, stiffDamp, ts, m, nodeIndexer, mater){
 		totalDofs = totalDOFS;
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
@@ -13,8 +15,19 @@ namespace ODER{
 		frequencies2 = allocAligned<double>(dofs);
 		basises = new double[dofs*totalDofs];
 
+		int matrixOrder = indexer->getMatrixOrder(mesh);
+		SparseMatrixAssembler M(matrixOrder);
+		SparseMatrixAssembler K(matrixOrder);
+		material->generateMassMatrix(mesh, indexer, M);
+		material->generateStiffnessMatrix(mesh, indexer, K);
+
 		EigenSlover slover;
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
+
+		loadFactors = NULL;
+		if (matchMaterialFlag(material->getMaterialType(), Marterial_NonLinear))
+			loadFactors = allocAligned<double>(material->getNonlinearAsymptoticOrder());
+
 
 #ifdef ODER_DEBUG
 		for (int i = 0; i < dofs; i++){
@@ -53,10 +66,10 @@ namespace ODER{
 		}
 	}
 
-	void NewmarkIntergrator::getDisplacements(const NodeIndexer &indexer, int displacementCount, double *displacements) const{
+	void NewmarkIntergrator::getDisplacements(int displacementCount, double *displacements) const{
 		memset(displacements, 0, displacementCount*sizeof(double));
 		const int* constrainIndices = NULL;
-		int constrainSize = indexer.getConstrainIndices(&constrainIndices);
+		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
 
 		double *basis = basises;
 		for (int i = 0; i < dofs; i++){
@@ -72,9 +85,9 @@ namespace ODER{
 		}
 	}
 
-	void NewmarkIntergrator::getVertexPositions(const Reference<Mesh> &mesh, const NodeIndexer &indexer, int verticesCount, Vector *vertices, double *displacementBuffer) const{
+	void NewmarkIntergrator::getVertexPositions(Vector *vertices, double *displacementBuffer) const{
 		const int* constrainIndices = NULL;
-		int constrainSize = indexer.getConstrainIndices(&constrainIndices);
+		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
 		double *displacements = displacementBuffer;
 		if (displacementBuffer == NULL)
 			displacements = new double[totalDofs];
@@ -83,7 +96,8 @@ namespace ODER{
 
 		int constrainIndex = 0;
 		int displacementIndex = 0;
-		for (int vertIndex = 0; vertIndex < verticesCount; vertIndex++){
+		int vertCount = mesh->numNodes;
+		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++){
 			for (int axis = 0; axis < 3; axis++){
 				if (constrainIndex < constrainSize && (3 * vertIndex + axis) == constrainIndices[constrainIndex]){
 					vertices[vertIndex][axis] = mesh->vertices[vertIndex][axis];
@@ -113,5 +127,7 @@ namespace ODER{
 	NewmarkIntergrator::~NewmarkIntergrator(){
 		freeAligned(frequencies2);
 		delete[] basises;
+		if (loadFactors)
+			freeAligned(loadFactors);
 	}
 }

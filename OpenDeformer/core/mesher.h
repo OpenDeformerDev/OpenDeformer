@@ -11,8 +11,8 @@
 namespace ODER{
 	class Mesher{
 	public:
-		Mesher(){}
 		virtual Reference<Mesh> generateMesh() = 0;
+		virtual ~Mesher(){}
 	};
 }
 

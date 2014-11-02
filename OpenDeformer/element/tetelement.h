@@ -14,21 +14,22 @@ namespace ODER{
 		TetElement(TetMesh *m, int n, MarterialType t);
 		TetElement(TetMesh *m, MarterialType t);
 		TetElement(TetMesh *m) :Element(m){}
-		void setVolume();
 		void setBMatrixs();
 		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
 		void generateSubMassMatrix(double *result) const;
-		void Intergration(double *C, double *nlpart, double *nnpart) const;
+		void Intergration(const double *C, double *nlpart, double *nnpart) const;
 		void getBodyVirtualWorks(double bodyForce[3], double *result) const;
 	private:
+		float getVolume() const;
 		void getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const;
 	};
 
 	struct TetFacet : public Facet{
 		TetFacet(TetMesh *m) :Facet(m){}
 		TetFacet(TetMesh *m, int index) :Facet(m, index){}
-		float getArea() const;
 		void getSurfVirtualWorks(double surfForce[3], double *result) const;
+	private:
+		float getArea() const;
 	};
 }
 

@@ -12,19 +12,17 @@ namespace ODER{
 	struct Element{
 		Element(Mesh *m, int index, MarterialType t);
 		Element(Mesh *m, MarterialType t);
-		Element(Mesh *m) :mesh(m), nodeIndexs(NULL), volume(-1.f), type(Marterial_Null), BMatrixs(NULL){}
+		Element(Mesh *m) :mesh(m), nodeIndexs(NULL), type(Marterial_Null), BMatrixs(NULL){}
 
-		virtual void setVolume() = 0;
 		virtual void setBMatrixs() = 0;
 		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
 		virtual void generateSubMassMatrix(double *result) const = 0;
 		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
-		virtual void Intergration(double *C, double *nlpart, double *nnpart) const = 0;
-		virtual void setNodeIndexs(int elementIndex);
-		~Element();
+		virtual void Intergration(const double *C, double *nlpart, double *nnpart) const = 0;
+		void setNodeIndexs(int elementIndex);
+		virtual ~Element();
 
 		int *nodeIndexs;
-		float volume;
 
 	protected:
 		Reference<Mesh> mesh;
@@ -35,7 +33,6 @@ namespace ODER{
 	struct Facet{
 		Facet(Mesh *m) :mesh(m), vertIndexs(NULL){}
 		Facet(Mesh *m, int index);
-		virtual float getArea() const { return -1.0; };
 		virtual void setVertIndexs(int vertIndex);
 		virtual void getSurfVirtualWorks(double surfForce[3], double *result) const = 0;
 

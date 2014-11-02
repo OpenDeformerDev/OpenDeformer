@@ -3,19 +3,18 @@
 #include "nodeIndexer.h"
 
 namespace ODER{
-	void Forcer::addBodyForce(double bodyForce[3], const NodeIndexer &indexer){
+	void Forcer::addBodyForce(const Reference<Mesh> &mesh, double bodyForce[3], const Reference<NodeIndexer> &indexer){
 		Element *element = mesh->getEmptyElement();
 		const int numNodesPerElement = mesh->numNodesPerElement;
 		double *result = new double[3 * numNodesPerElement];
 
 		for (int i = 0; i < mesh->numElements; i++){
 			element->setNodeIndexs(i);
-			element->setVolume();
 			element->getBodyVirtualWorks(bodyForce, result);
 			for (int j = 0; j < numNodesPerElement; j++){
 				for (int k = 0; k < 3; k++){
 					if (result[3 * j + k] != 0.0){
-						int nodeIndexOffset = indexer.getGlobalIndex(*element, j, k);
+						int nodeIndexOffset = indexer->getGlobalIndex(*element, j, k);
 						if (nodeIndexOffset >= 0){
 							auto found = virtualWorks.find(nodeIndexOffset);
 							if (found != virtualWorks.end())
@@ -31,11 +30,11 @@ namespace ODER{
 		delete[] result;
 	}
 
-	void Forcer::addSurfaceForceByNode(double nodeForce[3], int nodeCounts, int *nodeIndex, const NodeIndexer &indexer){
+	void Forcer::addSurfaceForceByNode(const Reference<Mesh> &mesh, double nodeForce[3], int nodeCounts, int *nodeIndex, const Reference<NodeIndexer> &indexer){
 		for (int i = 0; i < nodeCounts; i++){
 			for (int j = 0; j < 3; j++){
 				if (nodeForce[j] != 0.0){
-					int nodeIndexOffset = indexer.getGlobalIndex(nodeIndex[i], j);
+					int nodeIndexOffset = indexer->getGlobalIndex(nodeIndex[i], j);
 					if (nodeIndexOffset >= 0){
 						auto found = virtualWorks.find(nodeIndexOffset);
 						if (found != virtualWorks.end())
@@ -48,18 +47,18 @@ namespace ODER{
 		}
 	}
 
-	void Forcer::addSurfaceForceByElement(double surfaceForce[3], int surfaceCounts, int *surfaceIndex, const NodeIndexer &indexer){
+	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, double surfaceForce[3], int surfaceCounts, int *surfaceIndex, const Reference<NodeIndexer> &indexer){
 		Facet *facet = mesh->getEmptyFacet();
 		const int numVertPerSur = mesh->numVertPerSur;
 		double *result = new double[3 * numVertPerSur];
 
 		for (int i = 0; i < surfaceCounts; i++){
-			mesh->updateFacetInfo(surfaceIndex[i], facet);
+			facet->setVertIndexs(surfaceIndex[i]);
 			facet->getSurfVirtualWorks(surfaceForce, result);
 			for (int j = 0; j < numVertPerSur; j++){
 				for (int k = 0; k < 3; k++){
 					if (result[3 * j + k] != 0.0){
-						int nodeIndexOffset = indexer.getGlobalIndex(*facet, j, k);
+						int nodeIndexOffset = indexer->getGlobalIndex(*facet, j, k);
 						if (nodeIndexOffset >= 0){
 							auto found = virtualWorks.find(nodeIndexOffset);
 							if (found != virtualWorks.end())

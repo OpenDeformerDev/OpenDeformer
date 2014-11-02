@@ -9,13 +9,13 @@
 #include "memory.h"
 
 namespace ODER{
-	class NodeIndexer{
+	class NodeIndexer : public ReferenceCounted{
 	public:
-		NodeIndexer(){}
 		NodeIndexer(const Constrainer& constrainer);
 		int getGlobalIndex(const Element& element, int localNodeIndex, int axis) const;
 		int getGlobalIndex(const Facet& facet, int localVertIndex, int axis) const;
 		int getGlobalIndex(int nodeIndex, int axis) const;
+		void getElementNodesGlobalIndices(const Element& element, int nodeCounts, int *nodeIndices) const;
 		int getConstrainIndices(const int** detector) const;
 		int getMatrixOrder(const Reference<Mesh> &mesh) const;
 

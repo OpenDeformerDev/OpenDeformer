@@ -8,14 +8,12 @@ namespace ODER{
 		type = t;
 		BMatrixs = NULL;
 		nodeIndexs = &mesh->elements[mesh->numNodesPerElement*index];
-		volume = -1.0f;
 	}
 
 	Element::Element(Mesh *m, MarterialType t){
 		mesh = m;
 		type = t;
 		BMatrixs = NULL;
-		volume = -1.0f;
 	}
 
 	void Element::setNodeIndexs(int elementIndex){

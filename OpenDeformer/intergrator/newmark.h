@@ -12,11 +12,12 @@
 namespace ODER{
 	class NewmarkIntergrator : public Intergrator{
 	public:
-		NewmarkIntergrator(int totalDOFS, double beta, double gamma, const SparseMatrix &M, const SparseMatrix &K, int DOFS, double massDamp, double stiffDamp, double ts);
+		NewmarkIntergrator(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts, 
+			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const Reference<MecMaterial> &mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
-		void getDisplacements(const NodeIndexer &indexer, int displacementCount, double *displacements) const;
-		void getVertexPositions(const Reference<Mesh> &mesh, const NodeIndexer &indexer, int verticesCount, Vector *vertices, double *displacementBuffer = NULL) const;
+		void getDisplacements(int displacementCount, double *displacements) const;
+		void getVertexPositions(Vector *vertices, double *displacementBuffer = NULL) const;
 		~NewmarkIntergrator();
 	private:
 		void getRawDisplacements(double *displacements) const;
@@ -24,6 +25,7 @@ namespace ODER{
 		double betaDeltaT2, gammaDeltaT, minusBetaDeltaT2, minusGammaDeltaT;
 		double *frequencies2;
 		double *basises;
+		double *loadFactors;
 	};
 }
 

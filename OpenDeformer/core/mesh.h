@@ -20,12 +20,10 @@ namespace ODER{
 		virtual Element* getEmptyMaterialElement(MarterialType type) const = 0;
 		virtual Facet* getEmptyFacet() const = 0;
 		virtual Element* getElement(int elementIndex, MarterialType type) const = 0;
-		void updateElementInfo(int elementIndex, Element *element) const;
-		void updateFacetInfo(int elementIndex, Facet *facet) const;
 
 		virtual int getCloestNode(const Vector &v)  const { return -1; }
 		virtual int getCloestElement(const Vector &v) const { return -1; }
-		~Mesh();
+		virtual ~Mesh();
 
 		int numNodes;
 		int numElements;

@@ -18,7 +18,6 @@ namespace ODER{
 
 	Element* TetMesh::getElement(int elementIndex, MarterialType type) const{
 		TetElement* ret = new TetElement((TetMesh *)this, elementIndex, type);
-		ret->setVolume();
 		return ret;
 	}
 }

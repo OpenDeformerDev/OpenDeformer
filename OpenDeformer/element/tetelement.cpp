@@ -5,7 +5,6 @@ namespace ODER{
 	TetElement::TetElement(TetMesh *m, int n, MarterialType t) :Element(m, n, t){
 		const int entrys = 4 * 3;
 		BMatrixs = new double[entrys];
-
 	}
 
 	TetElement::TetElement(TetMesh *m, MarterialType t) : Element(m, t){
@@ -55,6 +54,7 @@ namespace ODER{
 
 	void TetElement::generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const{
 		const int entryCountPerB = 3;
+		double volume = getVolume();
 		double factor = 1.0 / (36.0*volume);
 		const double *Ba = BMatrixs + entryCountPerB*aNodeIndex;
 		const double *Bb = BMatrixs + entryCountPerB*bNodeIndex;
@@ -110,6 +110,7 @@ namespace ODER{
 	}
 
 	void TetElement::generateSubMassMatrix(double *result) const{
+		double volume = getVolume();
 		double offdiag = volume*0.05;
 		double diag = volume*0.1;
 		result[0] = diag;
@@ -124,9 +125,10 @@ namespace ODER{
 		result[9] = diag;
 	}
 
-	void TetElement::Intergration(double *C, double *nlpart, double *nnpart) const{
+	void TetElement::Intergration(const double *C, double *nlpart, double *nnpart) const{
 		const int entryCountPerB = 3;
 		const int numNodesPerElement = 4;
+		double volume = getVolume();
 		double volume2 = volume*volume;
 		double nlFactor = 1.0 / (216.0*volume2);
 		double nnFactor = 1.0 / (1296.0*volume*volume2);
@@ -138,6 +140,7 @@ namespace ODER{
 			for (int a = 0; a < numNodesPerElement; a++){
 				const double *dNas = BMatrixs + entryCountPerB*a;
 				VectorBase<double> dNa(dNas[0], dNas[1], dNas[2]);
+
 				for (int b = 0; b < numNodesPerElement; b++){
 					const double *dNbs = BMatrixs + entryCountPerB*b;
 
@@ -154,21 +157,22 @@ namespace ODER{
 					t(2, 1) *= mu2;
 					t(2, 2) = digCommmon + mu2*t(2, 2);
 
+					int indexOffset = a * 16 + b * 4;
 					//nlpart
 					for (int c = 0; c < numNodesPerElement; c++){
 						const double *dNcs = BMatrixs + entryCountPerB*c;
 						VectorBase<double> result = t*VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]);
-						nlpart[c * 3] += result[0] * nlFactor;
-						nlpart[c * 3 + 1] += result[1] * nlFactor;
-						nlpart[c * 3 + 2] += result[2] * nlFactor;
-					}
-					//nnpart
-					for (int c = 0; c < numNodesPerElement; c++){
+						int nlsubIndex = (indexOffset + c) * 3;
+						nlpart[nlsubIndex + 0] = result[0] * nlFactor;
+						nlpart[nlsubIndex + 1] = result[1] * nlFactor;
+						nlpart[nlsubIndex + 2] = result[2] * nlFactor;
+						//nnpart
 						for (int d = 0; d < numNodesPerElement; d++){
 							const double *dNc = BMatrixs + entryCountPerB*c;
 							const double *dNd = BMatrixs + entryCountPerB*d;
 							Tensor2<double> left = VectorBase<double>(dNc[0], dNc[1], dNc[2]) ^ VectorBase<double>(dNd[0], dNd[1], dNd[2]);
-							nnpart[d] += (left & t)*nnFactor;
+							int nnsubIndex = (indexOffset + c) * 4;
+							nnpart[nnsubIndex + d] = (left & t)*nnFactor;
 						}
 					}
 				}
@@ -177,10 +181,9 @@ namespace ODER{
 		else{
 			Severe("Unimplemented feature in TetElement::Intergration");
 		}
-
 	}
 
-	void TetElement::setVolume(){
+	float TetElement::getVolume() const{
 		Vector a = mesh->vertices[nodeIndexs[0]];
 		Vector b = mesh->vertices[nodeIndexs[1]];
 		Vector c = mesh->vertices[nodeIndexs[2]];
@@ -190,10 +193,11 @@ namespace ODER{
 		Vector ac = c - a;
 		Vector ad = d - a;
 
-		volume = fabsf(ab*(ac%ad)) / 6.f;
+		return fabsf(ab*(ac%ad)) / 6.f;
 	}
 
 	void TetElement::getBodyVirtualWorks(double bodyForce[3], double *result) const{
+		double volume = getVolume();
 		double factor = volume / 4.0;
 		const int numNodesPerElement = 4;
 		for (int i = 0; i < numNodesPerElement; i++){

@@ -193,6 +193,5 @@
     <None Include="shader\test.fs">
       <Filter>源文件\shader</Filter>
     </None>
-    <None Include="ClassDiagram.cd" />
   </ItemGroup>
 </Project>

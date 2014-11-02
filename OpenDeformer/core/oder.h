@@ -72,8 +72,6 @@ namespace ODER{
 	template<class T> class MemoryArena;
 	template<class T> class MemoryPool;
 
-
-
 	inline unsigned int Randomnation(unsigned int choices){
 		randomSeed = (randomSeed * 1366l + 150889l) % 714025l;
 		return randomSeed % choices;

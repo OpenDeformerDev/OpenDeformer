@@ -53,6 +53,13 @@ namespace ODER{
 		}
 	}
 
+	void NodeIndexer::getElementNodesGlobalIndices(const Element& element, int nodeCounts, int *nodeIndices) const{
+		for (int nodeIndex = 0; nodeIndex < nodeCounts; nodeIndex++){
+			for (int axis = 0; axis < 3; axis++)
+				nodeIndices[nodeIndex * 3 + axis] = getGlobalIndex(element, nodeIndex, axis);
+		}
+	}
+
 	int NodeIndexer::getConstrainIndices(const int **detector) const{
 		*detector = &constrainIndices[0];
 		return constrainIndices.size();
