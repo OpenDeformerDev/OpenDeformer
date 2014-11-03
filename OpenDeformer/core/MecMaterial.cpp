@@ -7,11 +7,11 @@
 namespace ODER{
 	void MecMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& m) const{
 		Element *element = mesh->getEmptyElement();
-		int numNodesPerElement = mesh->numNodesPerElement;
+		int numNodesPerElement = mesh->getNodePerElementCount();
 
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
 		double *subMass = new double[entrys];
-		for (int elementIndex = 0; elementIndex < mesh->numElements; elementIndex++){
+		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
 			element->setNodeIndexs(elementIndex);
 			element->generateSubMassMatrix(subMass);
 

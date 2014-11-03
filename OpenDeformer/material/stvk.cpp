@@ -29,12 +29,12 @@ namespace ODER{
 	}
 
 	void StVKMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
-		const int numNodesPerElement = mesh->numNodesPerElement;
+		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double subStiffness[3 * 3];
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 
-		for (int elementIndex = 0; elementIndex < mesh->numElements; elementIndex++){
+		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
 			element->setNodeIndexs(elementIndex);
 			element->setBMatrixs();
 
@@ -75,9 +75,9 @@ namespace ODER{
 	}
 
 	void StVKMaterial::preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer){
-		const int numNodes = mesh->numNodes;
-		const int numNodePerElement = mesh->numNodesPerElement;
-		const int numElements = mesh->numElements;
+		const int numNodes = mesh->getNodeCount();
+		const int numNodePerElement = mesh->getNodePerElementCount();
+		const int numElements = mesh->getElementCount();
 		double **pointerMem = allocAligned<double *>(2 * numElements);
 		intergration[0] = pointerMem;
 		intergration[1] = pointerMem + numElements;
@@ -126,8 +126,8 @@ namespace ODER{
 	}
 
 	void StVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces) {
-		const int numElements = mesh->numElements;
-		const int numNodesPerElement = mesh->numNodesPerElement;
+		const int numElements = mesh->getElementCount();
+		const int numNodesPerElement = mesh->getNodePerElementCount();
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 		int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
@@ -182,10 +182,10 @@ namespace ODER{
 								}
 							}
 
-							int cNodeIndex = element->nodeIndexs[c];
+							int cNodeIndex = element->getNodeIndex(c);
 							for (int d = 0; d < numNodesPerElement; d++){
 								//assemble part with stresses
-								int dNodeIndex = element->nodeIndexs[d];
+								int dNodeIndex = element->getNodeIndex(d);
 								stressNonlinear[order - 1][dNodeIndex][cNodeIndex] += factor*nnpart[a * 64 + b * 16 * c * 4 + d];
 							}
 						}
@@ -193,8 +193,8 @@ namespace ODER{
 				}
 				//assmble lower order nonlinear part
 				if (i < order - 1){
-					for (int aNodeIndex = 0; aNodeIndex < mesh->numNodes; aNodeIndex++){
-						for (int bNodeIndex = 0; bNodeIndex < mesh->numNodes; bNodeIndex++){
+					for (int aNodeIndex = 0; aNodeIndex < mesh->getNodeCount(); aNodeIndex++){
+						for (int bNodeIndex = 0; bNodeIndex < mesh->getNodeCount(); bNodeIndex++){
 							for (int axis = 0; axis < 3; axis++){
 								int index = indexer->getGlobalIndex(bNodeIndex, axis);
 								if (index >= 0){

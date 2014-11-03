@@ -13,10 +13,10 @@ namespace ODER{
 	}
 
 	void TetElement::getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const{
-		Vector a = mesh->vertices[nodeIndexs[0]];
-		Vector b = mesh->vertices[nodeIndexs[1]];
-		Vector c = mesh->vertices[nodeIndexs[2]];
-		Vector d = mesh->vertices[nodeIndexs[3]];
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
 
 		Vector da = a - d;
 		Vector db = b - d;
@@ -184,10 +184,10 @@ namespace ODER{
 	}
 
 	float TetElement::getVolume() const{
-		Vector a = mesh->vertices[nodeIndexs[0]];
-		Vector b = mesh->vertices[nodeIndexs[1]];
-		Vector c = mesh->vertices[nodeIndexs[2]];
-		Vector d = mesh->vertices[nodeIndexs[3]];
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
 
 		Vector ab = b - a;
 		Vector ac = c - a;
@@ -207,9 +207,9 @@ namespace ODER{
 	}
 
 	float TetFacet::getArea() const{
-		Vector a = mesh->vertices[vertIndexs[0]];
-		Vector b = mesh->vertices[vertIndexs[1]];
-		Vector c = mesh->vertices[vertIndexs[2]];
+		Vector a = mesh->getVertex(vertIndexs[0]);
+		Vector b = mesh->getVertex(vertIndexs[1]);
+		Vector c = mesh->getVertex(vertIndexs[2]);
 
 		return ((b - a) % (c - a)).length() * 0.5f;
 	}

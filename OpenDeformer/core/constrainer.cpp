@@ -58,11 +58,11 @@ void Constrainer::setConstrains(const Vector& origin, const Vector& normal, Cons
 	const float epsilon = 1e-4;
 	Facet *facet = mesh->getEmptyFacet();
 
-	for (int i = 0; i < mesh->numSurfaces; i++){
+	for (int i = 0; i < mesh->getFacetCount(); i++){
 		facet->setVertIndexs(i);
-		for (int j = 0; j < mesh->numVertPerSur; j++){
-			int index = facet->vertIndexs[j];
-			Vector vert = mesh->vertices[index];
+		for (int j = 0; j < mesh->getVertPerFacetCount(); j++){
+			int index = facet->getVertIndex(j);
+			Vector vert = mesh->getVertex(index);
 			if (fabsf((vert - origin)*normal) < epsilon){
 				setConstrain(index, constrainType);
 			}

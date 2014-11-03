@@ -96,15 +96,15 @@ namespace ODER{
 
 		int constrainIndex = 0;
 		int displacementIndex = 0;
-		int vertCount = mesh->numNodes;
+		int vertCount = mesh->getNodeCount();
 		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++){
 			for (int axis = 0; axis < 3; axis++){
 				if (constrainIndex < constrainSize && (3 * vertIndex + axis) == constrainIndices[constrainIndex]){
-					vertices[vertIndex][axis] = mesh->vertices[vertIndex][axis];
+					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis];
 					constrainIndex++;
 				}
 				else
-					vertices[vertIndex][axis] = mesh->vertices[vertIndex][axis] + float(displacements[displacementIndex++]);
+					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis] + float(displacements[displacementIndex++]);
 			}
 		}
 

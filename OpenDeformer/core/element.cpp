@@ -7,7 +7,7 @@ namespace ODER{
 		mesh = m;
 		type = t;
 		BMatrixs = NULL;
-		nodeIndexs = &mesh->elements[mesh->numNodesPerElement*index];
+		nodeIndexs = mesh->getElementNodeReference(index);
 	}
 
 	Element::Element(Mesh *m, MarterialType t){
@@ -17,7 +17,11 @@ namespace ODER{
 	}
 
 	void Element::setNodeIndexs(int elementIndex){
-		nodeIndexs = &mesh->elements[mesh->numNodesPerElement*elementIndex];
+		nodeIndexs = mesh->getElementNodeReference(elementIndex);
+	}
+
+	int Element::getNodeIndex(int localIndex) const{
+		return nodeIndexs[localIndex];
 	}
 
 	Element::~Element(){
@@ -26,10 +30,13 @@ namespace ODER{
 	}
 
 	Facet::Facet(Mesh *m, int index) :mesh(m){
-		vertIndexs = &mesh->surfaces[mesh->numVertPerSur*index];
+		vertIndexs = mesh->getFacetVertReference(index);
 	}
 
+	int Facet::getVertIndex(int localIndex) const{
+		return vertIndexs[localIndex];
+	}
 	void Facet::setVertIndexs(int vertIndex){
-		vertIndexs = &mesh->surfaces[mesh->numVertPerSur*vertIndex];
+		vertIndexs = mesh->getFacetVertReference(vertIndex);
 	}
 }

@@ -20,11 +20,11 @@ namespace ODER{
 		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
 		virtual void Intergration(const double *C, double *nlpart, double *nnpart) const = 0;
 		void setNodeIndexs(int elementIndex);
+		int getNodeIndex(int localIndex) const;
 		virtual ~Element();
 
-		int *nodeIndexs;
-
 	protected:
+		const int *nodeIndexs;
 		Reference<Mesh> mesh;
 		MarterialType type;
 		double *BMatrixs;
@@ -35,10 +35,10 @@ namespace ODER{
 		Facet(Mesh *m, int index);
 		virtual void setVertIndexs(int vertIndex);
 		virtual void getSurfVirtualWorks(double surfForce[3], double *result) const = 0;
-
-		int *vertIndexs;
+		int getVertIndex(int localIndex) const;
 
 	protected:
+		const int *vertIndexs;
 		Reference<Mesh> mesh;
 	};
 }

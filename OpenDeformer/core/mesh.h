@@ -23,8 +23,23 @@ namespace ODER{
 
 		virtual int getCloestNode(const Vector &v)  const { return -1; }
 		virtual int getCloestElement(const Vector &v) const { return -1; }
+
+		int getNodeCount() const { return numNodes; }
+		int getNodePerElementCount() const{ return numNodesPerElement; }
+		int getElementCount() const{ return numElements; }
+		int getVertPerFacetCount() const { return numVertPerSur; }
+		int getFacetCount() const{ return numSurfaces; }
+		Vector getVertex(int vertIndex) const{ return vertices[vertIndex]; }
+		void setVertex(int vertIndex, const Vector& vert){ vertices[vertIndex] = vert; }
+		void setElement(int elementIndex, int *nodeIndices);
+		void setFacet(int facetIndex, int *facetIndices);
+		int getElementNodeIndex(int elementIndex, int nodeIndex);
+		const int* getElementNodeReference(int elementIndex) const;
+		const int *getFacetVertReference(int facetIndex) const;
+
 		virtual ~Mesh();
 
+	private:
 		int numNodes;
 		int numElements;
 		int numSurfaces;

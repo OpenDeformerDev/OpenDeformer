@@ -16,12 +16,12 @@ namespace ODER{
 	}
 
 	void HookeMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
-		const int numNodesPerElement = mesh->numNodesPerElement;
+		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double subStiffness[3 * 3];
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 
-		for (int elementIndex = 0; elementIndex < mesh->numElements; elementIndex++){
+		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
 			element->setNodeIndexs(elementIndex);
 			element->setBMatrixs();
 

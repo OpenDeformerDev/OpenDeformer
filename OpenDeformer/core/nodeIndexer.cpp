@@ -9,7 +9,7 @@ namespace ODER{
 	}
 
 	int NodeIndexer::getGlobalIndex(const Element& element, int localNodeIndex, int axis) const{
-		int index = 3 * element.nodeIndexs[localNodeIndex] + axis;
+		int index = 3 * element.getNodeIndex(localNodeIndex) + axis;
 		if (constrainIndices.empty())
 			return index;
 		else{
@@ -23,7 +23,7 @@ namespace ODER{
 		}
 	}
 	int NodeIndexer::getGlobalIndex(const Facet& facet, int localVertIndex, int axis) const{
-		int index = 3 * facet.vertIndexs[localVertIndex] + axis;
+		int index = 3 * facet.getVertIndex(localVertIndex)+ axis;
 		if (constrainIndices.empty())
 			return index;
 		else{
@@ -66,6 +66,6 @@ namespace ODER{
 	}
 
 	int NodeIndexer::getMatrixOrder(const Reference<Mesh> &mesh) const{
-		return 3 * mesh->numNodes - constrainIndices.size();
+		return 3 * mesh->getNodeCount() - constrainIndices.size();
 	}
 }

@@ -5,10 +5,10 @@
 namespace ODER{
 	void Forcer::addBodyForce(const Reference<Mesh> &mesh, double bodyForce[3], const Reference<NodeIndexer> &indexer){
 		Element *element = mesh->getEmptyElement();
-		const int numNodesPerElement = mesh->numNodesPerElement;
+		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double *result = new double[3 * numNodesPerElement];
 
-		for (int i = 0; i < mesh->numElements; i++){
+		for (int i = 0; i < mesh->getElementCount(); i++){
 			element->setNodeIndexs(i);
 			element->getBodyVirtualWorks(bodyForce, result);
 			for (int j = 0; j < numNodesPerElement; j++){
@@ -49,7 +49,7 @@ namespace ODER{
 
 	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, double surfaceForce[3], int surfaceCounts, int *surfaceIndex, const Reference<NodeIndexer> &indexer){
 		Facet *facet = mesh->getEmptyFacet();
-		const int numVertPerSur = mesh->numVertPerSur;
+		const int numVertPerSur = mesh->getVertPerFacetCount();
 		double *result = new double[3 * numVertPerSur];
 
 		for (int i = 0; i < surfaceCounts; i++){

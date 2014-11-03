@@ -2518,23 +2518,27 @@ start:
 
 	TetMesh *mesh = new TetMesh(vertices.size(), tets.size(), polygons.size());
 	map<Vertex*, int> vi;
-	for (int i = 0; i < mesh->numNodes; i++){
-		mesh->vertices[i] = vertices[i]->vert;
+	for (int i = 0; i < mesh->getNodeCount(); i++){
+		mesh->setVertex(i, vertices[i]->vert);
 		vi[vertices[i]] = i;
 	}
 	int i = 0;
+	int elementNodeIndices[4];
 	for (auto t : tets){
-		mesh->elements[i++] = vi[t.v[0]];
-		mesh->elements[i++] = vi[t.v[1]];
-		mesh->elements[i++] = vi[t.v[2]];
-		mesh->elements[i++] = vi[t.v[3]];
+		elementNodeIndices[0] = vi[t.v[0]];
+		elementNodeIndices[1] = vi[t.v[1]];
+		elementNodeIndices[2] = vi[t.v[2]];
+		elementNodeIndices[3] = vi[t.v[3]];
+		mesh->setElement(i++, elementNodeIndices);
 	}
 
 	i = 0;
+	int surfVertIndices[3];
 	for (auto f : polygons){
-		mesh->surfaces[i++] = vi[f.v[0]];
-		mesh->surfaces[i++] = vi[f.v[1]];
-		mesh->surfaces[i++] = vi[f.v[2]];
+		surfVertIndices[0] = vi[f.v[0]];
+		surfVertIndices[1] = vi[f.v[1]];
+		surfVertIndices[2] = vi[f.v[2]];
+		mesh->setFacet(i++, surfVertIndices);
 	}
 
 	return mesh;
