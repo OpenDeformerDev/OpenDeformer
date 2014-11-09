@@ -4,9 +4,9 @@
 #include "forcer.h"
 
 namespace ODER{
-	NewmarkIntergrator::NewmarkIntergrator(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const Reference<MecMaterial> &mater)
-		:Intergrator(DOFS, massDamp, stiffDamp, ts, m, nodeIndexer, mater){
+	LinearNewmark::LinearNewmark(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MecMaterial& mater)
+		:Intergrator(DOFS, massDamp, stiffDamp, ts){
 		totalDofs = totalDOFS;
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
@@ -15,18 +15,14 @@ namespace ODER{
 		frequencies2 = allocAligned<double>(dofs);
 		basises = new double[dofs*totalDofs];
 
-		int matrixOrder = indexer->getMatrixOrder(mesh);
+		int matrixOrder = nodeIndexer->getMatrixOrder(m);
 		SparseMatrixAssembler M(matrixOrder);
 		SparseMatrixAssembler K(matrixOrder);
-		material->generateMassMatrix(mesh, indexer, M);
-		material->generateStiffnessMatrix(mesh, indexer, K);
+		mater.generateMassMatrix(m, nodeIndexer, M);
+		mater.generateStiffnessMatrix(m, nodeIndexer, K);
 
 		EigenSlover slover;
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
-
-		loadFactors = NULL;
-		if (matchMaterialFlag(material->getMaterialType(), Marterial_NonLinear))
-			loadFactors = allocAligned<double>(material->getNonlinearAsymptoticOrder());
 
 
 #ifdef ODER_DEBUG
@@ -37,12 +33,12 @@ namespace ODER{
 #endif
 	}
 
-	void NewmarkIntergrator::setExternalVirtualWork(const Forcer& forcer){
+	void LinearNewmark::setExternalVirtualWork(const Forcer& forcer){
 		forcer.getVirtualWorks(dofs, totalDofs, basises, externalVirtualWork);
 		memcpy(a, externalVirtualWork, dofs*sizeof(double));
 	}
 
-	void NewmarkIntergrator::runOneTimeStep(){
+	void LinearNewmark::runOneTimeStep(){
 		memcpy(pre_d, d, dofs*sizeof(double));
 		memcpy(pre_v, v, dofs*sizeof(double));
 		memcpy(pre_a, a, dofs*sizeof(double));
@@ -66,53 +62,7 @@ namespace ODER{
 		}
 	}
 
-	void NewmarkIntergrator::getDisplacements(int displacementCount, double *displacements) const{
-		memset(displacements, 0, displacementCount*sizeof(double));
-		const int* constrainIndices = NULL;
-		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
-
-		double *basis = basises;
-		for (int i = 0; i < dofs; i++){
-			int constrainIndex = 0;
-			double displacement = d[i];
-			for (int j = 0; j < displacementCount; j++){
-				if (constrainIndex < constrainSize && j == constrainIndices[constrainIndex])
-					constrainIndex++;
-				else
-					displacements[j] += displacement * basis[j - constrainIndex];
-			}
-			basis += totalDofs;
-		}
-	}
-
-	void NewmarkIntergrator::getVertexPositions(Vector *vertices, double *displacementBuffer) const{
-		const int* constrainIndices = NULL;
-		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
-		double *displacements = displacementBuffer;
-		if (displacementBuffer == NULL)
-			displacements = new double[totalDofs];
-
-		getRawDisplacements(displacements);
-
-		int constrainIndex = 0;
-		int displacementIndex = 0;
-		int vertCount = mesh->getNodeCount();
-		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++){
-			for (int axis = 0; axis < 3; axis++){
-				if (constrainIndex < constrainSize && (3 * vertIndex + axis) == constrainIndices[constrainIndex]){
-					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis];
-					constrainIndex++;
-				}
-				else
-					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis] + float(displacements[displacementIndex++]);
-			}
-		}
-
-		if (displacementBuffer == NULL)
-			delete[] displacements;
-	}
-
-	void NewmarkIntergrator::getRawDisplacements(double *displacements) const{
+	void LinearNewmark::getRawDisplacements(double *displacements) const{
 		memset(displacements, 0, totalDofs*sizeof(double));
 		double *basis = basises;
 		for (int i = 0; i < dofs; i++){
@@ -124,10 +74,8 @@ namespace ODER{
 		}
 	}
 
-	NewmarkIntergrator::~NewmarkIntergrator(){
+	LinearNewmark::~LinearNewmark(){
 		freeAligned(frequencies2);
 		delete[] basises;
-		if (loadFactors)
-			freeAligned(loadFactors);
 	}
 }

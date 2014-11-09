@@ -17,20 +17,11 @@ namespace ODER{
 		Marterial_NonLinear = 1 << 3
 	};
 
-	class MecMaterial : public ReferenceCounted{
+	class MecMaterial{
 	public:
 		MecMaterial(double rho, MarterialType t) :density(rho), type(t){}
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		virtual void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const = 0;
-		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces){
-			Severe("MecMaterial::getNodeForces is not implemented");
-		}
-		virtual void preprocessWithReduction(const Reference<Mesh> &mesh, const NodeIndexer &indexer){
-			Severe("MecMaterial::preprocessWithReduction is not implemented");
-		}
-		virtual int getNonlinearAsymptoticOrder(){
-			return 0;
-		}
 
 		double getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }

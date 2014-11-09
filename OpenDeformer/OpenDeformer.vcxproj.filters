@@ -102,9 +102,6 @@
     <ClInclude Include="core\datastructure.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
-    <ClInclude Include="InitShader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="mesher\aabb.h">
       <Filter>头文件\mesher</Filter>
     </ClInclude>
@@ -128,6 +125,18 @@
     </ClInclude>
     <ClInclude Include="material\stvk.h">
       <Filter>头文件\material</Filter>
+    </ClInclude>
+    <ClInclude Include="core\simulator.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="intergrator\asymptoticNewmark.h">
+      <Filter>头文件\intergrator</Filter>
+    </ClInclude>
+    <ClInclude Include="material\hyperelastic.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
+    <ClInclude Include="InitShader.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -184,6 +193,12 @@
     </ClCompile>
     <ClCompile Include="core\MecMaterial.cpp">
       <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\simulator.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="intergrator\asymptoticNewmark.cpp">
+      <Filter>源文件\intergrator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

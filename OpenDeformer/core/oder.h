@@ -68,6 +68,7 @@ namespace ODER{
 	class EigenSlover;
 	class Constrainer;
 	class NodeIndexer;
+	class Simulator;
 
 	template<class T> class MemoryArena;
 	template<class T> class MemoryPool;

@@ -2,8 +2,8 @@
 #include "intergrator.h"
 
 namespace ODER{
-	Intergrator::Intergrator(int DOFS, double massDamp, double stiffDamp, double ts, const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const Reference<MecMaterial> &mater)
-		:dofs(DOFS), massDamping(massDamp), stiffnessDamping(stiffDamp), timeStep(ts), mesh(m), indexer(nodeIndexer), material(mater){
+	Intergrator::Intergrator(int DOFS, double massDamp, double stiffDamp, double ts)
+		:dofs(DOFS), massDamping(massDamp), stiffnessDamping(stiffDamp), timeStep(ts){
 		d = allocAligned<double>(dofs);
 		v = allocAligned<double>(dofs);
 		a = allocAligned<double>(dofs);

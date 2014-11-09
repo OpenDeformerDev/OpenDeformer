@@ -472,7 +472,7 @@ namespace ODER{
 		}
 	}
 
-	template<class FUN, class FT> FT findRoot(FUN f, FT start, FT end, FT epsilon = FT(2e-8), FT tolerance = 0.0){
+	template<class FUN, class FT> FT findRoot(FUN f, FT start, FT end, FT tolerance = 0.0, FT epsilon = FT(2e-8)){
 		FT a = start, b = end, c = start, d = 0.0, e = 0.0;
 		FT fa = f(a), fb = f(b), fc = fa;
 
@@ -503,7 +503,7 @@ namespace ODER{
 				else{
 					FT t = fa / fc;
 					FT r = fb / fc;
-					p = s(FT(2.0)*t*(r - t)*m - (FT(1.0) - r)*(b - a));
+					p = s * (FT(2.0)*t*(r - t)*m - (FT(1.0) - r)*(b - a));
 					q = (t - FT(1.0))*(r - FT(1.0))*(s - FT(1.0));
 				}
 				if (p > 0.0) q = -q;
@@ -532,7 +532,7 @@ namespace ODER{
 				b += (m > 0 ? tol : -tol);
 			fb = f(b);
 		}
-		Error("max iteration in ODER::findRoot");
+		Severe("max iteration in ODER::findRoot");
 		return 0.0;
 	}
 }

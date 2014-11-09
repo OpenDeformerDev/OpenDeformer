@@ -1,16 +1,19 @@
 #include "stdafx.h"
 #include "stvk.h"
 #include "nodeIndexer.h"
+#include "mesh.h"
+#include "element.h"
 
 namespace ODER{
 	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, int numElements, int orderNum)
-		:MecMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear)),
-		lambda(lameFirst), mu(lameSecond), orders(orderNum){
+		:HyperelasticMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear), orderNum),
+		lambda(lameFirst), mu(lameSecond){
 
 		D[0] = lambda + 2.0 * mu;
 		D[1] = lambda;
 		D[2] = mu;
 
+		int orders = getNonlinearAsymptoticOrder();
 		stressNonlinear = allocAligned<double **>(orders);
 		double **pointerMem = allocAligned<double *>(orders*numElements);
 		double *mem = allocAligned<double>(orders*numElements*numElements);

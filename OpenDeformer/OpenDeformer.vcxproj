@@ -99,6 +99,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <MinimalRebuild>true</MinimalRebuild>
       <BufferSecurityCheck>true</BufferSecurityCheck>
+      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -140,6 +141,8 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -169,6 +172,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="core\simulator.h" />
+    <ClInclude Include="intergrator\asymptoticNewmark.h" />
+    <ClInclude Include="material\hyperelastic.h" />
     <ClInclude Include="material\stvk.h" />
     <ClInclude Include="mesher\aabb.h" />
     <ClInclude Include="core\arithmetic.h" />
@@ -198,6 +204,8 @@
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
     <ClCompile Include="core\MecMaterial.cpp" />
+    <ClCompile Include="core\simulator.cpp" />
+    <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\stvk.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />
     <ClCompile Include="core\eigenslover.cpp" />
