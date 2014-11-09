@@ -14,7 +14,6 @@ namespace ODER{
 	class Intergrator{
 	public:
 		Intergrator(int DOFS, double massDamp, double stiffDamp, double ts);
-		Intergrator(const Intergrator& intergrator);
 
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
 		virtual void runOneTimeStep() = 0;

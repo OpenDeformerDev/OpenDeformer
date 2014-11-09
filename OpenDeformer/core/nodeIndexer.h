@@ -11,9 +11,8 @@
 namespace ODER{
 	class NodeIndexer : public ReferenceCounted{
 	public:
-		NodeIndexer(){}
 		NodeIndexer(const Constrainer& constrainer);
-		NodeIndexer(NodeIndexer&& indexer);
+		NodeIndexer(NodeIndexer && indexer);
 		int getGlobalIndex(const Element& element, int localNodeIndex, int axis) const;
 		int getGlobalIndex(const Facet& facet, int localVertIndex, int axis) const;
 		int getGlobalIndex(int nodeIndex, int axis) const;

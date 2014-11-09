@@ -115,7 +115,7 @@ namespace ODER{
 				para *= x;
 			}
 			return ret;
-		}, 0.0, 1.0, 2e-8);
+		}, 0.0, 2.0, 2e-8);
 
 		memset(displacements, 0, totalDofs*sizeof(double));
 		for (int order = 0; order < orderCount; order++){

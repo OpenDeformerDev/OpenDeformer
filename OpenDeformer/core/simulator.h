@@ -11,7 +11,10 @@
 namespace ODER{
 	class Simulator{
 	public:
+		Simulator():intergrator(NULL), rawDisplacements(NULL){}
 		Simulator(const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, Intergrator *intergrate);
+		Simulator(Simulator &&simulator);
+		void operator=(Simulator &&simulator);
 		void getVertexPositions(Vector *vertices) const;
 		void runTimeSteps(int stepCount);
 		~Simulator();

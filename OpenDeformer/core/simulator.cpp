@@ -10,6 +10,26 @@ namespace ODER{
 		:mesh(m), indexer(nodeIndexer), intergrator(intergrate){
 		rawDisplacements = allocAligned<double>(indexer->getMatrixOrder(mesh));
 	};
+
+	Simulator::Simulator(Simulator &&simulator){
+		mesh = simulator.mesh;
+		indexer = simulator.indexer;
+		intergrator = simulator.intergrator;
+		rawDisplacements = simulator.rawDisplacements;
+
+		simulator.intergrator = NULL;
+		simulator.rawDisplacements = NULL;
+	}
+	void Simulator::operator=(Simulator &&simulator){
+		mesh = simulator.mesh;
+		indexer = simulator.indexer;
+		intergrator = simulator.intergrator;
+		rawDisplacements = simulator.rawDisplacements;
+
+		simulator.intergrator = NULL;
+		simulator.rawDisplacements = NULL;
+	}
+
 	void Simulator::getVertexPositions(Vector *vertices) const{
 		const int* constrainIndices = NULL;
 		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
@@ -34,7 +54,9 @@ namespace ODER{
 			intergrator->runOneTimeStep();
 	}
 	Simulator::~Simulator(){
-		delete intergrator;
-		freeAligned(rawDisplacements);
+		if (intergrator)
+		    delete intergrator;
+		if (rawDisplacements)
+		    freeAligned(rawDisplacements);
 	}
 }
