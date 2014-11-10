@@ -133,7 +133,7 @@ namespace ODER{
 		double nlFactor = 1.0 / (216.0*volume2);
 		double nnFactor = 1.0 / (1296.0*volume*volume2);
 		memset(nlpart, 0, numNodesPerElement * 3 * sizeof(double));
-		memset(nnpart, 0, numNodesPerElement*sizeof(double));
+		memset(nnpart, 0, numNodesPerElement * sizeof(double));
 		if (matchMaterialFlag(type, MarterialType(Marterial_Isotropic))){
 			double lambda = C[0], mu2 = 2.0*C[1];
 

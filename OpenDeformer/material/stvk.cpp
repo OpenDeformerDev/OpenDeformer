@@ -5,8 +5,8 @@
 #include "element.h"
 
 namespace ODER{
-	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, int numElements, int orderNum)
-		:HyperelasticMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear), orderNum),
+	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, int orderNum)
+		: HyperelasticMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear), orderNum),
 		lambda(lameFirst), mu(lameSecond){
 
 		D[0] = lambda + 2.0 * mu;
@@ -14,19 +14,7 @@ namespace ODER{
 		D[2] = mu;
 
 		int orders = getNonlinearAsymptoticOrder();
-		stressNonlinear = allocAligned<double **>(orders);
-		double **pointerMem = allocAligned<double *>(orders*numElements);
-		double *mem = allocAligned<double>(orders*numElements*numElements);
-		memset(mem, 0, orders*numElements*numElements);
-		for (int i = 0; i < orders; i++){
-			stressNonlinear[i] = pointerMem;
-			pointerMem += numElements;
-			for (int j = 0; j < numElements; j++){
-				stressNonlinear[i][j] = mem;
-				mem += numElements;
-			}
-		}
-
+		stressNonlinear = NULL;
 		intergration[0] = NULL;
 		intergration[1] = NULL;
 	}
@@ -81,33 +69,20 @@ namespace ODER{
 		const int numNodes = mesh->getNodeCount();
 		const int numNodePerElement = mesh->getNodePerElementCount();
 		const int numElements = mesh->getElementCount();
-		double **pointerMem = allocAligned<double *>(2 * numElements);
-		intergration[0] = pointerMem;
-		intergration[1] = pointerMem + numElements;
 
 		int commonEntryNum = numNodePerElement*numNodePerElement*numNodePerElement;
 		int nlEntries = commonEntryNum * 3;
 		int nnEntries = commonEntryNum * numNodePerElement;
 
+		stressNonlinear = allocAligned<double>((getNonlinearAsymptoticOrder() - 1)*numElements*numElements);
 		double *mem = allocAligned<double>((nlEntries + nnEntries)*numElements);
-		for (int i = 0; i < numElements; i++){
-			intergration[0][i] = mem;
-			mem += nlEntries;
-		}
-		for (int i = 0; i < numElements; i++){
-			intergration[1][i] = mem;
-			mem += nnEntries;
-		}
-
+		intergration[0] = mem;
+		intergration[1] = mem + nlEntries*numElements;
 
 		double *nlpart = allocAligned<double>(nlEntries);
 		double *nnpart = allocAligned<double>(nnEntries);
 
 		int totalDofs = 3 * indexer->getMatrixOrder(mesh);
-		double *nl = new double[totalDofs];
-		double *nn = new double[totalDofs];
-		memset(nl, 0, totalDofs*sizeof(double));
-		memset(nn, 0, totalDofs*sizeof(double));
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
@@ -117,13 +92,11 @@ namespace ODER{
 
 			//get nl and nn
 			element->Intergration(&D[1], nlpart, nnpart);
-			memcpy(intergration[0][elementIndex], nlpart, nlEntries);
-			memcpy(intergration[1][elementIndex], nnpart, nnEntries);
+			memcpy(intergration[0] + elementIndex * nlEntries, nlpart, nlEntries);
+			memcpy(intergration[1] + elementIndex * nnEntries, nnpart, nnEntries);
 		}
 
 		delete element;
-		delete[] nl;
-		delete[] nn;
 		freeAligned(nlpart);
 		freeAligned(nnpart);
 	}
@@ -131,31 +104,30 @@ namespace ODER{
 	void StVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces) {
 		const int numElements = mesh->getElementCount();
 		const int numNodesPerElement = mesh->getNodePerElementCount();
+		const int numElements2 = numElements*numElements;
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 		int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
 		int nlEntries = commonEntryNum * 3;
 		int nnEntries = commonEntryNum * numNodesPerElement;
 
-		double *nlpart = NULL;
-		double *nnpart = NULL;
-
 		int *elementNodeIndices = (int *)alloca(numNodesPerElement*sizeof(int));
 
 		memset(forces, 0, indexer->getMatrixOrder(mesh)*sizeof(double));
-		VectorBase<double> da, db, dc, dd;
+		VectorBase<double> da, db, dc;
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
 			//set new element info
 			element->setNodeIndexs(elementIndex);
 			element->setBMatrixs();
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
-			nlpart = intergration[0][elementIndex*nlEntries];
-			nnpart = intergration[1][elementIndex*nnEntries];
+			const double *nlpart = intergration[0] + elementIndex*nlEntries;
+			const double *nnpart = intergration[1] + elementIndex*nnEntries;
 			for (int i = 0; i < order; i++){
 				const double *di = ds + numElements*i;
 				const double *dj = ds + numElements*(order - i - 1);
 
+				int orderOffset = (order - 1)*numElements2;
 				for (int a = 0; a < numNodesPerElement; a++){
 					//get node a displacement
 					getNodeDisplacements(di, &elementNodeIndices[numNodesPerElement*a], da);
@@ -189,19 +161,22 @@ namespace ODER{
 							for (int d = 0; d < numNodesPerElement; d++){
 								//assemble part with stresses
 								int dNodeIndex = element->getNodeIndex(d);
-								stressNonlinear[order - 1][dNodeIndex][cNodeIndex] += factor*nnpart[a * 64 + b * 16 * c * 4 + d];
+								stressNonlinear[orderOffset + dNodeIndex * numElements + cNodeIndex] 
+									+= factor*nnpart[a * 64 + b * 16 * c * 4 + d];
 							}
 						}
 					}
 				}
 				//assmble lower order nonlinear part
 				if (i < order - 1){
+					int orderOffset = i*numElements2;
 					for (int aNodeIndex = 0; aNodeIndex < mesh->getNodeCount(); aNodeIndex++){
+						int nodeOffset = aNodeIndex*numElements;
 						for (int bNodeIndex = 0; bNodeIndex < mesh->getNodeCount(); bNodeIndex++){
 							for (int axis = 0; axis < 3; axis++){
 								int index = indexer->getGlobalIndex(bNodeIndex, axis);
 								if (index >= 0){
-									forces[index] += stressNonlinear[i][aNodeIndex][bNodeIndex] * dj[index];
+									forces[index] += stressNonlinear[orderOffset + nodeOffset + bNodeIndex] * dj[index];
 								}
 							}
 						}
@@ -223,12 +198,10 @@ namespace ODER{
 	}
 
 	StVKMaterial::~StVKMaterial(){
-		freeAligned(stressNonlinear[0][0]);
-		freeAligned(stressNonlinear[0]);
-		freeAligned(stressNonlinear);
 		if (intergration[0])
-			freeAligned(intergration[0][0]);
-		    freeAligned(intergration[0]);
+			freeAligned(intergration[0]);
+		if (stressNonlinear)
+			freeAligned(stressNonlinear);
 	}
 }
 

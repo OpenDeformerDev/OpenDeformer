@@ -11,7 +11,7 @@
 namespace ODER{
 	class LinearNewmark : public Intergrator{
 	public:
-		LinearNewmark(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+		LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
 			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MecMaterial& mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();

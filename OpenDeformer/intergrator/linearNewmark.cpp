@@ -1,23 +1,22 @@
 #include "stdafx.h"
-#include "newmark.h"
+#include "linearNewmark.h"
 #include "nodeIndexer.h"
 #include "forcer.h"
 
 namespace ODER{
-	LinearNewmark::LinearNewmark(int totalDOFS, double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+	LinearNewmark::LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
 		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MecMaterial& mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
-		totalDofs = totalDOFS;
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
 		minusBetaDeltaT2 = timeStep*timeStep*0.5 - betaDeltaT2;
 		minusGammaDeltaT = timeStep - gammaDeltaT;
+		totalDofs = nodeIndexer->getMatrixOrder(m);
 		frequencies2 = allocAligned<double>(dofs);
 		basises = new double[dofs*totalDofs];
 
-		int matrixOrder = nodeIndexer->getMatrixOrder(m);
-		SparseMatrixAssembler M(matrixOrder);
-		SparseMatrixAssembler K(matrixOrder);
+		SparseMatrixAssembler M(totalDofs);
+		SparseMatrixAssembler K(totalDofs);
 		mater.generateMassMatrix(m, nodeIndexer, M);
 		mater.generateStiffnessMatrix(m, nodeIndexer, K);
 

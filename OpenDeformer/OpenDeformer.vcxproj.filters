@@ -63,9 +63,6 @@
     <ClInclude Include="material\hooke.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
-    <ClInclude Include="intergrator\newmark.h">
-      <Filter>头文件\intergrator</Filter>
-    </ClInclude>
     <ClInclude Include="core\forcer.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
@@ -138,6 +135,9 @@
     <ClInclude Include="InitShader.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="intergrator\linearNewmark.h">
+      <Filter>头文件\intergrator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -148,9 +148,6 @@
     </ClCompile>
     <ClCompile Include="material\hooke.cpp">
       <Filter>源文件\material</Filter>
-    </ClCompile>
-    <ClCompile Include="intergrator\newmark.cpp">
-      <Filter>源文件\intergrator</Filter>
     </ClCompile>
     <ClCompile Include="core\eigenslover.cpp">
       <Filter>源文件\core</Filter>
@@ -198,6 +195,9 @@
       <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="intergrator\asymptoticNewmark.cpp">
+      <Filter>源文件\intergrator</Filter>
+    </ClCompile>
+    <ClCompile Include="intergrator\linearNewmark.cpp">
       <Filter>源文件\intergrator</Filter>
     </ClCompile>
   </ItemGroup>

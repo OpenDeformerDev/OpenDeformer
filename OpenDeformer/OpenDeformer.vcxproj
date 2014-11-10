@@ -188,7 +188,7 @@
     <ClInclude Include="core\oder.h" />
     <ClInclude Include="core\forcer.h" />
     <ClInclude Include="material\hooke.h" />
-    <ClInclude Include="intergrator\newmark.h" />
+    <ClInclude Include="intergrator\linearNewmark.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="core\intergrator.h" />
     <ClInclude Include="core\latool.h" />
@@ -212,7 +212,7 @@
     <ClCompile Include="core\element.cpp" />
     <ClCompile Include="core\forcer.cpp" />
     <ClCompile Include="material\hooke.cpp" />
-    <ClCompile Include="intergrator\newmark.cpp" />
+    <ClCompile Include="intergrator\linearNewmark.cpp" />
     <ClCompile Include="core\intergrator.cpp" />
     <ClCompile Include="core\latool.cpp" />
     <ClCompile Include="core\memory.cpp" />
