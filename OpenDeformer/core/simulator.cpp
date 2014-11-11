@@ -12,8 +12,8 @@ namespace ODER{
 	};
 
 	Simulator::Simulator(Simulator &&simulator){
-		mesh = simulator.mesh;
-		indexer = simulator.indexer;
+		mesh = std::move(simulator.mesh);
+		indexer = std::move(simulator.indexer);
 		intergrator = simulator.intergrator;
 		rawDisplacements = simulator.rawDisplacements;
 
