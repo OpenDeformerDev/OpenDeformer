@@ -24,6 +24,10 @@ namespace ODER{
 			p = r.p;
 			if (p) p->nReference++;
 		}
+		Reference(Reference<T> &&r){
+			p = r.p;
+			r.p = NULL;
+		}
 		Reference &operator=(T *ptr){
 			if (ptr) ptr->nReference++;
 			if (p && --p->nReference == 0) delete p;
@@ -34,6 +38,10 @@ namespace ODER{
 			if (r.p) r.p->nReference++;
 			if (p && --p->nReference) delete p;
 			p = r.p;
+			return *this;
+		}
+		Reference &operator=(Reference<T> &&r){
+			std::swap(p, r.p);
 			return *this;
 		}
 		~Reference(){

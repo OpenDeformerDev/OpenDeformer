@@ -68,6 +68,7 @@ void Constrainer::setConstrains(const Vector& origin, const Vector& normal, Cons
 			}
 		}
 	}
+	delete facet;
 }
 
 void Constrainer::outputConstrains(vector<int> &out) const{

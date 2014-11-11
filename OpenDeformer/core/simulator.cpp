@@ -20,14 +20,12 @@ namespace ODER{
 		simulator.intergrator = NULL;
 		simulator.rawDisplacements = NULL;
 	}
-	void Simulator::operator=(Simulator &&simulator){
-		mesh = simulator.mesh;
-		indexer = simulator.indexer;
-		intergrator = simulator.intergrator;
-		rawDisplacements = simulator.rawDisplacements;
-
-		simulator.intergrator = NULL;
-		simulator.rawDisplacements = NULL;
+	Simulator& Simulator::operator=(Simulator &&simulator){
+		std::swap(mesh, simulator.mesh);
+		std::swap(indexer, simulator.indexer);
+		std::swap(intergrator, simulator.intergrator);
+		std::swap(rawDisplacements, simulator.rawDisplacements);
+		return *this;
 	}
 
 	void Simulator::getVertexPositions(Vector *vertices) const{
