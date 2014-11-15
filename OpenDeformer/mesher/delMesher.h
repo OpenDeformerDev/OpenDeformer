@@ -338,6 +338,8 @@ namespace ODER{
 		};
 
 		DelMesher(Vector *survs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL minRation, REAL minRadius);
+		DelMesher(const DelMesher& mesher) = delete;
+		DelMesher& operator=(const DelMesher& mesher) = delete;
 		~DelMesher(){
 			delete nodePool;
 			delete edgeNodePool;

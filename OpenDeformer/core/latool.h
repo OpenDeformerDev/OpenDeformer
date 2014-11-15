@@ -420,8 +420,8 @@ namespace ODER{
 		int rowPermute[3] = { 0, 1, 2 };
 		int columnPermute[3] = { 0, 1, 2 };
 
-		int order = 3;
-		int count = order - 1;
+		constexpr int order = 3;
+		constexpr int count = order - 1;
 		//forward substitution
 		for (int i = 0; i < count; i++){
 			FT largest = 0.0;
@@ -476,9 +476,8 @@ namespace ODER{
 		FT a = start, b = end, c = start, d = 0.0, e = 0.0;
 		FT fa = f(a), fb = f(b), fc = fa;
 
-#define MAX_ITER 1000
-		for (int i = 0; i < MAX_ITER; i++){
-#undef MAX_ITER
+		constexpr int maxIter = 1000;
+		for (int i = 0; i < maxIter; i++){
 			if (fb > 0.0 && fc > 0.0 || fb < 0.0 && fc < 0.0){
 				c = a; fc = fa;
 				d = e = c - b;

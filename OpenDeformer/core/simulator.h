@@ -15,6 +15,8 @@ namespace ODER{
 		Simulator(const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, Intergrator *intergrate);
 		Simulator(Simulator &&simulator);
 		Simulator& operator=(Simulator &&simulator);
+		Simulator(const Simulator &simulator) = delete;
+		Simulator& operator=(const Simulator &simulator) = delete;
 		void getVertexPositions(Vector *vertices) const;
 		void runTimeSteps(int stepCount);
 		~Simulator();

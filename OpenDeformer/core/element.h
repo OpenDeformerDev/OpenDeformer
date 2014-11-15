@@ -7,6 +7,7 @@
 
 #include "oder.h"
 #include "mecMaterial.h"
+#include "mesh.h"
 
 namespace ODER{
 	struct Element{
@@ -19,8 +20,8 @@ namespace ODER{
 		virtual void generateSubMassMatrix(double *result) const = 0;
 		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
 		virtual void Intergration(const double *C, double *nlpart, double *nnpart) const = 0;
-		void setNodeIndexs(int elementIndex);
-		int getNodeIndex(int localIndex) const;
+		void setNodeIndexs(int elementIndex){ nodeIndexs = mesh->getElementNodeReference(elementIndex); }
+		int getNodeIndex(int localIndex) const{ return nodeIndexs[localIndex]; }
 		virtual ~Element();
 
 	protected:
@@ -33,10 +34,11 @@ namespace ODER{
 	struct Facet{
 		Facet(Mesh *m) :mesh(m), vertIndexs(NULL){}
 		Facet(Mesh *m, int index);
-		virtual void setVertIndexs(int vertIndex);
 		virtual void getSurfVirtualWorks(double surfForce[3], double *result) const = 0;
-		int getVertIndex(int localIndex) const;
+		void setVertIndexs(int vertIndex){ vertIndexs = mesh->getFacetVertReference(vertIndex); }
+		int getVertIndex(int localIndex) const { return vertIndexs[localIndex]; }
 
+		virtual ~Facet(){}
 	protected:
 		const int *vertIndexs;
 		Reference<Mesh> mesh;

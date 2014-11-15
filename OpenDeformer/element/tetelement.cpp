@@ -3,12 +3,12 @@
 
 namespace ODER{
 	TetElement::TetElement(TetMesh *m, int n, MarterialType t) :Element(m, n, t){
-		const int entrys = 4 * 3;
+		constexpr int entrys = 4 * 3;
 		BMatrixs = new double[entrys];
 	}
 
 	TetElement::TetElement(TetMesh *m, MarterialType t) : Element(m, t){
-		const int entrys = 4 * 3;
+		constexpr int entrys = 4 * 3;
 		BMatrixs = new double[entrys];
 	}
 
@@ -41,8 +41,8 @@ namespace ODER{
 	}
 
 	void TetElement::setBMatrixs(){
-		const int numNodesPerElement = 4;
-		const int entryCountPerB = 3;
+		constexpr int numNodesPerElement = 4;
+		constexpr int entryCountPerB = 3;
 		double dndx[numNodesPerElement], dndy[numNodesPerElement], dndz[numNodesPerElement];
 		getShapeFunctionDerivatives(dndx, dndy, dndz);
 		for (int i = 0; i < numNodesPerElement; i++){
@@ -53,7 +53,7 @@ namespace ODER{
 	}
 
 	void TetElement::generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const{
-		const int entryCountPerB = 3;
+		constexpr int entryCountPerB = 3;
 		double volume = getVolume();
 		double factor = 1.0 / (36.0*volume);
 		const double *Ba = BMatrixs + entryCountPerB*aNodeIndex;
@@ -126,8 +126,8 @@ namespace ODER{
 	}
 
 	void TetElement::Intergration(const double *C, double *nlpart, double *nnpart) const{
-		const int entryCountPerB = 3;
-		const int numNodesPerElement = 4;
+		constexpr int entryCountPerB = 3;
+		constexpr int numNodesPerElement = 4;
 		double volume = getVolume();
 		double volume2 = volume*volume;
 		double nlFactor = 1.0 / (216.0*volume2);
@@ -199,7 +199,7 @@ namespace ODER{
 	void TetElement::getBodyVirtualWorks(double bodyForce[3], double *result) const{
 		double volume = getVolume();
 		double factor = volume / 4.0;
-		const int numNodesPerElement = 4;
+		constexpr int numNodesPerElement = 4;
 		for (int i = 0; i < numNodesPerElement; i++){
 			for (int j = 0; j < 3; j++)
 				result[3 * i + j] = factor*bodyForce[j];
@@ -216,7 +216,7 @@ namespace ODER{
 
 	void TetFacet::getSurfVirtualWorks(double surfForce[3], double *result) const{
 		double factor = getArea() / 3.0;
-		const int numVertPerSur = 3;
+		constexpr int numVertPerSur = 3;
 		for (int i = 0; i < numVertPerSur; i++){
 			for (int j = 0; j < 3; j++)
 				result[3 * i + j] = factor*surfForce[j];

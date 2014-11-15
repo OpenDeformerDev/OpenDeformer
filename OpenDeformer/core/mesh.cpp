@@ -22,21 +22,12 @@ namespace ODER{
 		}
 	}
 
-	int Mesh::getElementNodeIndex(int elementIndex, int nodeIndex){
-		return elements[elementIndex*numNodesPerElement + nodeIndex];
-	}
-
-	const int* Mesh::getElementNodeReference(int elementIndex) const{
-		return &elements[elementIndex*numNodesPerElement];
-	}
-
-	const int* Mesh::getFacetVertReference(int facetIndex) const{
-		return &surfaces[facetIndex*numVertPerSur];
-	}
-
 	Mesh::~Mesh(){
-		delete[] surfaces;
-		delete[] elements;
-		delete[] vertices;
+		if (surfaces)
+		    delete[] surfaces;
+		if (elements)
+		    delete[] elements;
+		if (vertices)
+		    delete[] vertices;
 	}
 }

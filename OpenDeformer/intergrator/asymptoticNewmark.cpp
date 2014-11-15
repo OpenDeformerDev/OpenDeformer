@@ -113,7 +113,7 @@ namespace ODER{
 		int orderCount = material->getNonlinearAsymptoticOrder();
 		const double *factors = loadFactors;
 		double a = findRoot([orderCount, factors](double x)->double{
-			double ret = 0.0, para = 1.0;
+			double ret = 0.0, para = x;
 			for (int i = 0; i < orderCount; i++){
 				ret += para*factors[i];
 				para *= x;

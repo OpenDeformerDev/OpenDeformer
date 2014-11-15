@@ -13,7 +13,6 @@ namespace ODER{
 		D[1] = lambda;
 		D[2] = mu;
 
-		int orders = getNonlinearAsymptoticOrder();
 		stressNonlinear = NULL;
 		intergration[0] = NULL;
 		intergration[1] = NULL;
@@ -171,12 +170,12 @@ namespace ODER{
 				if (i < order - 1){
 					int orderOffset = i*numElements2;
 					for (int aNodeIndex = 0; aNodeIndex < mesh->getNodeCount(); aNodeIndex++){
-						int nodeOffset = aNodeIndex*numElements;
+						int offset = aNodeIndex*numElements + orderOffset;
 						for (int bNodeIndex = 0; bNodeIndex < mesh->getNodeCount(); bNodeIndex++){
 							for (int axis = 0; axis < 3; axis++){
 								int index = indexer->getGlobalIndex(bNodeIndex, axis);
 								if (index >= 0){
-									forces[index] += stressNonlinear[orderOffset + nodeOffset + bNodeIndex] * dj[index];
+									forces[index] += stressNonlinear[offset + bNodeIndex] * dj[index];
 								}
 							}
 						}

@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include "mesh.h"
 #include "element.h"
 
 namespace ODER{
@@ -16,14 +15,6 @@ namespace ODER{
 		BMatrixs = NULL;
 	}
 
-	void Element::setNodeIndexs(int elementIndex){
-		nodeIndexs = mesh->getElementNodeReference(elementIndex);
-	}
-
-	int Element::getNodeIndex(int localIndex) const{
-		return nodeIndexs[localIndex];
-	}
-
 	Element::~Element(){
 		if (BMatrixs)
 			delete[] BMatrixs;
@@ -31,12 +22,5 @@ namespace ODER{
 
 	Facet::Facet(Mesh *m, int index) :mesh(m){
 		vertIndexs = mesh->getFacetVertReference(index);
-	}
-
-	int Facet::getVertIndex(int localIndex) const{
-		return vertIndexs[localIndex];
-	}
-	void Facet::setVertIndexs(int vertIndex){
-		vertIndexs = mesh->getFacetVertReference(vertIndex);
 	}
 }

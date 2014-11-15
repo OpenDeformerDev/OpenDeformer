@@ -60,6 +60,8 @@ namespace ODER{
 		MemoryArena(unsigned int bs = DEFAULT_ARENA_OBJ_SIZE * sizeof(T)) :blockSize(bs), curBlockPos(0){
 			curBlock = allocAligned<char>(blockSize);
 		}
+		MemoryArena(const MemoryArena& arena) = delete;
+		MemoryArena& operator=(const MemoryArena& arena) = delete;
 		T* Alloc(unsigned int size = 1){
 			unsigned int bytes = ((size*sizeof(T) + 7) & (~7));
 			if (curBlockPos + bytes > blockSize){
@@ -115,6 +117,8 @@ namespace ODER{
 			curBlock = allocAligned<char>(blockSize);
 			deadStack = (char *)NULL;
 		}
+		MemoryPool(const MemoryPool& arena) = delete;
+		MemoryPool& operator=(const MemoryPool& arena) = delete;
 		T* Alloc(){
 			T *ret = NULL;
 			if (deadStack != (char *)NULL){
