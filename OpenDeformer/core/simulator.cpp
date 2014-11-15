@@ -2,7 +2,7 @@
 #include "simulator.h"
 #include "mesh.h"
 #include "intergrator.h"
-#include "mecMaterial.h"
+#include "mechMaterial.h"
 #include "memory.h"
 
 namespace ODER{
@@ -52,9 +52,7 @@ namespace ODER{
 			intergrator->runOneTimeStep();
 	}
 	Simulator::~Simulator(){
-		if (intergrator)
-		    delete intergrator;
-		if (rawDisplacements)
-		    freeAligned(rawDisplacements);
+		if (intergrator) delete intergrator;
+		if (rawDisplacements) freeAligned(rawDisplacements);
 	}
 }

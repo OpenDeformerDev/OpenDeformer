@@ -1,11 +1,11 @@
 #include "stdafx.h"
-#include "mecMaterial.h"
+#include "mechMaterial.h"
 #include "element.h"
 #include "mesh.h"
 #include "nodeIndexer.h"
 
 namespace ODER{
-	void MecMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& m) const{
+	void MechMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& m) const{
 		Element *element = mesh->getEmptyElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 

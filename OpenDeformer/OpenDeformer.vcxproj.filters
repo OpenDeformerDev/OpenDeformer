@@ -78,9 +78,6 @@
     <ClInclude Include="core\latool.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
-    <ClInclude Include="core\mecMaterial.h">
-      <Filter>头文件\core</Filter>
-    </ClInclude>
     <ClInclude Include="core\memory.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
@@ -138,6 +135,9 @@
     <ClInclude Include="intergrator\linearNewmark.h">
       <Filter>头文件\intergrator</Filter>
     </ClInclude>
+    <ClInclude Include="core\mechMaterial.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -156,9 +156,6 @@
       <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="core\forcer.cpp">
-      <Filter>源文件\core</Filter>
-    </ClCompile>
-    <ClCompile Include="core\intergrator.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="core\latool.cpp">
@@ -188,9 +185,6 @@
     <ClCompile Include="material\stvk.cpp">
       <Filter>源文件\material</Filter>
     </ClCompile>
-    <ClCompile Include="core\MecMaterial.cpp">
-      <Filter>源文件\core</Filter>
-    </ClCompile>
     <ClCompile Include="core\simulator.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
@@ -199,6 +193,9 @@
     </ClCompile>
     <ClCompile Include="intergrator\linearNewmark.cpp">
       <Filter>源文件\intergrator</Filter>
+    </ClCompile>
+    <ClCompile Include="core\mechMaterial.cpp">
+      <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

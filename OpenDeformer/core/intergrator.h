@@ -7,29 +7,20 @@
 
 #include "oder.h"
 #include "memory.h"
-#include "mecMaterial.h"
 #include "nodeIndexer.h"
 
 namespace ODER{
 	class Intergrator{
 	public:
-		Intergrator(int DOFS, double massDamp, double stiffDamp, double ts);
+		Intergrator(int DOFS, double massDamp, double stiffDamp, double ts)
+			:dofs(DOFS), massDamping(massDamp), stiffnessDamping(stiffDamp), timeStep(ts){}
 
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
 		virtual void runOneTimeStep() = 0;
 		virtual void getRawDisplacements(double *displacements) const = 0;
-		virtual ~Intergrator();
+		virtual ~Intergrator(){}
 
 	protected:
-		double *d;
-		double *v;
-		double *a;
-		double *pre_d;
-		double *pre_v;
-		double *pre_a;
-
-		double* externalVirtualWork;
-
 		int dofs;
 		double massDamping;
 		double stiffnessDamping;

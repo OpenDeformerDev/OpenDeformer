@@ -128,12 +128,13 @@ namespace ODER{
 	void TetElement::Intergration(const double *C, double *nlpart, double *nnpart) const{
 		constexpr int entryCountPerB = 3;
 		constexpr int numNodesPerElement = 4;
+		constexpr int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
 		double volume = getVolume();
 		double volume2 = volume*volume;
 		double nlFactor = 1.0 / (216.0*volume2);
-		double nnFactor = 1.0 / (1296.0*volume*volume2);
-		memset(nlpart, 0, numNodesPerElement * 3 * sizeof(double));
-		memset(nnpart, 0, numNodesPerElement * sizeof(double));
+		double nnFactor = 1.0 / (2592.0*volume*volume2);
+		memset(nlpart, 0, commonEntryNum * 3 * sizeof(double));
+		memset(nnpart, 0, commonEntryNum * numNodesPerElement * sizeof(double));
 		if (matchMaterialFlag(type, MarterialType(Marterial_Isotropic))){
 			double lambda = C[0], mu2 = 2.0*C[1];
 
@@ -168,9 +169,8 @@ namespace ODER{
 						nlpart[nlsubIndex + 2] = result[2] * nlFactor;
 						//nnpart
 						for (int d = 0; d < numNodesPerElement; d++){
-							const double *dNc = BMatrixs + entryCountPerB*c;
-							const double *dNd = BMatrixs + entryCountPerB*d;
-							Tensor2<double> left = VectorBase<double>(dNc[0], dNc[1], dNc[2]) ^ VectorBase<double>(dNd[0], dNd[1], dNd[2]);
+							const double *dNds = BMatrixs + entryCountPerB*d;
+							Tensor2<double> left = VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]) ^ VectorBase<double>(dNds[0], dNds[1], dNds[2]);
 							int nnsubIndex = (indexOffset + c) * 4;
 							nnpart[nnsubIndex + d] = (left & t)*nnFactor;
 						}

@@ -2,8 +2,8 @@
 #pragma once
 #endif
 
-#ifndef ODER_CORE_MECMATERIAL_H
-#define ODER_CORE_MECMATERIAL_H
+#ifndef ODER_CORE_MECHMATERIAL_H
+#define ODER_CORE_MECHMATERIAL_H
 
 #include "oder.h"
 #include "memory.h"
@@ -17,16 +17,16 @@ namespace ODER{
 		Marterial_NonLinear = 1 << 3
 	};
 
-	class MecMaterial{
+	class MechMaterial{
 	public:
-		MecMaterial(double rho, MarterialType t) :density(rho), type(t){}
+		MechMaterial(double rho, MarterialType t) :density(rho), type(t){}
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		virtual void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const = 0;
 
 		double getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }
 		
-		virtual ~MecMaterial(){}
+		virtual ~MechMaterial(){}
 	protected:
 		double density;
 		MarterialType type;

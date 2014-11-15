@@ -6,7 +6,7 @@
 #define ODER_CORE_ELEMENT_H
 
 #include "oder.h"
-#include "mecMaterial.h"
+#include "mechMaterial.h"
 #include "mesh.h"
 
 namespace ODER{

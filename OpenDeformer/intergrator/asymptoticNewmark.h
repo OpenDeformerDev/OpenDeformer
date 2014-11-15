@@ -22,6 +22,15 @@ namespace ODER{
 	private:
 		void setFullDisplacement(int order);
 		void setReducedVirtualWorks(int order);
+
+		double *d;
+		double *v;
+		double *a;
+		double *pre_d;
+		double *pre_v;
+		double *pre_a;
+		double *externalVirtualWork;
+
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
 		HyperelasticMaterial* material;

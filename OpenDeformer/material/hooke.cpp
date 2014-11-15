@@ -4,7 +4,7 @@
 
 namespace ODER{
 	HookeMaterial::HookeMaterial(double rho, double YOUNGS, double POSSION)
-		:MecMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Linear)),
+		:MechMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Linear)),
 		youngs(YOUNGS), possion(POSSION){
 		//Lame prameters
 		double lambda = possion*youngs / ((1.0 + possion)*(1.0 - 2.0*possion));

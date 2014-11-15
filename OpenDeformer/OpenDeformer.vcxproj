@@ -106,6 +106,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glew32s.lib;freeglut.lib;libf2c.lib;BLAS.lib;clapack.lib;tmglib.lib;SuperLUd_win32.lib;arpack_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>.\3rd Party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -152,6 +153,7 @@
       <AdditionalDependencies>glew32s.lib;freeglut.lib;libf2c.lib;BLAS.lib;clapack.lib;tmglib.lib;SuperLU_win32.lib;arpack_win32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>.\3rd Party;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
+      <LargeAddressAware>true</LargeAddressAware>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -192,7 +194,7 @@
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="core\intergrator.h" />
     <ClInclude Include="core\latool.h" />
-    <ClInclude Include="core\mecMaterial.h" />
+    <ClInclude Include="core\mechMaterial.h" />
     <ClInclude Include="core\memory.h" />
     <ClInclude Include="core\mesh.h" />
     <ClInclude Include="core\mesher.h" />
@@ -203,7 +205,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
-    <ClCompile Include="core\MecMaterial.cpp" />
+    <ClCompile Include="core\mechMaterial.cpp" />
     <ClCompile Include="core\simulator.cpp" />
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\stvk.cpp" />
@@ -213,7 +215,6 @@
     <ClCompile Include="core\forcer.cpp" />
     <ClCompile Include="material\hooke.cpp" />
     <ClCompile Include="intergrator\linearNewmark.cpp" />
-    <ClCompile Include="core\intergrator.cpp" />
     <ClCompile Include="core\latool.cpp" />
     <ClCompile Include="core\memory.cpp" />
     <ClCompile Include="core\mesh.cpp" />

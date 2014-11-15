@@ -9,7 +9,7 @@
 #include "memory.h"
 #include "latool.h"
 #include "sparseMatrix.h"
-#include "mecMaterial.h"
+#include "mechMaterial.h"
 
 namespace ODER{
 	class Mesh : public ReferenceCounted{

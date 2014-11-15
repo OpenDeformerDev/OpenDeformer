@@ -61,7 +61,7 @@ namespace ODER{
 	struct Vector;
 	template<class FT> struct Tensor2;
 	struct Quaternion;
-	class MecMaterial;
+	class MechMaterial;
 	class Mesher;
 	class Intergrator;
 	class Forcer;

@@ -1,12 +1,29 @@
 #include "stdafx.h"
 #include "linearNewmark.h"
 #include "nodeIndexer.h"
+#include "mechMaterial.h"
 #include "forcer.h"
 
 namespace ODER{
 	LinearNewmark::LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MecMaterial& mater)
+		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MechMaterial& mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
+		d = allocAligned<double>(dofs);
+		v = allocAligned<double>(dofs);
+		a = allocAligned<double>(dofs);
+		pre_d = allocAligned<double>(dofs);
+		pre_v = allocAligned<double>(dofs);
+		pre_a = allocAligned<double>(dofs);
+		externalVirtualWork = allocAligned<double>(dofs);
+
+		memset(d, 0, dofs*sizeof(double));
+		memset(v, 0, dofs*sizeof(double));
+		memset(a, 0, dofs*sizeof(double));
+		memset(pre_d, 0, dofs*sizeof(double));
+		memset(pre_v, 0, dofs*sizeof(double));
+		memset(pre_a, 0, dofs*sizeof(double));
+		memset(externalVirtualWork, 0, dofs*sizeof(double));
+
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
 		minusBetaDeltaT2 = timeStep*timeStep*0.5 - betaDeltaT2;
@@ -74,6 +91,13 @@ namespace ODER{
 	}
 
 	LinearNewmark::~LinearNewmark(){
+		freeAligned(a);
+		freeAligned(d);
+		freeAligned(v);
+		freeAligned(pre_a);
+		freeAligned(pre_d);
+		freeAligned(pre_v);
+		freeAligned(externalVirtualWork);
 		freeAligned(frequencies2);
 		delete[] basises;
 	}

@@ -7,7 +7,25 @@
 namespace ODER{
 	AsymptoticNewmark::AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
 		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, HyperelasticMaterial* mater)
-		:Intergrator(mater->getNonlinearAsymptoticOrder() * DOFS, massDamp, stiffDamp, ts){
+		:Intergrator(DOFS, massDamp, stiffDamp, ts){
+		int orderCount = mater->getNonlinearAsymptoticOrder();
+		int entrys = orderCount*dofs;
+		d = allocAligned<double>(entrys);
+		v = allocAligned<double>(entrys);
+		a = allocAligned<double>(entrys);
+		pre_d = allocAligned<double>(entrys);
+		pre_v = allocAligned<double>(entrys);
+		pre_a = allocAligned<double>(entrys);
+		externalVirtualWork = allocAligned<double>(entrys);
+
+		memset(d, 0, entrys*sizeof(double));
+		memset(v, 0, entrys*sizeof(double));
+		memset(a, 0, entrys*sizeof(double));
+		memset(pre_d, 0, entrys*sizeof(double));
+		memset(pre_v, 0, entrys*sizeof(double));
+		memset(pre_a, 0, entrys*sizeof(double));
+		memset(externalVirtualWork, 0, entrys*sizeof(double));
+
 		mesh = m;
 		indexer = nodeIndexer;
 		material = mater;
@@ -17,17 +35,16 @@ namespace ODER{
 		minusGammaDeltaT = timeStep - gammaDeltaT;
 		totalDofs = indexer->getMatrixOrder(mesh);
 		frequencies2 = allocAligned<double>(dofs);
-		basises = new double[dofs*totalDofs];
+		basises = allocAligned<double>(dofs*totalDofs);
 
 		SparseMatrixAssembler M(totalDofs);
 		SparseMatrixAssembler K(totalDofs);
-		mater->generateMassMatrix(mesh, indexer, M);
-		mater->generateStiffnessMatrix(mesh, indexer, K);
+		material->generateMassMatrix(mesh, indexer, M);
+		material->generateStiffnessMatrix(mesh, indexer, K); 
 
 		EigenSlover slover;
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
 
-		int orderCount = material->getNonlinearAsymptoticOrder();
 		material->preprocessWithReduction(mesh, indexer);
 		loadFactors = allocAligned<double>(orderCount);
 		fullDisplacements = allocAligned<double>(orderCount*totalDofs);
@@ -119,7 +136,7 @@ namespace ODER{
 				para *= x;
 			}
 			return ret;
-		}, 0.0, 2.0, 2e-6);
+		}, 0.0, 4.0, 2e-6);
 
 		memset(displacements, 0, totalDofs*sizeof(double));
 		const double *displacementPerOrder = fullDisplacements;
@@ -158,10 +175,20 @@ namespace ODER{
 	}
 
 	AsymptoticNewmark::~AsymptoticNewmark(){
-		delete[] basises;
+		freeAligned(a);
+		freeAligned(d);
+		freeAligned(v);
+		freeAligned(pre_a);
+		freeAligned(pre_d);
+		freeAligned(pre_v);
+		freeAligned(externalVirtualWork);
+		freeAligned(frequencies2);
+
 		delete material;
+		freeAligned(basises);
 		freeAligned(frequencies2);
 		freeAligned(loadFactors);
 		freeAligned(fullDisplacements);
+		freeAligned(vwBuffer);
 	}
 }
