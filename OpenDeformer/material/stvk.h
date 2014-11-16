@@ -13,7 +13,7 @@ namespace ODER{
 		StVKMaterial(double rho, double lameFirst, double lameSecond, int orders);
 		void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer);
-		void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces);
+		void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces);
 		~StVKMaterial();
 	private:
 		void getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const;

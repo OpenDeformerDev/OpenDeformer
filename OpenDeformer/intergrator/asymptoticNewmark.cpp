@@ -89,15 +89,16 @@ namespace ODER{
 			d[i] = d_predict + betaDeltaT2*a[i];
 			factor += d[i] * d[i];
 		}
-		setFullDisplacement(0);
+
 		//calculate load factor 0
-		loadFactors[0] = 1.0 / (factor + 1);
+		loadFactors[0] = 1.0 / sqrt(factor + 1);
+		setFullDisplacement(0, loadFactors[0]);
 
 		for (int order = 1; order < orderCount; order++){
-			material->getNodeForces(mesh, indexer, order, fullDisplacements, vwBuffer);
+			material->getNodeForces(mesh, indexer, order, totalDofs, fullDisplacements, vwBuffer);
 			setReducedVirtualWorks(order);
 			factor = 0.0;
-			int offset = order*totalDofs;
+			int offset = order*dofs;
 			for (int i = 0; i < dofs; i++){
 				double d_pre = pre_d[offset + i];
 				double v_pre = pre_v[offset + i];
@@ -117,12 +118,7 @@ namespace ODER{
 				factor = d[offset + i] * d[i];
 			}
 			loadFactors[order] = -loadFactors[0] * factor;
-			for (int i = 0; i < dofs; i++){
-				a[offset + i] -= factor*a[i];
-				v[offset + i] -= factor*v[i];
-				d[offset + i] -= factor*d[i];
-			}
-			setFullDisplacement(order);
+			setFullDisplacement(order, loadFactors[order]);
 		}
 	}
 
@@ -130,17 +126,17 @@ namespace ODER{
 		int orderCount = material->getNonlinearAsymptoticOrder();
 		const double *factors = loadFactors;
 		double a = findRoot([orderCount, factors](double x)->double{
-			double ret = 0.0, para = x;
+			double ret = 0.0, para = 1.0;
 			for (int i = 0; i < orderCount; i++){
-				ret += para*factors[i];
 				para *= x;
+				ret += para*factors[i];
 			}
-			return ret;
-		}, 0.0, 4.0, 2e-6);
-
+			return ret - 1.0;
+		}, 0.0, 2.0, 2e-6);
 		memset(displacements, 0, totalDofs*sizeof(double));
+
 		const double *displacementPerOrder = fullDisplacements;
-		double factor = 1.0;
+		double factor = a;
 		for (int order = 0; order < orderCount; order++){
 			for (int i = 0; i < totalDofs; i++){
 				displacements[i] = factor*displacementPerOrder[i];
@@ -150,16 +146,29 @@ namespace ODER{
 		}
 	}
 
-	void AsymptoticNewmark::setFullDisplacement(int order){
+	void AsymptoticNewmark::setFullDisplacement(int order, double loadFactor){
 		const double *reduced = d + order*dofs;
 		double *displacement = fullDisplacements + order*totalDofs;
-		const double *basis = basises;
-		for (int i = 0; i < dofs; i++){
-			double entry = reduced[i];
-			for (int j = 0; j < totalDofs; j++){
-				displacement[j] += entry * basis[j];
+		memset(displacement, 0, totalDofs * sizeof(double));
+		if (order == 0){
+			const double *basis = basises;
+			for (int i = 0; i < dofs; i++){
+				double entry = loadFactor*reduced[i];
+				for (int j = 0; j < totalDofs; j++){
+					displacement[j] += entry * basis[j];
+				}
+				basis += totalDofs;
 			}
-			basis += totalDofs;
+		}
+		else{
+			const double *basis = basises;
+			for (int i = 0; i < dofs; i++){
+				double entry = loadFactor * d[i] + reduced[i];
+				for (int j = 0; j < totalDofs; j++){
+					displacement[j] += entry * basis[j];
+				}
+				basis += totalDofs;
+			}
 		}
 	}
 

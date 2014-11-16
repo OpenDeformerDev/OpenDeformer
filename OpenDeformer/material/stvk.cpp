@@ -74,17 +74,18 @@ namespace ODER{
 		int nnEntries = commonEntryNum * numNodePerElement;
 
 		const int entrys = (getNonlinearAsymptoticOrder() - 2)*numElements*numElements;
-		stressNonlinear = new double[entrys];
-		memset(stressNonlinear, 0, sizeof(double) * entrys);
+		if (entrys > 0){
+			stressNonlinear = new double[entrys];
+			memset(stressNonlinear, 0, sizeof(double) * entrys);
+		}
 
 		double *mem = allocAligned<double>((nlEntries + nnEntries)*numElements);
+		memset(mem, 0, sizeof(double) * (nlEntries + nnEntries)*numElements);
 		intergration[0] = mem;
 		intergration[1] = mem + nlEntries*numElements;
 
 		double *nlpart = allocAligned<double>(nlEntries);
 		double *nnpart = allocAligned<double>(nnEntries);
-
-		int totalDofs = 3 * indexer->getMatrixOrder(mesh);
 
 		Element *element = mesh->getEmptyMaterialElement(type);
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
@@ -94,8 +95,8 @@ namespace ODER{
 
 			//get nl and nn
 			element->Intergration(&D[1], nlpart, nnpart);
-			memcpy(intergration[0] + elementIndex * nlEntries, nlpart, nlEntries);
-			memcpy(intergration[1] + elementIndex * nnEntries, nnpart, nnEntries);
+			memcpy(intergration[0] + elementIndex * nlEntries, nlpart, sizeof(double)*nlEntries);
+			memcpy(intergration[1] + elementIndex * nnEntries, nnpart, sizeof(double)*nnEntries);
 		}
 
 		delete element;
@@ -103,31 +104,31 @@ namespace ODER{
 		freeAligned(nnpart);
 	}
 
-	void StVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces) {
+	void StVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces){
 		const int numElements = mesh->getElementCount();
 		const int numNodesPerElement = mesh->getNodePerElementCount();
 		const int numElements2 = numElements*numElements;
 
-		Element *element = mesh->getEmptyMaterialElement(type);
+		Element *element = mesh->getEmptyElement();
 		int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
 		int nlEntries = commonEntryNum * 3;
 		int nnEntries = commonEntryNum * numNodesPerElement;
 
-		int *elementNodeIndices = (int *)alloca(numNodesPerElement*sizeof(int));
+		int *elementNodeIndices = new int[3 * numNodesPerElement];
 
-		memset(forces, 0, indexer->getMatrixOrder(mesh)*sizeof(double));
+		bool lowerOrder = (getNonlinearAsymptoticOrder() - order) > 1;
+		memset(forces, 0, totalDofs*sizeof(double));
 		VectorBase<double> da, db;
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
 			//set new element info
 			element->setNodeIndexs(elementIndex);
-			element->setBMatrixs();
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
 			const double *nlpart = intergration[0] + elementIndex*nlEntries;
 			const double *nnpart = intergration[1] + elementIndex*nnEntries;
 			for (int i = 0; i < order; i++){
-				const double *di = ds + numElements*i;
-				const double *dj = ds + numElements*(order - i - 1);
+				const double *di = ds + totalDofs*i;
+				const double *dj = ds + totalDofs*(order - i - 1);
 
 				int orderOffset = (order - 1)*numElements2;
 				for (int a = 0; a < numNodesPerElement; a++){
@@ -145,37 +146,24 @@ namespace ODER{
 								//assemble part without stresses
 								int index = elementNodeIndices[numNodesPerElement*c + axis];
 								if (index >= 0){
-									forces[index] += factor * nlpart[a * 48 + b * 12 + c * 3 + axis] * 0.5;
-									factor2 += da[axis] * nlpart[a * 48 + b * 12 + c * 3 + axis];
+									forces[index] -= factor * nlpart[a * 48 + b * 12 + c * 3 + axis] * 0.5;
+									factor2 += da[axis] * nlpart[b * 48 + c * 12 + a * 3 + axis];
 								}
 							}
 							for (int axis = 0; axis < 3; axis++){
 								int index = elementNodeIndices[numNodesPerElement*c + axis];
 								if (index >= 0){
-									forces[index] += factor2*db[axis];
+									forces[index] -= factor2*db[axis];
 								}
 							}
 
-							int cNodeIndex = element->getNodeIndex(c);
-							for (int d = 0; d < numNodesPerElement; d++){
-								//assemble part with stresses
-								int dNodeIndex = element->getNodeIndex(d);
-								stressNonlinear[orderOffset + cNodeIndex * numElements + dNodeIndex] 
-									+= factor*nnpart[a * 64 + b * 16 * c * 4 + d];
-							}
-						}
-					}
-				}
-				//assmble lower order nonlinear part
-				if (i < order - 1){
-					int orderOffset = i*numElements;
-					for (int aNodeIndex = 0; aNodeIndex < mesh->getNodeCount(); aNodeIndex++){
-						int offset = aNodeIndex*numElements + orderOffset;
-						for (int bNodeIndex = 0; bNodeIndex < mesh->getNodeCount(); bNodeIndex++){
-							for (int axis = 0; axis < 3; axis++){
-								int index = indexer->getGlobalIndex(bNodeIndex, axis);
-								if (index >= 0){
-									forces[index] += stressNonlinear[offset + bNodeIndex] * dj[index];
+							if (lowerOrder){
+								int cNodeIndex = element->getNodeIndex(c);
+								for (int d = 0; d < numNodesPerElement; d++){
+									//assemble part with stresses
+									int dNodeIndex = element->getNodeIndex(d);
+									stressNonlinear[orderOffset + cNodeIndex * numElements + dNodeIndex]
+										+= factor*nnpart[a * 64 + b * 16 + c * 4 + d];
 								}
 							}
 						}
@@ -183,14 +171,33 @@ namespace ODER{
 				}
 			}
 		}
+
+		//assmble lower order nonlinear part
+		for (int i = 0; i < order - 1; i++){
+			const double *d = ds + totalDofs*(order - i - 2);
+			int orderOffset = i*numElements;
+			for (int aNodeIndex = 0; aNodeIndex < mesh->getNodeCount(); aNodeIndex++){
+				int offset = aNodeIndex*numElements + orderOffset;
+				for (int bNodeIndex = 0; bNodeIndex < mesh->getNodeCount(); bNodeIndex++){
+					for (int axis = 0; axis < 3; axis++){
+						int index = indexer->getGlobalIndex(bNodeIndex, axis);
+						if (index >= 0){
+							forces[index] -= stressNonlinear[offset + bNodeIndex] * d[index];
+						}
+					}
+				}
+			}
+		}
+
+		delete[] elementNodeIndices;
 		delete element;
 	}
 
 	void StVKMaterial::getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const{
 		for (int axis = 0; axis < 3; axis++){
 			int index = nodeIndices[axis];
-			if (index >= 0) d[index] = ds[index];
-			else d[index] = 0.0;
+			if (index >= 0) d[axis] = ds[index];
+			else d[axis] = 0.0;
 		}
 	}
 

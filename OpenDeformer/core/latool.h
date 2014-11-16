@@ -71,7 +71,7 @@ namespace ODER{
 		}
 
 
-		Tensor2<FT> operator^(const VectorBase& v) const;
+		inline Tensor2<FT> operator^(const VectorBase& v) const;
 
 		FT operator[](int i) const{
 			Assert(i > -1 && i<3);
@@ -171,7 +171,7 @@ namespace ODER{
 			return VectorBase<FT>(m[0][0] * x + m[0][1] * y + m[0][2] * z, m[1][0] * x + m[1][1] * y + m[1][2] * z, m[2][0] * x + m[2][1] * y + m[2][2] * z);
 		}
 		FT operator&(const Tensor2& t) const{
-			FT ret = 0.f;
+			FT ret = 0.0;
 			for (int i = 0; i < 3; i++){
 				for (int j = 0; j < 3; j++){
 					ret += m[i][j] * t.m[i][j];
@@ -377,7 +377,7 @@ namespace ODER{
 		*v2 = v0 % *v1;
 	}
 
-	template<class FT> Tensor2<FT> VectorBase<FT>::operator^(const VectorBase<FT>& v) const{
+	template<class FT> inline Tensor2<FT> VectorBase<FT>::operator^(const VectorBase<FT>& v) const{
 		Tensor2<FT> ret;
 		for (int i = 0; i < 3; i++){
 			for (int j = 0; j < 3; j++){
@@ -480,7 +480,7 @@ namespace ODER{
 		for (int i = 0; i < maxIter; i++){
 			if (fb > 0.0 && fc > 0.0 || fb < 0.0 && fc < 0.0){
 				c = a; fc = fa;
-				d = e = c - b;
+				d = e = b - a;
 			}
 			if (fabs(fc) < fabs(fb)){
 				a = b; b = c; c = a;
@@ -488,9 +488,9 @@ namespace ODER{
 			}
 
 			FT tol = FT(2.0)*FT(epsilon)*fabs(b) + tolerance;
-			FT m = FT(0.5)*(b - c);
+			FT m = FT(0.5)*(c - b);
 			
-			if (fabs(m) < tol || fb == FT(0.0)) return b;
+			if (fabs(m) <= tol || fb == FT(0.0)) return b;
 			if (fabs(e) >= tol && fa > fb){
 				//inverse quadratic
 				FT s = fa / fb;

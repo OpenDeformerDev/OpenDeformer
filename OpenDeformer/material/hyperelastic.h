@@ -11,7 +11,7 @@ namespace ODER{
 	class HyperelasticMaterial :public MechMaterial{
 	public:
 		HyperelasticMaterial(double rho, MarterialType t, int numOrder) :MechMaterial(rho, t), orderCount(numOrder){}
-		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, const double *ds, double *forces) = 0;
+		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces) = 0;
 		virtual void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer) = 0;
 		int getNonlinearAsymptoticOrder(){ return orderCount; }
 

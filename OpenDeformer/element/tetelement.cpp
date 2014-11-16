@@ -129,12 +129,13 @@ namespace ODER{
 		constexpr int entryCountPerB = 3;
 		constexpr int numNodesPerElement = 4;
 		constexpr int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
+		memset(nlpart, 0, commonEntryNum * 3 * sizeof(double));
+		memset(nnpart, 0, commonEntryNum * numNodesPerElement * sizeof(double));
+
 		double volume = getVolume();
 		double volume2 = volume*volume;
 		double nlFactor = 1.0 / (216.0*volume2);
 		double nnFactor = 1.0 / (2592.0*volume*volume2);
-		memset(nlpart, 0, commonEntryNum * 3 * sizeof(double));
-		memset(nnpart, 0, commonEntryNum * numNodesPerElement * sizeof(double));
 		if (matchMaterialFlag(type, MarterialType(Marterial_Isotropic))){
 			double lambda = C[0], mu2 = 2.0*C[1];
 
@@ -159,10 +160,10 @@ namespace ODER{
 					t(2, 2) = digCommmon + mu2*t(2, 2);
 
 					int indexOffset = a * 16 + b * 4;
-					//nlpart
 					for (int c = 0; c < numNodesPerElement; c++){
+						//nlpart
 						const double *dNcs = BMatrixs + entryCountPerB*c;
-						VectorBase<double> result = t*VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]);
+						VectorBase<double> result = t * VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]);
 						int nlsubIndex = (indexOffset + c) * 3;
 						nlpart[nlsubIndex + 0] = result[0] * nlFactor;
 						nlpart[nlsubIndex + 1] = result[1] * nlFactor;
@@ -172,7 +173,7 @@ namespace ODER{
 							const double *dNds = BMatrixs + entryCountPerB*d;
 							Tensor2<double> left = VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]) ^ VectorBase<double>(dNds[0], dNds[1], dNds[2]);
 							int nnsubIndex = (indexOffset + c) * 4;
-							nnpart[nnsubIndex + d] = (left & t)*nnFactor;
+							nnpart[nnsubIndex + d] = (left & t) * nnFactor;
 						}
 					}
 				}
