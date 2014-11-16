@@ -132,12 +132,12 @@ namespace ODER{
 		memset(nlpart, 0, commonEntryNum * 3 * sizeof(double));
 		memset(nnpart, 0, commonEntryNum * numNodesPerElement * sizeof(double));
 
-		double volume = getVolume();
-		double volume2 = volume*volume;
-		double nlFactor = 1.0 / (216.0*volume2);
-		double nnFactor = 1.0 / (2592.0*volume*volume2);
+		const double volume = getVolume();
+		const double volume2 = volume*volume;
+		const double nlFactor = 1.0 / (216.0*volume2);
+		const double nnFactor = 1.0 / (2592.0*volume*volume2);
 		if (matchMaterialFlag(type, MarterialType(Marterial_Isotropic))){
-			double lambda = C[0], mu2 = 2.0*C[1];
+			const double lambda = C[0], mu2 = 2.0*C[1];
 
 			for (int a = 0; a < numNodesPerElement; a++){
 				const double *dNas = BMatrixs + entryCountPerB*a;

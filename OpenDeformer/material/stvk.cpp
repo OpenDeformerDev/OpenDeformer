@@ -16,6 +16,7 @@ namespace ODER{
 		stressNonlinear = NULL;
 		intergration[0] = NULL;
 		intergration[1] = NULL;
+
 	}
 
 	void StVKMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
@@ -114,7 +115,7 @@ namespace ODER{
 		int nlEntries = commonEntryNum * 3;
 		int nnEntries = commonEntryNum * numNodesPerElement;
 
-		int *elementNodeIndices = new int[3 * numNodesPerElement];
+		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement*sizeof(double));
 
 		bool lowerOrder = (getNonlinearAsymptoticOrder() - order) > 1;
 		memset(forces, 0, totalDofs*sizeof(double));
@@ -133,25 +134,25 @@ namespace ODER{
 				int orderOffset = (order - 1)*numElements2;
 				for (int a = 0; a < numNodesPerElement; a++){
 					//get node a displacement
-					getNodeDisplacements(di, &elementNodeIndices[numNodesPerElement*a], da);
+					getNodeDisplacements(di, &elementNodeIndices[3 * a], da);
 
 					for (int b = 0; b < numNodesPerElement; b++){
 						//get node b displacement
-						getNodeDisplacements(dj, &elementNodeIndices[numNodesPerElement*b], db);
+						getNodeDisplacements(dj, &elementNodeIndices[3 * b], db);
 
 						double factor = da*db;
 						for (int c = 0; c < numNodesPerElement; c++){
 							double factor2 = 0.0;
 							for (int axis = 0; axis < 3; axis++){
 								//assemble part without stresses
-								int index = elementNodeIndices[numNodesPerElement*c + axis];
+								int index = elementNodeIndices[3*c + axis];
 								if (index >= 0){
 									forces[index] -= factor * nlpart[a * 48 + b * 12 + c * 3 + axis] * 0.5;
 									factor2 += da[axis] * nlpart[b * 48 + c * 12 + a * 3 + axis];
 								}
 							}
 							for (int axis = 0; axis < 3; axis++){
-								int index = elementNodeIndices[numNodesPerElement*c + axis];
+								int index = elementNodeIndices[3*c + axis];
 								if (index >= 0){
 									forces[index] -= factor2*db[axis];
 								}
@@ -163,7 +164,7 @@ namespace ODER{
 									//assemble part with stresses
 									int dNodeIndex = element->getNodeIndex(d);
 									stressNonlinear[orderOffset + cNodeIndex * numElements + dNodeIndex]
-										+= factor*nnpart[a * 64 + b * 16 + c * 4 + d];
+										+= factor*nnpart[a * 64 + b * 16 + d * 4 + c];
 								}
 							}
 						}
@@ -189,7 +190,6 @@ namespace ODER{
 			}
 		}
 
-		delete[] elementNodeIndices;
 		delete element;
 	}
 

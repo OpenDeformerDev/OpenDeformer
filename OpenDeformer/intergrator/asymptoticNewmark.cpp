@@ -136,13 +136,13 @@ namespace ODER{
 		memset(displacements, 0, totalDofs*sizeof(double));
 
 		const double *displacementPerOrder = fullDisplacements;
-		double factor = a;
+		double factor = 1.0;
 		for (int order = 0; order < orderCount; order++){
+			factor *= a;
 			for (int i = 0; i < totalDofs; i++){
-				displacements[i] = factor*displacementPerOrder[i];
+				displacements[i] += factor*displacementPerOrder[i];
 			}
 			displacementPerOrder += totalDofs;
-			factor *= a;
 		}
 	}
 
@@ -180,6 +180,7 @@ namespace ODER{
 			for (int j = 0; j < totalDofs; j++)
 				entry += basis[j] * vwBuffer[j];
 			reducedVW[i] = entry;
+			basis += totalDofs;
 		}
 	}
 

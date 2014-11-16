@@ -20,7 +20,7 @@ namespace ODER{
 		~AsymptoticNewmark();
 
 	private:
-		void setFullDisplacement(int order,double loadFactor);
+		void setFullDisplacement(int order, double loadFactor);
 		void setReducedVirtualWorks(int order);
 
 		double *d;
