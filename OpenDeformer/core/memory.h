@@ -20,11 +20,11 @@ namespace ODER{
 			p = ptr;
 			if (p) p->nReference++;
 		}
-		Reference(const Reference<T> &r){
+		Reference(const Reference &r){
 			p = r.p;
 			if (p) p->nReference++;
 		}
-		Reference(Reference<T> &&r){
+		Reference(Reference &&r){
 			p = r.p;
 			r.p = NULL;
 		}
@@ -34,13 +34,13 @@ namespace ODER{
 			p = ptr;
 			return *this;
 		}
-		Reference &operator=(const Reference<T> &r){
+		Reference &operator=(const Reference &r){
 			if (r.p) r.p->nReference++;
 			if (p && --p->nReference) delete p;
 			p = r.p;
 			return *this;
 		}
-		Reference &operator=(Reference<T> &&r){
+		Reference &operator=(Reference &&r){
 			std::swap(p, r.p);
 			return *this;
 		}
@@ -115,13 +115,13 @@ namespace ODER{
 			objectByteCounts = ((sizeof(T) + 15) & (~15));
 			blockSize = count*objectByteCounts;
 			curBlock = allocAligned<char>(blockSize);
-			deadStack = (char *)NULL;
+			deadStack = NULL;
 		}
 		MemoryPool(const MemoryPool& arena) = delete;
 		MemoryPool& operator=(const MemoryPool& arena) = delete;
 		T* Alloc(){
 			T *ret = NULL;
-			if (deadStack != (char *)NULL){
+			if (deadStack != NULL){
 				ret = (T *)deadStack;
 				deadStack = *(char **)deadStack;
 			}
@@ -153,7 +153,7 @@ namespace ODER{
 				avaBlocks.push_back(usedBlocks.back());
 				usedBlocks.pop_back();
 			}
-			deadStack = (char *)NULL;
+			deadStack = NULL;
 		}
 		~MemoryPool(){
 			freeAligned(curBlock);

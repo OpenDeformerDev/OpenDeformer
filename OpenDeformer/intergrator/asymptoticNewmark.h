@@ -21,7 +21,7 @@ namespace ODER{
 
 	private:
 		void setFullDisplacement(int order, double loadFactor);
-		void setReducedVirtualWorks(int order);
+		void setReducedVirtualWorks(int order, const double *fullVirtualWork);
 
 		double *d;
 		double *v;

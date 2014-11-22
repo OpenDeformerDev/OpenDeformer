@@ -91,12 +91,12 @@ namespace ODER{
 		}
 
 		//calculate load factor 0
-		loadFactors[0] = 1.0 / sqrt(factor + 1);
+		loadFactors[0] = 1.0 / sqrt(factor + 1.0);
 		setFullDisplacement(0, loadFactors[0]);
 
 		for (int order = 1; order < orderCount; order++){
 			material->getNodeForces(mesh, indexer, order, totalDofs, fullDisplacements, vwBuffer);
-			setReducedVirtualWorks(order);
+			setReducedVirtualWorks(order, vwBuffer);
 			factor = 0.0;
 			int offset = order*dofs;
 			for (int i = 0; i < dofs; i++){
@@ -115,9 +115,9 @@ namespace ODER{
 				//uptate d and v
 				v[offset + i] = v_predict + gammaDeltaT*a[offset + i];
 				d[offset + i] = d_predict + betaDeltaT2*a[offset + i];
-				factor = d[offset + i] * d[i];
+				factor += d[offset + i] * d[i];
 			}
-			loadFactors[order] = -loadFactors[0] * factor;
+			loadFactors[order] = -loadFactors[0] * loadFactors[0] * factor;
 			setFullDisplacement(order, loadFactors[order]);
 		}
 	}
@@ -125,24 +125,25 @@ namespace ODER{
 	void AsymptoticNewmark::getRawDisplacements(double *displacements) const{
 		int orderCount = material->getNonlinearAsymptoticOrder();
 		const double *factors = loadFactors;
-		double a = findRoot([orderCount, factors](double x)->double{
-			double ret = 0.0, para = 1.0;
+		double root = findRoot([orderCount, factors](double x)->double{
+			double ret = 0.0, para = x;
 			for (int i = 0; i < orderCount; i++){
-				para *= x;
 				ret += para*factors[i];
+				para *= x;
 			}
 			return ret - 1.0;
 		}, 0.0, 2.0, 2e-6);
+
 		memset(displacements, 0, totalDofs*sizeof(double));
 
 		const double *displacementPerOrder = fullDisplacements;
-		double factor = 1.0;
+		double factor = root;
 		for (int order = 0; order < orderCount; order++){
-			factor *= a;
 			for (int i = 0; i < totalDofs; i++){
 				displacements[i] += factor*displacementPerOrder[i];
 			}
 			displacementPerOrder += totalDofs;
+			factor *= root;
 		}
 	}
 
@@ -153,7 +154,7 @@ namespace ODER{
 		if (order == 0){
 			const double *basis = basises;
 			for (int i = 0; i < dofs; i++){
-				double entry = loadFactor*reduced[i];
+				double entry = loadFactor * reduced[i];
 				for (int j = 0; j < totalDofs; j++){
 					displacement[j] += entry * basis[j];
 				}
@@ -172,13 +173,13 @@ namespace ODER{
 		}
 	}
 
-	void AsymptoticNewmark::setReducedVirtualWorks(int order){
+	void AsymptoticNewmark::setReducedVirtualWorks(int order, const double *fullVirtualWork){
 		const double *basis = basises;
 		double *reducedVW = externalVirtualWork + order*dofs;
 		for (int i = 0; i < dofs; i++){
 			double entry = 0.0;
 			for (int j = 0; j < totalDofs; j++)
-				entry += basis[j] * vwBuffer[j];
+				entry += basis[j] * fullVirtualWork[j];
 			reducedVW[i] = entry;
 			basis += totalDofs;
 		}

@@ -163,7 +163,8 @@ namespace ODER{
 					for (int c = 0; c < numNodesPerElement; c++){
 						//nlpart
 						const double *dNcs = BMatrixs + entryCountPerB*c;
-						VectorBase<double> result = t * VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]);
+						VectorBase<double> dNc(dNcs[0], dNcs[1], dNcs[2]);
+						VectorBase<double> result = t * dNc;
 						int nlsubIndex = (indexOffset + c) * 3;
 						nlpart[nlsubIndex + 0] = result[0] * nlFactor;
 						nlpart[nlsubIndex + 1] = result[1] * nlFactor;
@@ -171,7 +172,7 @@ namespace ODER{
 						//nnpart
 						for (int d = 0; d < numNodesPerElement; d++){
 							const double *dNds = BMatrixs + entryCountPerB*d;
-							Tensor2<double> left = VectorBase<double>(dNcs[0], dNcs[1], dNcs[2]) ^ VectorBase<double>(dNds[0], dNds[1], dNds[2]);
+							Tensor2<double> left = VectorBase<double>(dNds[0], dNds[1], dNds[2]) ^ dNc;
 							int nnsubIndex = (indexOffset + c) * 4;
 							nnpart[nnsubIndex + d] = (left & t) * nnFactor;
 						}
