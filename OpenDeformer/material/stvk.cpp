@@ -117,9 +117,14 @@ namespace ODER{
 
 		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement*sizeof(double));
 
-		bool lowerOrder = (getNonlinearAsymptoticOrder() - order) > 1;
+		int orderCount = getNonlinearAsymptoticOrder();
+		bool lowerOrder = (orderCount - order) > 1;
 
 		VectorBase<double> da, db;
+		int orderOffset = (order - 1)*numNodes2;
+		if (lowerOrder)
+			memset(stressNonlinear + orderOffset, 0, sizeof(double) * numNodes2);
+
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
 			//set new element info
 			element->setNodeIndexs(elementIndex);
@@ -131,7 +136,6 @@ namespace ODER{
 				const double *di = ds + totalDofs*i;
 				const double *dj = ds + totalDofs*(order - i - 1);
 
-				int orderOffset = (order - 1)*numNodes2;
 				for (int a = 0; a < numNodesPerElement; a++){
 					//get node a displacement
 					getNodeDisplacements(di, &elementNodeIndices[3 * a], da);
@@ -146,10 +150,9 @@ namespace ODER{
 							for (int axis = 0; axis < 3; axis++){
 								//assemble part without stresses
 								int index = elementNodeIndices[3 * c + axis];
-								if (index >= 0){
+								if (index >= 0)
 									forces[index] -= factor * nlpart[a * 48 + b * 12 + c * 3 + axis] * 0.5;
-									factor2 += da[axis] * nlpart[b * 48 + c * 12 + a * 3 + axis];
-								}
+								factor2 += da[axis] * nlpart[b * 48 + c * 12 + a * 3 + axis];
 							}
 							for (int axis = 0; axis < 3; axis++){
 								int index = elementNodeIndices[3 * c + axis];
@@ -178,16 +181,28 @@ namespace ODER{
 			int orderOffset = i*numNodes2;
 			for (int aNodeIndex = 0; aNodeIndex < numNodes; aNodeIndex++){
 				int offset = aNodeIndex*numNodes + orderOffset;
-				for (int aNodeAxis = 0; aNodeAxis < 3; aNodeAxis++){
-					int aNodeGlobalIndex = indexer->getGlobalIndex(aNodeIndex, aNodeAxis);
-					if (aNodeGlobalIndex >= 0){
-						for (int bNodeIndex = 0; bNodeIndex < numNodes; bNodeIndex++){
-							for (int bNodeAxis = 0; bNodeAxis < 3; bNodeAxis++){
-								int bNodeGlobalIndex = indexer->getGlobalIndex(bNodeIndex, bNodeAxis);
-								if (bNodeGlobalIndex >= 0)
-									forces[aNodeGlobalIndex] -= stressNonlinear[offset + bNodeIndex] * d[bNodeGlobalIndex];
+				//init node a indices
+				int aNodeGlobalIndices[3];
+				bool valid[3];
+				aNodeGlobalIndices[0] = indexer->getGlobalIndex(aNodeIndex, 0);
+				aNodeGlobalIndices[1] = indexer->getGlobalIndex(aNodeIndex, 1);
+				aNodeGlobalIndices[2] = indexer->getGlobalIndex(aNodeIndex, 2);
+				valid[0] = aNodeGlobalIndices[0] >= 0;
+				valid[1] = aNodeGlobalIndices[1] >= 0;
+				valid[2] = aNodeGlobalIndices[2] >= 0;
+				if (valid[0]  || valid[1] || valid[2]){
+					double entry = 0.0;
+					for (int bNodeIndex = 0; bNodeIndex < numNodes; bNodeIndex++){
+						for (int bNodeAxis = 0; bNodeAxis < 3; bNodeAxis++){
+							int bNodeGlobalIndex = indexer->getGlobalIndex(bNodeIndex, bNodeAxis);
+							if (bNodeGlobalIndex >= 0){
+								entry += stressNonlinear[offset + bNodeIndex] * d[bNodeGlobalIndex];
 							}
 						}
+					}
+					for (int axis = 0; axis < 3; axis++){
+						if (valid[axis])
+							forces[aNodeGlobalIndices[axis]] -= entry;
 					}
 				}
 			}

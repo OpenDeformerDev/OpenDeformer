@@ -123,10 +123,9 @@ namespace ODER{
 
 	template<class FT> struct Tensor2{
 		Tensor2(){
-			m[0][0] = m[1][1] = m[2][2] = FT(1.0);
-			m[0][1] = m[0][2] =
-				m[1][0] = m[1][2] =
-				m[2][0] = m[2][1] = 0.0;
+			m[0][0] = m[0][1] = m[0][2] =
+			m[1][0] = m[1][1] = m[1][2] = 
+			m[2][0] = m[2][1] = m[2][2] = 0.0;
 		}
 		Tensor2(FT mat[3][3]){
 			memcpy(m, mat, 9 * sizeof(FT));

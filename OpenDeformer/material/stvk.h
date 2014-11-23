@@ -17,7 +17,6 @@ namespace ODER{
 		~StVKMaterial();
 	private:
 		void getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const;
-
 		double lambda, mu;
 		double D[3];
 		double *intergration[2];
