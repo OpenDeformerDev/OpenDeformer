@@ -64,11 +64,6 @@ namespace ODER{
 		}
 	}
 
-	int NodeIndexer::getConstrainIndices(const int **detector) const{
-		*detector = &constrainIndices[0];
-		return constrainIndices.size();
-	}
-
 	int NodeIndexer::getMatrixOrder(const Reference<Mesh> &mesh) const{
 		return 3 * mesh->getNodeCount() - constrainIndices.size();
 	}

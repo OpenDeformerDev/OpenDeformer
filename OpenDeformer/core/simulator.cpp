@@ -29,18 +29,17 @@ namespace ODER{
 	}
 
 	void Simulator::getVertexPositions(Vector *vertices) const{
-		const int* constrainIndices = NULL;
-		int constrainSize = indexer->getConstrainIndices(&constrainIndices);
+		auto constrainIter = indexer->getConstrainIterBegin();
+		auto constrainEnd = indexer->getConstrainIterEnd();
 		intergrator->getRawDisplacements(rawDisplacements);
 
-		int constrainIndex = 0;
 		int displacementIndex = 0;
 		int vertCount = mesh->getNodeCount();
 		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++){
 			for (int axis = 0; axis < 3; axis++){
-				if (constrainIndex < constrainSize && (3 * vertIndex + axis) == constrainIndices[constrainIndex]){
+				if (constrainIter != constrainEnd && (3 * vertIndex + axis) == *constrainIter){
 					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis];
-					constrainIndex++;
+					constrainIter++;
 				}
 				else
 					vertices[vertIndex][axis] = mesh->getVertex(vertIndex)[axis] + float(rawDisplacements[displacementIndex++]);
