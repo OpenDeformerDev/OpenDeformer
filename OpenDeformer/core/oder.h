@@ -63,6 +63,7 @@ namespace ODER{
 	struct Quaternion;
 	class MechMaterial;
 	class Mesher;
+	class MeshRelabeler;
 	class Intergrator;
 	class Forcer;
 	class EigenSlover;
