@@ -138,6 +138,9 @@
     <ClInclude Include="core\mechMaterial.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
+    <ClInclude Include="core\meshRelabeler.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -195,6 +198,9 @@
       <Filter>源文件\intergrator</Filter>
     </ClCompile>
     <ClCompile Include="core\mechMaterial.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\meshRelabler.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>

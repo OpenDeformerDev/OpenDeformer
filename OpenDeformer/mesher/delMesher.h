@@ -72,6 +72,9 @@ namespace ODER{
 		bool operator<(const Vertex& v) const{
 			return label < v.label;
 		}
+		bool operator>(const Vertex& v) const{
+			return label > v.label;
+		}
 		DelVector vert;
 		REAL weight;
 	private:

@@ -2052,7 +2052,7 @@ void DelMesher::removeFromFaceTopology(Vertex *a, Vertex *b, Vertex *c){
 
 void DelMesher::insertToTetTopology(const Segment& s, Vertex *mayC, Vertex *mayD){
 	Vertex *a = s.v[0], *b = s.v[1], *c = mayC, *d = mayD;
-	if (size_t(a) > size_t(b)){
+	if (*a > *b){
 		std::swap(a, b);
 		std::swap(c, d);
 	}
@@ -2274,7 +2274,7 @@ void DelMesher::insertToTetTopology(const Segment& s, Vertex *mayC, Vertex *mayD
 
 void DelMesher::removeFromTetTopology(const Segment &s, Vertex *mayC, Vertex *mayD){
 	Vertex *a = s.v[0], *b = s.v[1], *c = mayC, *d = mayD;
-	if (size_t(a) > size_t(b)){
+	if (*a > *b){
 		std::swap(a, b);
 		std::swap(c, d);
 	}
