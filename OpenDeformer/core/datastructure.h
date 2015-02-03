@@ -257,6 +257,61 @@ namespace ODER{
 
 		Hasher hasher;
 	};
+
+
+	template<class T, class Compare = std::less<T>> class DisjointSets{
+	private:
+		template<class T> struct DisjointSet{
+			T value;
+			int rank;
+			DisjointSet *parent;
+		};
+	public:
+		DisjointSets(Compare comp = Compare()) :sets(SetCompare(std::move(comp))){
+			sentinel = arena.Alloc();
+		}
+		void makeSet(T x){ 
+			DisjointSet<T> *entry = arena.Alloc();
+			entry->value = x; entry->rank = 0; entry->parent = entry;
+			sets.insert(entry);
+		}
+		void Union(T x, T y){ Link(findSet(x), findSet(y));}
+		bool isInSameSet(T x, T y){ return findSet(x) == findSet(y);}
+	private:
+		DisjointSet<T>* findSet(T x) const{
+			sentinel->value = x;
+			auto result = sets.find(sentinel);
+			if (result == sets.end())
+				return NULL;
+			return localFind(*result);
+		}
+		void Link(DisjointSet<T>* x, DisjointSet<T>* y){
+			if (x->rank > y->rank)
+				y->parent = x;
+			else{
+				x->parent = y;
+				if (x->rank == y->rank)
+					y->rank++;
+			}
+		}
+		DisjointSet<T>* localFind(DisjointSet<T>* x){
+			if (x != x->parent)
+				x->parent = localFind(x->parent);
+			return x->parent;	
+		}
+
+		struct SetCompare{
+			SetCompare(Compare comp) :comparer(std::move(comp)){}
+			bool operator()(const DisjointSet<T>* left, const DisjointSet<T>* right){
+				return comparer(left->value, right->value);
+			}
+		private:
+			Compare comparer;
+		};
+		DisjointSet<T>* sentinel;
+		set<DisjointSet<T>*, SetCompare> sets;
+		MemoryArena<DisjointSet<T>> arena;
+	};
 }
 
 #endif

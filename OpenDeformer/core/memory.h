@@ -57,7 +57,9 @@ namespace ODER{
 
 	template<class T> class MemoryArena{
 	public:
-		MemoryArena(unsigned int bs = DEFAULT_ARENA_OBJ_SIZE * sizeof(T)) :blockSize(bs), curBlockPos(0){
+		MemoryArena(unsigned int bs = DEFAULT_ARENA_OBJ_SIZE){
+			blockSize = bs * sizeof(T);
+			curBlockPos = 0;
 			curBlock = allocAligned<char>(blockSize);
 		}
 		MemoryArena(const MemoryArena& arena) = delete;

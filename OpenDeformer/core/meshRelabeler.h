@@ -47,7 +47,8 @@ namespace ODER{
 		LevelStructure(MeshGraphVertexNode *rootNode) :root(rootNode){}
 		LevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		void setRoot(MeshGraphVertexNode *node){ root = node; }
-		MeshGraphVertexNode *getRoot(MeshGraphVertexNode *node){ return root; }
+		MeshGraphVertexNode *getRoot(){ return root; }
+		void generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		void insertVertex(int levelNum, MeshGraphVertexNode *node){
 			Assert(levelNum > 0);
 			levels[levelNum - 1].push_back(node);
@@ -64,6 +65,8 @@ namespace ODER{
 			std::sort(levels[level - 1].begin(), levels[level - 1].end(),
 				[](const MeshGraphVertexNode *left, const MeshGraphVertexNode *right){return left->getDegree() < right->getDegree(); });
 		}
+		int getLevelSize() const { return levels.size();}
+		int getWidth() const;
 	private:
 		MeshGraphVertexNode *root;
 		vector<vector<MeshGraphVertexNode *>> levels;
@@ -82,6 +85,7 @@ namespace ODER{
 		MemoryPool<MeshGraphArcNode> graphArcPool;
 		vector<MeshGraphVertexNode *> graphVerts;
 	};
+
 }
 
 #endif
