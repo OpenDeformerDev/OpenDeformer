@@ -272,7 +272,7 @@ namespace ODER{
 		}
 		void makeSet(T x){ 
 			DisjointSet<T> *entry = arena.Alloc();
-			entry->value = x; entry->rank = 0; entry->parent = entry;
+			entry->value = std::move(x); entry->rank = 0; entry->parent = entry;
 			sets.insert(entry);
 		}
 		void Union(T x, T y){ Link(findSet(x), findSet(y));}

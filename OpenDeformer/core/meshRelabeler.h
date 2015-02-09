@@ -41,11 +41,11 @@ namespace ODER{
 		MeshGraphArcNode* adjacent;
 	};
 
-	class LevelStructure{
+	class RootedLevelStructure{
 	public:
-		LevelStructure() :root(NULL){};
-		LevelStructure(MeshGraphVertexNode *rootNode) :root(rootNode){}
-		LevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
+		RootedLevelStructure() :root(NULL){};
+		RootedLevelStructure(MeshGraphVertexNode *rootNode) :root(rootNode){}
+		RootedLevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		void setRoot(MeshGraphVertexNode *node){ root = node; }
 		MeshGraphVertexNode *getRoot(){ return root; }
 		void generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
@@ -74,14 +74,53 @@ namespace ODER{
 
 	class MeshRelabeler{
 	public:
-		MeshRelabeler(int nodeCount, int edgeCount, const int *edgeNodeIndices);
+		MeshRelabeler(int nodeCount, int elementCount, int nodePerElement, const int *eles);
 		MeshRelabeler() = delete;
 		MeshRelabeler& operator=(const MeshRelabeler&) = delete;
 
-		void getNewLables(int *newNodeLables) const;
-		~MeshRelabeler(){ delete[] graphVerts[0]; }
+		void getNewLables(int *newNodeLables, int *newElements);
+		~MeshRelabeler(){ 
+			freeAligned(elements);
+			freeAligned(graphVerts[0]);  
+		}
 	private:
+		template<class Queue, class PriorityQueue> 
+		void processSigleVert(MeshGraphVertexNode * vert, std::list<MeshGraphVertexNode *>& levelNodes,
+			Queue &working, PriorityQueue &toBeAssigned){
+			vert->setNewLable(nextFreeLable++);
+			working.push(vert);
+			while (!levelNodes.empty()){
+				MeshGraphArcNode *node = levelNodes.front()->getAdjacentNodes();
+				levelNodes.pop_front();
+				while (node){
+					MeshGraphVertexNode *vert = graphVerts[node->getLable()];
+					if (std::find(levelNodes.begin(), levelNodes.end(), vert) != levelNodes.end()){
+						toBeAssigned.push(vert);
+						levelNodes.remove(vert);
+					}
+					node = node->getNextNode();
+				}
+
+				while (!toBeAssigned.empty()){
+					MeshGraphVertexNode *vert = toBeAssigned.top();
+					vert->setNewLable(nextFreeLable++);
+					working.push(vert);
+					toBeAssigned.pop();
+				}
+			}
+		}
+
+		struct OrderedElement{
+			OrderedElement(int nodePerElementCount, const int *unorderedElement, int *mem);
+			bool operator<(const OrderedElement& element) const{ return score < element.score; }
+			int score;
+			int *elementNodeIndices;
+		};
+		
 		int nextFreeLable;
+		int nodePerElementCount;
+		int numElements;
+		int *elements;
 		MemoryPool<MeshGraphArcNode> graphArcPool;
 		vector<MeshGraphVertexNode *> graphVerts;
 	};
