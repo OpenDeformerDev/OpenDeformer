@@ -2516,30 +2516,40 @@ start:
 		}
 	}	
 
-	TetMesh *mesh = new TetMesh(vertices.size(), tets.size(), polygons.size());
 	map<Vertex*, int> vi;
-	for (int i = 0; i < mesh->getNodeCount(); i++){
-		mesh->setVertex(i, vertices[i]->vert);
+	for (int i = 0; i < vertices.size(); i++){
 		vi[vertices[i]] = i;
 	}
+
+	constexpr int numTetNode = 4;
+	Mesh *mesh = new TetMesh(vertices.size(), tets.size(), polygons.size());
+	int tetIndex[numTetNode];
 	int i = 0;
-	int elementNodeIndices[4];
 	for (auto t : tets){
-		elementNodeIndices[0] = vi[t.v[0]];
-		elementNodeIndices[1] = vi[t.v[1]];
-		elementNodeIndices[2] = vi[t.v[2]];
-		elementNodeIndices[3] = vi[t.v[3]];
-		mesh->setElement(i++, elementNodeIndices);
+		tetIndex[0] = vi[t.v[0]];
+		tetIndex[1] = vi[t.v[1]];
+		tetIndex[2] = vi[t.v[2]];
+		tetIndex[3] = vi[t.v[3]];
+		mesh->setElement(i++, tetIndex);
 	}
+
+	int *vertIndices = new int[vertices.size()];
+	MeshRelabeler labler(vertices.size());
+	labler.getNewLables(vertIndices, *mesh);
+
+	for (int i = 0; i < vertices.size(); i++)
+		mesh->setVertex(vertIndices[i], vertices[i]->vert);
 
 	i = 0;
 	int surfVertIndices[3];
 	for (auto f : polygons){
-		surfVertIndices[0] = vi[f.v[0]];
-		surfVertIndices[1] = vi[f.v[1]];
-		surfVertIndices[2] = vi[f.v[2]];
+		surfVertIndices[0] = vertIndices[vi[f.v[0]]];
+		surfVertIndices[1] = vertIndices[vi[f.v[1]]];
+		surfVertIndices[2] = vertIndices[vi[f.v[2]]];
 		mesh->setFacet(i++, surfVertIndices);
 	}
+
+	delete[] vertIndices;
 
 	return mesh;
 }

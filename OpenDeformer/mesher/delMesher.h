@@ -11,6 +11,7 @@
 #include "tetmesh.h"
 #include "datastructure.h"
 #include "aabb.h"
+#include "meshRelabeler.h"
 
 namespace ODER{
 #define REAL double
