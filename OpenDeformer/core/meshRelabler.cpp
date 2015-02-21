@@ -90,12 +90,6 @@ namespace ODER{
 		levels.pop_back();
 	}
 
-	void RootedLevelStructure::Clear(){
-		for (int i = 0; i < levels.size(); i++)
-			levels[i].clear();
-		levels.clear();
-	}
-
 	MeshRelabeler::OrderedElement::OrderedElement(int nodePerElementCount, const int *indices, int *mem){
 		elementNodeIndices = mem;
 		memcpy(elementNodeIndices, indices, sizeof(int)*nodePerElementCount);
@@ -206,7 +200,7 @@ namespace ODER{
 			while (lastLevelNode != lastLevelEnd){
 				memset(visited, 0, sizeof(bool)*vertSize);
 				mayEndLevels.Clear();
-				mayEndLevels.generateLevels(*lastLevelNode, graphVerts, visited);
+				mayEndLevels.generateLevels(*lastLevelNode++, graphVerts, visited);
 				int levelSize = mayEndLevels.getLevelSize();
 				if (levelSize > startLevels.getLevelSize()){
 					find = false;
@@ -218,7 +212,6 @@ namespace ODER{
 					std::swap(endLevels, mayEndLevels);
 					endWidth = width;
 				}
-				lastLevelNode++;
 			}
 		}
 
@@ -233,7 +226,7 @@ namespace ODER{
 		};
 
 		map<MeshGraphVertexNode *, OrderedPair> pairs;
-		vector<MeshGraphVertexNode *> deletedVerts;
+		std::deque<MeshGraphVertexNode *> deletedVerts;
 		std::queue<MeshGraphVertexNode *> remainedVertices;
 		vector<std::list<MeshGraphVertexNode *>> newLevels(size, std::list<MeshGraphVertexNode *>());
 
@@ -324,40 +317,49 @@ namespace ODER{
 		{ return left.size() < right.size(); });
 
 		int *mem =new int[size * 2];
-		int *h = mem, *l = mem + size;
+		int *firstLevelCount = mem, *secondLevelCount = mem + size;
 		bool selectSecond = false, interchange = false;
 
-
+		std::queue<OrderedPair> toBeInsert;
 		for (int i = 0; i < connectComponents.size(); i++){
-			memset(h, 0, size*sizeof(int));
-			memset(l, 0, size*sizeof(int));
+			memset(firstLevelCount, 0, size*sizeof(int));
+			memset(secondLevelCount, 0, size*sizeof(int));
 			for (auto vertex : connectComponents[i]){
 				OrderedPair pair = pairs[vertex];
-				h[pair.startLevel]++;
-				l[pair.endLevel]++;
+				firstLevelCount[pair.startLevel]++;
+				secondLevelCount[pair.endLevel]++;
+				toBeInsert.push(pair);
 			}
-			int maxh = *std::max_element(h, h + size);
-			int maxl = *std::max_element(l, l + size);
+			int maxFirstCount = *std::max_element(firstLevelCount, firstLevelCount + size);
+			int maxSecondCount = *std::max_element(secondLevelCount, secondLevelCount + size);
 
 			if (i == 0)
-				if (maxh > maxl || (maxh == maxl && !startSmaller)) selectSecond = true;
+				if (maxFirstCount > maxSecondCount || (maxFirstCount == maxSecondCount && !startSmaller)) selectSecond = true;
 
-			if (maxh < maxl){
-				for (auto vert : connectComponents[i])
-					newLevels[pairs[vert].startLevel].push_back(vert);
+			if (maxFirstCount < maxSecondCount){
+				for (auto vertex : connectComponents[i]){
+					newLevels[toBeInsert.front().startLevel].push_back(vertex);
+					toBeInsert.pop();
+				}
 			}
-			else if (maxh > maxl){
-				for (auto vert : connectComponents[i])
-					newLevels[pairs[vert].endLevel].push_back(vert);
+			else if (maxFirstCount > maxSecondCount){
+				for (auto vertex : connectComponents[i]){
+					newLevels[toBeInsert.front().endLevel].push_back(vertex);
+					toBeInsert.pop();
+				}
 			}
 			else{
 				if (startSmaller){
-					for (auto vert : connectComponents[i])
-						newLevels[pairs[vert].startLevel].push_back(vert);
+					for (auto vertex : connectComponents[i]){
+						newLevels[toBeInsert.front().startLevel].push_back(vertex);
+						toBeInsert.pop();
+					}
 				}
 				else{
-					for (auto vert : connectComponents[i])
-						newLevels[pairs[vert].endLevel].push_back(vert);
+					for (auto vertex : connectComponents[i]){
+						newLevels[toBeInsert.front().endLevel].push_back(vertex);
+						toBeInsert.pop();
+					}
 				}
 			}
 		}

@@ -79,9 +79,7 @@ namespace ODER{
 			T *ret = (T *)(curBlock + curBlockPos);
 			curBlockPos += bytes;
 
-			for (unsigned int i = 0; i < size; i++){
-				new (&ret[i]) T();
-			}
+			Initiation(ret, size);
 			return ret;
 		}
 
@@ -110,6 +108,7 @@ namespace ODER{
 		char *curBlock;
 		std::vector<char *> usedBlocks, avaBlocks;
 	};
+
 
 	template<class T> class MemoryPool{
 	public:
@@ -181,6 +180,24 @@ namespace ODER{
 		return (T *)reallocAligned(memory, num*sizeof(T));
 	}
 	void freeAligned(void *);
+}
+
+template<class T> inline void Initiation(T *vals, unsigned int size){
+	for (unsigned int i = 0; i < size; i++){
+		new (&vals[i]) T();
+	}
+}
+template<> inline void Initiation<double>(double *vals, unsigned int size){
+	memset(vals, 0, sizeof(double) * size);
+}
+template<> inline void Initiation<float>(float *vals, unsigned int size){
+	memset(vals, 0, sizeof(float) * size);
+}
+template<> inline void Initiation<int>(int *vals, unsigned int size){
+	memset(vals, 0, sizeof(int) * size);
+}
+template<> inline void Initiation<unsigned int>(unsigned int *vals, unsigned int size){
+	memset(vals, 0, sizeof(unsigned int) * size);
 }
 
 #endif

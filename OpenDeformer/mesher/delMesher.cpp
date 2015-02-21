@@ -2521,23 +2521,26 @@ start:
 		vi[vertices[i]] = i;
 	}
 
+	int maxGap = INT_MIN;
 	constexpr int numTetNode = 4;
-	Mesh *mesh = new TetMesh(vertices.size(), tets.size(), polygons.size());
-	int tetIndex[numTetNode];
+	int vertCount = vertices.size();
+	Mesh *mesh = new TetMesh(vertCount, tets.size(), polygons.size());
+
+	int tetNodeIndex[numTetNode];
 	int i = 0;
 	for (auto t : tets){
-		tetIndex[0] = vi[t.v[0]];
-		tetIndex[1] = vi[t.v[1]];
-		tetIndex[2] = vi[t.v[2]];
-		tetIndex[3] = vi[t.v[3]];
-		mesh->setElement(i++, tetIndex);
+		tetNodeIndex[0] = vi[t.v[0]];
+		tetNodeIndex[1] = vi[t.v[1]];
+		tetNodeIndex[2] = vi[t.v[2]];
+		tetNodeIndex[3] = vi[t.v[3]];
+		mesh->setElement(i++, tetNodeIndex);
 	}
 
-	int *vertIndices = new int[vertices.size()];
-	MeshRelabeler labler(vertices.size());
+	int *vertIndices = allocAligned<int>(vertCount);
+	MeshRelabeler labler(vertCount);
 	labler.getNewLables(vertIndices, *mesh);
 
-	for (int i = 0; i < vertices.size(); i++)
+	for (int i = 0; i < vertCount; i++)
 		mesh->setVertex(vertIndices[i], vertices[i]->vert);
 
 	i = 0;
@@ -2549,7 +2552,7 @@ start:
 		mesh->setFacet(i++, surfVertIndices);
 	}
 
-	delete[] vertIndices;
+	freeAligned(vertIndices);
 
 	return mesh;
 }

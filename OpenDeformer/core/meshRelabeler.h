@@ -8,6 +8,7 @@
 #include "oder.h"
 #include "latool.h"
 #include "memory.h"
+#include <deque>
 
 namespace ODER{
 	class MeshGraphArcNode{
@@ -79,16 +80,16 @@ namespace ODER{
 		void setRoot(MeshGraphVertexNode *node){ root = node; }
 		MeshGraphVertexNode *getRoot(){ return root; }
 		void generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
-		void Clear();
+		void Clear(){ levels.clear(); }
 		void insertVertex(int levelNum, MeshGraphVertexNode *node){
 			Assert(levelNum > 0);
 			levels[levelNum - 1].push_back(node);
 		}
-		vector<MeshGraphVertexNode *>::iterator getLevelNodeIterBeign(int levelNum){
+		std::deque<MeshGraphVertexNode *>::iterator getLevelNodeIterBeign(int levelNum){
 			Assert(levelNum > 0);
 			return levels[levelNum - 1].begin();
 		}
-		vector<MeshGraphVertexNode *>::iterator getLevelNodeIterEnd(int levelNum){
+		std::deque<MeshGraphVertexNode *>::iterator getLevelNodeIterEnd(int levelNum){
 			Assert(levelNum > 0);
 			return levels[levelNum - 1].end();
 		}
@@ -102,7 +103,7 @@ namespace ODER{
 		~RootedLevelStructure() = default;
 	private:
 		MeshGraphVertexNode *root;
-		vector<vector<MeshGraphVertexNode *>> levels;
+		std::deque<std::deque<MeshGraphVertexNode *>> levels;
 	};
 
 	class MeshRelabeler{

@@ -54,11 +54,13 @@ namespace ODER{
 
 	class SparseMatrixAssembler;
 	class SparseMatrix;
+	template<int, int> class BlockedSymSparseMatrix;
 	class Mesh;
 	struct Element;
 	struct Facet;
 	template<class FT> struct VectorBase;
 	struct Vector;
+	class DenseVector;
 	template<class FT> struct Tensor2;
 	struct Quaternion;
 	class MechMaterial;

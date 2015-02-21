@@ -349,6 +349,38 @@ namespace ODER{
 		float w;
 	};
 
+	class DenseVector{
+	public:
+		DenseVector() :length(0), values(NULL){}
+		DenseVector(int len);
+		DenseVector(const DenseVector& denseVector) = delete;
+		DenseVector& operator=(const DenseVector& denseVector) = delete;
+		DenseVector(DenseVector && denseVector) :length(denseVector.length), values(denseVector.values){
+			denseVector.length = 0;
+			denseVector.values = NULL;
+		}
+		DenseVector& operator=(DenseVector&& denseVector){
+			std::swap(length, denseVector.length);
+			std::swap(values, denseVector.values);
+			return *this;
+		}
+		double operator[](int index) const{
+			Assert(index > -1 && index < length);
+			return values[index];
+		}
+		double& operator[](int index){
+			Assert(index > -1 && index < length);
+			return values[index];
+		}
+		void setZeros(){ memset(values, 0, sizeof(double)*length); }
+		~DenseVector();
+
+	private:
+		int length;
+		double *values;
+	};
+	
+
 	//inline funtion for vec
 	template<class FT> inline VectorBase<FT> Normalize(const VectorBase<FT> &v){
 		return v / v.length();

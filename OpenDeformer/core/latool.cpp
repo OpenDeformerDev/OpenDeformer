@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "latool.h"
+#include "memory.h"
 
 namespace ODER{
 	Mat4::Mat4(float mat[4][4]){
@@ -96,5 +97,14 @@ namespace ODER{
 				break;
 			}
 		}
+	}
+
+	DenseVector::DenseVector(int len) : length(len){
+		values = allocAligned<double>(length);
+		memset(values, 0, sizeof(double)*length);
+	}
+
+	DenseVector::~DenseVector(){
+		if (values) freeAligned(values);
 	}
 }
