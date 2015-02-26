@@ -382,13 +382,13 @@ namespace ODER{
 		//numbering
 		MeshGraphVertexNode *root = startLevels.getRoot();
 		int init = 0, pace = 1;
-		std::function<bool(int)> compare{ [size](int i){ return i < size; } };
+		std::function<bool(int)> compare{ [size](int i) noexcept { return i < size; } };
 
 		if (startLevels.getRoot()->getDegree() > endLevels.getRoot()->getDegree()){
 			interchange = true;
 			root = endLevels.getRoot();
 			init = size - 1; pace = -1;
-			compare = [](int i){return i >= 0; };
+			compare = [](int i) noexcept { return i >= 0; };
 		}
 
 		OrderedPair rootPair = pairs[root];

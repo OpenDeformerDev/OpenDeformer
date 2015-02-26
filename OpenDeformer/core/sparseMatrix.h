@@ -46,12 +46,9 @@ namespace ODER{
 	public:
 		BlockedSymSparseMatrixAssembler(int columnCount) 
 			: numColumn(columnCount), numBlockColumn(numColumn / blockLength), numRemainedColumn(numColumn - numBlockColumn*blockLength),
-			blockEntries(numBlockColumn), remainedEntries(NULL){
+			blockEntries(numBlockColumn), remainedEntryCount(NULL){
 
-			if (numRemainedColumn > 0){
-				int numRemainedEntries = numRemainedColumn*numRemainedColumn;
-				remainedEntries = entryMem.Alloc(numRemainedEntries);
-			}
+			if (numRemainedColumn > 0) remainedEntryCount = new int[numRemainedColumn];
 
 			diagIndices[0] = 0;
 			for (int i = 0; i < blockLength - 1; i++)
@@ -111,17 +108,27 @@ namespace ODER{
 				}
 			}
 			else{
-				int subRow = row - columnStart;
-				remainedEntries[subColumn * numRemainedColumn + subRow] += data;
+				int subRow = numColumn - row;
+				int index = subColumn*numRemainedColumn + subRow;
+				auto found = remainedEntries.find(index);
+				if (found != remainedEntries.end())
+					found->second += data;
+				else{
+					remainedEntryCount[subColumn]++;
+					remainedEntries.insert(std::pair<int, double>(index, data));
+				}
 			}
 		}
+
+		~BlockedSymSparseMatrixAssembler(){ if (remainedEntryCount) delete[] remainedEntryCount; }
 
 	private:
 		int numColumn;
 		int numBlockColumn;
 		int numRemainedColumn;
 		vector<map<int, double*>> blockEntries;
-		double *remainedEntries;
+		map<int, double> remainedEntries;
+		int *remainedEntryCount;
 
 		double diagIndices[blockLength];
 		MemoryArena<double> entryMem;
@@ -131,14 +138,100 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
-		BlockedSymSparseMatrix(const BlockedSymSparseMatrixAssembler<blockLength, blockWidth>& assembler);
+		BlockedSymSparseMatrix(const BlockedSymSparseMatrixAssembler<blockLength, blockWidth>& assembler){
+			numColumns = assembler.numColumn;
+			numBlockColumn = assembler.numBlockColumn;
+			numRemainedColumn = assembler.numRemainedColumn;
+
+			blockPcol = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
+
+			constexpr int regularSize = blockLength*blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			blockPcol[0] = 0;
+			int dataCount = 0;
+			for (int i = 0; i < numBlockColumn; i++){
+				//counting blocks
+				int blockCount = assembler.blockEntries[i].size();
+				blockPcol[i + 1] = blockPcol[i] + blockCount;
+				//counting datas
+				if (blockCount != 0){
+					int blockDataCount = blockCount*regularSize;
+					auto start = assembler.blockEntries[i].cbegin();
+					if (start->first == i*blockLength)
+						blockDataCount -= (regularSize - diagSize);
+					auto last = --(assembler.blockEntries[i].cend());
+					if (numColumns - last->first < blockWidth)
+						blockDataCount -= (last->first + blockWidth - numColumns)*blockLength;
+					dataCount += blockDataCount;
+				}
+			}
+
+			for (int i = 0; i < numRemainedColumn; i++)
+				blockPcol[i + numBlockColumn + 1] = blockPcol[i + numBlockColumn] + assembler.remainedEntryCount[i];
+
+			dataCount += assembler.remainedEntries.size();
+
+
+			values = allocAligned<double>(dataCount);
+			blockRows = allocAligned<int>(blockPcol[numBlockColumn + numRemainedColumn + 1]);
+
+			int index = 0;
+			double *valueIter = values;
+			for (int i = 0; i < numBlockColumn; i++){
+				if (blockPcol[i + 1] != blockPcol[i]){
+					auto pos = assembler.blockEntries[i].cbegin();
+					auto last = assembler.blockEntries[i].cend();
+					auto end = last--;
+					if (pos->first == i*blockLength){
+						blockRows[index++] = pos->first;
+						memcpy(valueIter, pos->second, sizeof(double)*diagSize);
+						valueIter += diagSize;
+						pos++;
+					}
+					if (pos != end){
+						while (pos != last){
+							blockRows[index++] = pos->first;
+							memcpy(valueIter, pos->second, sizeof(double)*regularSize);
+							valueIter += regularSize;
+							pos++;
+						}
+						if (numColumns - pos->first >= blockWidth){
+							blockRows[index++] = pos->first;
+							memcpy(valueIter, pos->second, sizeof(double)*regularSize);
+							valueIter += regularSize;
+						}
+						else{
+							blockRows[index++] = pos->first;
+							memcpy(valueIter, pos->second, sizeof(double)*(numColumns - pos->first)*blockLength);
+							valueIter += (numColumns - pos->first)*blockLength;
+						}
+					}
+				}
+			}
+
+			int rowOffset = blockLength*numBlockColumn;
+			auto pos = assembler.remainedEntries.cbegin();
+			auto end = assembler.remainedEntries.cend();
+			while (pos != end){
+				blockRows[index++] = pos->first % numRemainedColumn + rowOffset;
+				*valueIter++ = pos->second;
+				pos++;
+			}
+		}
+
+		~BlockedSymSparseMatrix(){
+			freeAligned(values);
+			freeAligned(blockRows);
+			freeAligned(blockPcol);
+		}
 	private:
 		int numColumns;
 		int numBlockColumn;
 		int numRemainedColumn;
 		double *values;
-		double *blockRows;
-		double *blockPcol;
+		int *blockRows;
+		int *blockPcol;
 	};
 }
 

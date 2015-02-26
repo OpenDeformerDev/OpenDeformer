@@ -56,7 +56,7 @@ namespace ODER{
 	};
 
 	struct DegreeComparer{
-		bool operator()(const MeshGraphVertexNode *left, const MeshGraphVertexNode *right){ 
+		bool operator()(const MeshGraphVertexNode *left, const MeshGraphVertexNode *right) noexcept{
 			return left->getDegree() < right->getDegree(); 
 		}
 	};
@@ -68,15 +68,8 @@ namespace ODER{
 		RootedLevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		RootedLevelStructure(const RootedLevelStructure&) = default;
 		RootedLevelStructure& operator=(const RootedLevelStructure&) = default;
-		RootedLevelStructure(RootedLevelStructure&& levelstructure) :levels(std::move(levelstructure.levels)){
-			root = levelstructure.root;
-			levelstructure.root = NULL;
-		}
-		RootedLevelStructure& operator=(RootedLevelStructure&& levelstructure){
-			std::swap(root, levelstructure.root);
-			levels = std::move(levelstructure.levels);
-			return *this;
-		}
+		RootedLevelStructure(RootedLevelStructure&& levelstructure) = default;
+		RootedLevelStructure& operator=(RootedLevelStructure&& levelstructure) = default;
 		void setRoot(MeshGraphVertexNode *node){ root = node; }
 		MeshGraphVertexNode *getRoot(){ return root; }
 		void generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
