@@ -175,6 +175,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="core\meshRelabeler.h" />
+    <ClInclude Include="core\numerMethod.h" />
     <ClInclude Include="core\simulator.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="material\hyperelastic.h" />

@@ -99,9 +99,9 @@ namespace ODER{
 		}
 	}
 
-	DenseVector::DenseVector(int len) : length(len){
-		values = allocAligned<double>(length);
-		memset(values, 0, sizeof(double)*length);
+	DenseVector::DenseVector(int w) : width(w){
+		values = allocAligned<double>(width);
+		Initiation(values, width);
 	}
 
 	DenseVector::~DenseVector(){

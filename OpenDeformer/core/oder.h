@@ -55,6 +55,7 @@ namespace ODER{
 	class SparseMatrixAssembler;
 	class SparseMatrix;
 	template<int, int> class BlockedSymSparseMatrix;
+	template<int, int> class BlockedSymSparseMatrixAssembler;
 	class Mesh;
 	struct Element;
 	struct Facet;

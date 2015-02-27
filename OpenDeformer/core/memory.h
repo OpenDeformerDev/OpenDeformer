@@ -186,16 +186,16 @@ namespace ODER{
 			new (&vals[i]) T();
 		}
 	}
-	template<> inline void Initiation<double>(double *vals, unsigned int size){
+	template<> inline void Initiation(double *vals, unsigned int size){
 		memset(vals, 0, sizeof(double) * size);
 	}
-	template<> inline void Initiation<float>(float *vals, unsigned int size){
+	template<> inline void Initiation(float *vals, unsigned int size){
 		memset(vals, 0, sizeof(float) * size);
 	}
-	template<> inline void Initiation<int>(int *vals, unsigned int size){
+	template<> inline void Initiation(int *vals, unsigned int size){
 		memset(vals, 0, sizeof(int) * size);
 	}
-	template<> inline void Initiation<unsigned int>(unsigned int *vals, unsigned int size){
+	template<> inline void Initiation(unsigned int *vals, unsigned int size){
 		memset(vals, 0, sizeof(unsigned int) * size);
 	}
 }

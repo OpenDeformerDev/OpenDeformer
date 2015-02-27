@@ -2,7 +2,7 @@
 #include "asymptoticNewmark.h"
 #include "nodeIndexer.h"
 #include "forcer.h"
-#include "latool.h"
+#include "numerMethod.h"
 
 namespace ODER{
 	AsymptoticNewmark::AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,

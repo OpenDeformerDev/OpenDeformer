@@ -22,6 +22,7 @@
 #include "oder.h"
 #include "latool.h"
 #include "arithmetic.h"
+#include "numerMethod.h"
 
 namespace ODER{
 template<class FT> class Predicator{

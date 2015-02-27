@@ -141,6 +141,9 @@
     <ClInclude Include="core\meshRelabeler.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
+    <ClInclude Include="core\numerMethod.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">

@@ -225,6 +225,8 @@ namespace ODER{
 			freeAligned(blockRows);
 			freeAligned(blockPcol);
 		}
+
+		int getNumColumns() const{ return numColumns; }
 	private:
 		int numColumns;
 		int numBlockColumn;
@@ -232,6 +234,10 @@ namespace ODER{
 		double *values;
 		int *blockRows;
 		int *blockPcol;
+
+		template<int blockLength, int blockWidth> 
+		friend void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
+			const DenseVector& src, DenseVector& dest);
 	};
 }
 
