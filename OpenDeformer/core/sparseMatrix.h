@@ -48,7 +48,10 @@ namespace ODER{
 			: numColumn(columnCount), numBlockColumn(numColumn / blockLength), numRemainedColumn(numColumn - numBlockColumn*blockLength),
 			blockEntries(numBlockColumn), remainedEntryCount(NULL){
 
-			if (numRemainedColumn > 0) remainedEntryCount = new int[numRemainedColumn];
+			if (numRemainedColumn > 0){
+				remainedEntryCount = new int[numRemainedColumn];
+				Initiation(remainedEntryCount, numRemainedColumn);
+			}
 
 			diagIndices[0] = 0;
 			for (int i = 0; i < blockLength - 1; i++)
@@ -101,7 +104,7 @@ namespace ODER{
 						else{
 							int numBlockEntries = blockLength*width;
 							double *vals = entryMem.Alloc(numBlockEntries);
-							vals[subColumn*blockWidth + subRow] = data;
+							vals[subColumn*width + subRow] = data;
 							blockEntries[blockCloumn].insert(std::pair<int, double*>(blockStartRow, vals));
 						}
 					}
@@ -130,7 +133,7 @@ namespace ODER{
 		map<int, double> remainedEntries;
 		int *remainedEntryCount;
 
-		double diagIndices[blockLength];
+		int diagIndices[blockLength];
 		MemoryArena<double> entryMem;
 
 		friend class BlockedSymSparseMatrix < blockLength, blockWidth > ;
@@ -170,11 +173,11 @@ namespace ODER{
 			for (int i = 0; i < numRemainedColumn; i++)
 				blockPcol[i + numBlockColumn + 1] = blockPcol[i + numBlockColumn] + assembler.remainedEntryCount[i];
 
-			dataCount += assembler.remainedEntries.size();
-
+			int blockRowCount = blockPcol[numBlockColumn + numRemainedColumn];
+			dataCount += blockRowCount - blockPcol[numBlockColumn];
 
 			values = allocAligned<double>(dataCount);
-			blockRows = allocAligned<int>(blockPcol[numBlockColumn + numRemainedColumn + 1]);
+			blockRows = allocAligned<int>(blockRowCount);
 
 			int index = 0;
 			double *valueIter = values;

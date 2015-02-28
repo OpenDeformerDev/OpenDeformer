@@ -141,104 +141,106 @@ namespace ODER{
 
 		const double *values = mat.values;
 		const int *blockPcol = mat.blockPcol;
+		const int *blockRows = mat.blockRows;
 
-		constexpr int regularSize = blockLength*blockWidth;
+		constexpr int regularSize = blockLength * blockWidth;
 		constexpr int diagSize = (blockLength + 1) * blockLength / 2;
-		constexpr int entryCount = blockLength > blockWidth ? blockLength : blockWidth;
 
-		double destBlock[blockWidth];
-		double srcBlock[blockWidth];
+		double destBlock[blockLength];
+		double srcBlock[blockLength];
 
-		const int blockBoundary = blockLength*blockColumnCount;
+		const int blockBoundary = blockLength * blockColumnCount;
 		for (int startColumn = 0; startColumn < blockBoundary; startColumn += blockLength){
 			int index = *blockPcol++;
 			int end = *blockPcol;
 
-			if (end - index == 0) continue;
+			if (index == end) continue;
 
-			int row = mat.blockRows[index];
+			int row = blockRows[index];
 
 			if (row == startColumn){
 				int diagIndex = 0;
-				int inf = row + blockLength;
-				for (int j = row; j < inf; j++){
-					double x = src[j];
+				for (int j = 0; j < blockLength; j++){
+					int actualRow = row + j;
+					double x = src[actualRow];
 					double ret = values[diagIndex++] * x;
-					for (int k = j + 1; k < inf; k++){
+					for (int k = j + 1; k < blockLength; k++){
 						double val = values[diagIndex++] * x;
-						dest[k] += val;
+						dest[row + k] += val;
 						ret += val;
 					}
-					dest[j] += ret;
+					dest[actualRow] += ret;
 				}
 				index++;
 				values += diagSize;
 			}
 
-			if (index <= end){
-				for (int j = 0; j < blockWidth; j++){
+			if (index < end){
+				for (int j = 0; j < blockLength; j++){
 					srcBlock[j] = src[startColumn + j];
 					destBlock[j] = 0.0;
 				}
 			}
 			else continue;
 
-			while (index != end){
-				row = mat.blockRows[index++];
-				for (int j = 0, offset = 0; j < blockWidth; j++, offset += blockWidth){
-					int actualRow = row + j;
-					double x = src[actualRow];
+			while (index < end - 1){
+				row = blockRows[index++];
+				for (int j = 0, offset = 0; j < blockLength; j++, offset += blockWidth){
+					double x = srcBlock[j];
 					double ret = 0.0;
 					for (int k = 0; k < blockWidth; k++){
+						int actualRow = row + k;
 						double val = values[offset + k];
 						dest[actualRow] += val * x;
-						ret += val * srcBlock[k];
+						ret += val * src[actualRow];
 					}
 					destBlock[j] += ret;
 				}
 				values += regularSize;
 			}
 
-			row = mat.blockRows[index];
-			int mayDegenWidth = row - columnCount;
+			row = blockRows[index];
+			int mayDegenWidth = columnCount - row;
 			if (mayDegenWidth >= blockWidth){
 				for (int j = 0, offset = 0; j < blockLength; j++, offset += blockWidth){
-					int actualRow = row + j;
-					double x = src[actualRow];
+					double x = srcBlock[j];
 					double ret = 0.0;
 					for (int k = 0; k < blockWidth; k++){
+						int actualRow = row + k;
 						double val = values[offset + k];
 						dest[actualRow] += val * x;
-						ret += val * srcBlock[k];
+						ret += val * src[actualRow];
 					}
 					destBlock[j] += ret;
-					values += regularSize;
 				}
+				values += regularSize;
 			}
 			else{
 				for (int j = 0, offset = 0; j < blockLength; j++, offset += mayDegenWidth){
-					int actualRow = row + j;
-					double x = src[actualRow];
+					double x = srcBlock[j];
 					double ret = 0.0;
 					for (int k = 0; k < mayDegenWidth; k++){
+						int actualRow = row + k;
 						double val = values[offset + k];
 						dest[actualRow] += val * x;
-						ret += val * srcBlock[k];
+						ret += val * src[actualRow];
 					}
 					destBlock[j] += ret;
-					values += blockLength*mayDegenWidth;
 				}
+				values += blockLength*mayDegenWidth;
 			}
 
-			for (int j = 0; j < blockWidth; j++)
+			for (int j = 0; j < blockLength; j++)
 				dest[startColumn + j] += destBlock[j];
 		}
 
-		for (int i = blockBoundary; i < columnCount; i++, i++){
+		for (int i = blockBoundary; i < columnCount; i++){
 			int index = *blockPcol++;
 			int end = *blockPcol;
 
-			int row = mat.blockRows[index];
+			if (index == end) continue;
+
+			int row = blockRows[index];
 			double y = 0.0, x = src[i];
 			if (row == i){
 				y += x * (*values++);
@@ -246,7 +248,7 @@ namespace ODER{
 			}
 
 			while (index < end){
-				row = mat.blockRows[index++];
+				row = blockRows[index++];
 				double val = *values++;
 
 				y += val * src[row];
