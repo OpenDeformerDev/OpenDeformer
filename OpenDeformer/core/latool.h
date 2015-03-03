@@ -353,13 +353,13 @@ namespace ODER{
 	public:
 		DenseVector() :width(0), values(NULL){}
 		DenseVector(int w);
-		DenseVector(const DenseVector& denseVector) = delete;
+		DenseVector(const DenseVector& denseVector) = default;
 		DenseVector& operator=(const DenseVector& denseVector) = delete;
-		DenseVector(DenseVector && denseVector) :width(denseVector.width), values(denseVector.values){
+		DenseVector(DenseVector && denseVector) noexcept :width(denseVector.width), values(denseVector.values){
 			denseVector.width = 0;
 			denseVector.values = NULL;
 		}
-		DenseVector& operator=(DenseVector&& denseVector){
+		DenseVector& operator=(DenseVector&& denseVector) noexcept{
 			std::swap(width, denseVector.width);
 			std::swap(values, denseVector.values);
 			return *this;
@@ -371,6 +371,29 @@ namespace ODER{
 		double& operator[](int index){
 			Assert(index > -1 && index < width);
 			return values[index];
+		}
+		DenseVector& operator*=(double f){
+			for (int i = 0; i < width; i++)
+				values[i] *= f;
+			return *this;
+		}
+		DenseVector& operator+=(const DenseVector& rhs){
+			for (int i = 0; i < width; i++)
+				values[i] += rhs.values[i];
+			return *this;
+		}
+		double operator*(const DenseVector& rhs){
+			Assert(width == rhs.width);
+			double ret = 0.0;
+			for (int i = 0; i < width; i++)
+				ret += values[i] * rhs.values[i];
+			return ret;
+		}
+		DenseVector&& operator+(DenseVector&& rhs) const{
+			Assert(width == rhs.width);
+			for (int i = 0; i < width; i++)
+				rhs.values[i] += values[i];
+			return std::move(rhs);
 		}
 		void setZeros(){ memset(values, 0, sizeof(double)*width); }
 		int getWidth() const { return width; }
@@ -446,6 +469,24 @@ namespace ODER{
 			0.f, 0.f, -2.f * invfdn, -(zfar + znear) * invfdn,
 			0.f, 0.f, 0.f, 1.f);
 	}
+
+	inline DenseVector&& operator+(DenseVector&& lfs, const DenseVector& rhs){
+		Assert(lfs.getWidth() == rhs.getWidth());
+		int width = lfs.getWidth();
+		for (int i = 0; i < width; i++)
+			lfs[i] += rhs[i];
+		return std::move(lfs);
+	}
+
+	inline DenseVector&& operator*(DenseVector&& v, double f){
+		v *= f;
+		return std::move(v);
+	}
+	inline DenseVector&& operator*(double f, DenseVector&& v){
+		v *= f;
+		return std::move(v);
+	}
+
 }
 
 #endif

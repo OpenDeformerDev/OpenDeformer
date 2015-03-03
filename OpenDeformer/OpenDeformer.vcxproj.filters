@@ -52,6 +52,9 @@
     <Filter Include="源文件\material">
       <UniqueIdentifier>{2136ad92-4009-412c-974d-c325e04700e8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\slover">
+      <UniqueIdentifier>{66e850d6-5df1-4c74-a857-1d0de337ecef}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mesher\delMesher.h">
@@ -64,9 +67,6 @@
       <Filter>头文件\material</Filter>
     </ClInclude>
     <ClInclude Include="core\forcer.h">
-      <Filter>头文件\core</Filter>
-    </ClInclude>
-    <ClInclude Include="core\eigenslover.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
     <ClInclude Include="core\constrainer.h">
@@ -144,6 +144,15 @@
     <ClInclude Include="core\numerMethod.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
+    <ClInclude Include="core\linearSlover.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\preconditioner.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\eigensolver.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -154,9 +163,6 @@
     </ClCompile>
     <ClCompile Include="material\hooke.cpp">
       <Filter>源文件\material</Filter>
-    </ClCompile>
-    <ClCompile Include="core\eigenslover.cpp">
-      <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="core\constrainer.cpp">
       <Filter>源文件\core</Filter>
@@ -204,6 +210,9 @@
       <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="core\meshRelabler.cpp">
+      <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\eigensolver.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>

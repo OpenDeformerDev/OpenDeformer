@@ -39,7 +39,7 @@ namespace ODER{
 		int* rows;//row number of each entry
 		int* pcol;//the index of the start of each column and the end
 
-		friend class EigenSlover;
+		friend class EigenSolver;
 	};
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler{

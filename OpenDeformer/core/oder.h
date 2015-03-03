@@ -54,8 +54,8 @@ namespace ODER{
 
 	class SparseMatrixAssembler;
 	class SparseMatrix;
-	template<int, int> class BlockedSymSparseMatrix;
-	template<int, int> class BlockedSymSparseMatrixAssembler;
+	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix;
+	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler;
 	class Mesh;
 	struct Element;
 	struct Facet;
@@ -69,13 +69,20 @@ namespace ODER{
 	class MeshRelabeler;
 	class Intergrator;
 	class Forcer;
-	class EigenSlover;
+	class EigenSolver;
+	class LinearSolver;
+	class Preconditioner;
 	class Constrainer;
 	class NodeIndexer;
 	class Simulator;
 
 	template<class T> class MemoryArena;
 	template<class T> class MemoryPool;
+
+	constexpr int blockLength = 2;
+	constexpr int blockWidth = 4;
+	using BlockedSymSpMatrix = BlockedSymSparseMatrix< blockLength, blockWidth >;
+	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< blockLength, blockWidth > ;
 
 	inline unsigned int Randomnation(unsigned int choices){
 		randomSeed = (randomSeed * 1366l + 150889l) % 714025l;

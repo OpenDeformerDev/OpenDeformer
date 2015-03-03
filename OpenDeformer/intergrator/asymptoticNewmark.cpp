@@ -42,7 +42,7 @@ namespace ODER{
 		material->generateMassMatrix(mesh, indexer, M);
 		material->generateStiffnessMatrix(mesh, indexer, K); 
 
-		EigenSlover slover;
+		EigenSolver slover;
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
 
 		material->preprocessWithReduction(mesh, indexer);

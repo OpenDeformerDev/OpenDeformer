@@ -6,7 +6,7 @@
 #define ODER_INTERGRATOR_NEWMARK_H
 
 #include "intergrator.h"
-#include "eigenslover.h"
+#include "eigenSolver.h"
 
 namespace ODER{
 	class LinearNewmark : public Intergrator{

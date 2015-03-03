@@ -2,14 +2,13 @@
 #pragma once
 #endif
 
-#ifndef ODER_CORE_EIGENSLOVER_H
-#define ODER_CORE_EIGENSLOVER_H
+#ifndef ODER_CORE_EIGENSOLVER_H
+#define ODER_CORE_EIGENSOLVER_H
 
 #include "oder.h"
-#include "sparseMatrix.h"
 
 namespace ODER{
-	class EigenSlover{
+	class EigenSolver{
 	public:
 		void getEigenValVectors(int dofs, const SparseMatrix &M, const SparseMatrix &K, double *EigValues, double *EigVectors) const;
 	};

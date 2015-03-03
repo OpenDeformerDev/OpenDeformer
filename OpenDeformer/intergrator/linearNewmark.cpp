@@ -37,7 +37,7 @@ namespace ODER{
 		mater.generateMassMatrix(m, nodeIndexer, M);
 		mater.generateStiffnessMatrix(m, nodeIndexer, K);
 
-		EigenSlover slover;
+		EigenSolver slover;
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
 
 

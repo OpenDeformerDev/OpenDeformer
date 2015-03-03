@@ -144,6 +144,7 @@
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <WholeProgramOptimization>true</WholeProgramOptimization>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,8 +175,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="core\linearSlover.h" />
     <ClInclude Include="core\meshRelabeler.h" />
     <ClInclude Include="core\numerMethod.h" />
+    <ClInclude Include="core\preconditioner.h" />
     <ClInclude Include="core\simulator.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="material\hyperelastic.h" />
@@ -188,7 +191,7 @@
     <ClInclude Include="core\constrainer.h" />
     <ClInclude Include="core\datastructure.h" />
     <ClInclude Include="mesher\delMesher.h" />
-    <ClInclude Include="core\eigenslover.h" />
+    <ClInclude Include="core\eigensolver.h" />
     <ClInclude Include="core\oder.h" />
     <ClInclude Include="core\forcer.h" />
     <ClInclude Include="material\hooke.h" />
@@ -213,7 +216,7 @@
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\stvk.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />
-    <ClCompile Include="core\eigenslover.cpp" />
+    <ClCompile Include="core\eigensolver.cpp" />
     <ClCompile Include="core\element.cpp" />
     <ClCompile Include="core\forcer.cpp" />
     <ClCompile Include="material\hooke.cpp" />

@@ -6,7 +6,7 @@
 #define ODER_INTERGRATOR_ASYMPTOTICNEWMARK_H
 
 #include "intergrator.h"
-#include "eigenslover.h"
+#include "eigenSolver.h"
 #include "hyperelastic.h"
 
 namespace ODER{
