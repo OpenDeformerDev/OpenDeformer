@@ -175,7 +175,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="core\linearSlover.h" />
+    <ClInclude Include="core\linearSolver.h" />
     <ClInclude Include="core\meshRelabeler.h" />
     <ClInclude Include="core\numerMethod.h" />
     <ClInclude Include="core\preconditioner.h" />
@@ -207,6 +207,7 @@
     <ClInclude Include="core\stdafx.h" />
     <ClInclude Include="element\tetelement.h" />
     <ClInclude Include="mesh\tetmesh.h" />
+    <ClInclude Include="solver\cgSolver.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -229,6 +230,7 @@
     <ClCompile Include="element\tetelement.cpp" />
     <ClCompile Include="mesh\tetmesh.cpp" />
     <ClCompile Include="oder.cpp" />
+    <ClCompile Include="solver\cgSolver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\test.fs" />

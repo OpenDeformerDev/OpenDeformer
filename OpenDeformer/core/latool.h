@@ -395,6 +395,19 @@ namespace ODER{
 				rhs.values[i] += values[i];
 			return std::move(rhs);
 		}
+		DenseVector&& operator-(DenseVector&& rhs) const{
+			Assert(width == rhs.width);
+			for (int i = 0; i < width; i++)
+				rhs.values[i] = values[i] - rhs.values[i];
+			return std::move(rhs);
+		}
+		double length2() const{
+			double ret = 0.0;
+			for (int i = 0; i < width; i++)
+				ret += values[i] * values[i];
+			return ret;
+		}
+		double Length() const { return sqrt(length2()); }
 		void setZeros(){ memset(values, 0, sizeof(double)*width); }
 		int getWidth() const { return width; }
 		~DenseVector();
@@ -477,7 +490,13 @@ namespace ODER{
 			lfs[i] += rhs[i];
 		return std::move(lfs);
 	}
-
+	inline DenseVector&& operator-(DenseVector&& lfs, const DenseVector& rhs){
+		Assert(lfs.getWidth() == rhs.getWidth());
+		int width = lfs.getWidth();
+		for (int i = 0; i < width; i++)
+			lfs[i] -= rhs[i];
+		return std::move(lfs);
+	}
 	inline DenseVector&& operator*(DenseVector&& v, double f){
 		v *= f;
 		return std::move(v);

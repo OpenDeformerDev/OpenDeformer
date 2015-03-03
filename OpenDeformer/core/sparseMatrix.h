@@ -29,6 +29,23 @@ namespace ODER{
 	class SparseMatrix{
 	public:
 		SparseMatrix(const SparseMatrixAssembler& assembler);
+		SparseMatrix(const SparseMatrix&) = delete;
+		SparseMatrix& operator=(const SparseMatrix&) = delete;
+		SparseMatrix(SparseMatrix&& mat) noexcept{
+			numColumns = mat.numColumns;
+			value = mat.value;
+			rows = mat.rows;
+			pcol = mat.pcol;
+
+			mat.numColumns = 0;
+			mat.value = NULL; mat.rows = NULL; mat.pcol = NULL;
+		}
+		SparseMatrix& operator=(SparseMatrix&& mat) noexcept{
+			std::swap(numColumns, mat.numColumns);
+			std::swap(value, mat.value);
+			std::swap(rows, mat.rows);
+			std::swap(pcol, mat.pcol);
+		}
 		~SparseMatrix();
 		int getNumColumns() const;
 		void Print() const;
@@ -221,6 +238,30 @@ namespace ODER{
 				*valueIter++ = pos->second;
 				pos++;
 			}
+		}
+
+		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;
+		BlockedSymSparseMatrix& operator=(const BlockedSymSparseMatrix&) = delete;
+		BlockedSymSparseMatrix(BlockedSymSparseMatrix&& mat) noexcept{
+			numColumns = mat.numColumns;
+			numBlockColumn = mat.numBlockColumn;
+			numRemainedColumn = mat.numRemainedColumn;
+			values = mat.values;
+			blockRows = mat.blockRows;
+			blockPcol = mat.blockPcol;
+
+			mat.numColumns = 0;
+			mat.numBlockColumn = 0;
+			mat.numRemainedColumn = 0;
+			mat.values = NULL; mat.blockRows = NULL; mat.blockPcol = NULL;
+		}
+		BlockedSymSparseMatrix& operator=(BlockedSymSparseMatrix&& mat) noexcept{
+			std::swap(numColumns, mat.numColumns);
+			std::swap(numBlockColumn, mat.numBlockColumn);
+			std::swap(numRemainedColumn, mat.numRemainedColumn);
+			std::swap(values, mat.values);
+			std::swap(blockRows, mat.blockRows);
+			std::swap(blockPcol, mat.blockPcol);
 		}
 
 		~BlockedSymSparseMatrix(){

@@ -2,15 +2,15 @@
 #pragma once
 #endif
 
-#ifndef ODER_CORE_PRECONDITIONER
-#define ODER_CORE_PRECONDITIONER
+#ifndef ODER_CORE_PRECONDITIONER_H
+#define ODER_CORE_PRECONDITIONER_H
 
 #include "oder.h"
 
 namespace ODER{
 	class Preconditioner{
 	public:
-		virtual void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result);
+		virtual void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
 		virtual ~Preconditioner() = default;
 	};
 }
