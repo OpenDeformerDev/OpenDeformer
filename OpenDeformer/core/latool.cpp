@@ -107,4 +107,14 @@ namespace ODER{
 	DenseVector::~DenseVector(){
 		if (values) freeAligned(values);
 	}
+	
+	SparseVector::SparseVector(int w) : width(w){
+		values = new double[width];
+		Initiation(values, width);
+	}
+
+	void SparseVector::Clear(){
+		memset(values, 0, sizeof(double)*width);
+		indices.clear();
+	}
 }

@@ -164,6 +164,7 @@ namespace ODER{
 			numRemainedColumn = assembler.numRemainedColumn;
 
 			blockPcol = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
+			std::copy(assembler.diagIndices, assembler.diagIndices + blockLength, diagIndices);
 
 			constexpr int regularSize = blockLength*blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
@@ -239,6 +240,115 @@ namespace ODER{
 				pos++;
 			}
 		}
+		void getColumn(int column, SparseVector& vector) const{
+			constexpr int regularSize = blockLength * blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			int blockIndex = column / blockLength;
+			int blockStartColumn = blockIndex*blockLength;
+			if (blockIndex < numBlockColumn){
+				int offset = column - blockStartColumn;
+				int index = blockPcol[blockIndex], end = blockPcol[blockIndex + 1];
+
+				if (index == end) return;
+
+				const double *vals = values + index;
+				if (blockRows[index] == blockStartColumn){
+					int start = diagIndices[offset];
+					for (int i = 0; i < blockLength - offset; i++)
+						vector.emplaceBack(column + i, vals[start + i]);
+					index++;
+					vals += diagSize;
+				}
+				while (index < end - 1){
+					int row = blockRows[index++];
+					int start = offset*blockWidth;
+					for (int i = 0; i < blockWidth; i++)
+						vector.emplaceBack(row + i, vals[start + i]);
+					vals += regularSize;
+				}
+
+				int row = blockRows[index];
+				int mayDegenWidth = numColumns - blockRows[index];
+				if (mayDegenWidth >= blockWidth){
+					int start = offset*blockWidth;
+					for (int i = 0; i < blockWidth; i++)
+						vector.emplaceBack(row + i, vals[start + i]);
+				}
+				else{
+					int start = offset*mayDegenWidth;
+					for (int i = 0; i < mayDegenWidth; i++)
+						vector.emplaceBack(row + i, vals[start + i]);
+				}
+			}
+			else{
+				int start = column - blockStartColumn + numBlockColumn;
+				for (int i = blockPcol[start]; i < blockPcol[start + 1]; i++)
+					vector.emplaceBack(blockRows[i], values[i]);
+			}
+		}
+
+		void getDiagonal(double* diags) const{
+			constexpr int regularSize = blockLength * blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			int i = 0;
+			const double *vals = values;
+			for (; i < numBlockColumn; i++){
+				int columnStart = blockPcol[i], columnLast = blockPcol[i + 1] - 1;
+				for (int j = 0; j < blockLength; j++)
+					*diags++ = vals[diagIndices[j]];
+				vals += diagSize + (columnLast - columnStart)*regularSize;
+				if (columnLast != columnStart){
+					int mayDegenWidth = numColumns - blockRows[columnLast];
+					if (mayDegenWidth < blockWidth) vals -= (blockWidth - mayDegenWidth)*blockLength;
+				}
+			}
+			for (; i < numBlockColumn + numRemainedColumn; i++){
+				*diags++ = *vals;
+				vals += blockPcol[i + 1] - blockPcol[i];
+			}
+		}
+
+		void getDiaginalWithCheck(double *diags) const{
+			constexpr int regularSize = blockLength * blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			int column = 0;
+			const int* pcol = blockPcol;
+			const double *vals = values;
+			for (; column < numBlockColumn * blockLength; column += blockLength){
+				int columnStart = *pcol++;
+				if (blockRows[columnStart] == column){
+					for (int j = 0; j < blockLength; j++)
+						*diags++ = vals[diagIndices[j]];
+					int columnLast = *pcol - 1;
+					vals += diagSize + (columnLast - columnStart)*regularSize;
+					if (columnLast != columnStart){
+						int mayDegenWidth = numColumns - blockRows[columnLast];
+						if (mayDegenWidth < blockWidth) vals -= (blockWidth - mayDegenWidth)*blockLength;
+					}
+				}
+				else{
+					memset(diags, 0, sizeof(double)*blockLength);
+					diags += blockLength;
+					int columnEnd = *pcol;
+					if (columnEnd != columnStart){
+						vals += (columnEnd - columnStart)*regularSize;
+						int mayDegenWidth = numColumns - blockRows[columnEnd - 1];
+						if (mayDegenWidth < blockWidth) vals -= (blockWidth - mayDegenWidth)*blockLength;
+					}
+				}
+			}
+			for (; column < numColumns; column++){
+				int columnStart = *pcol++;
+				if (blockRows[columnStart] == column)
+					*diags++ = *vals;
+				else
+					*diags++ = 0.0;
+				vals += *pcol - columnStart;
+			}
+		}
 
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;
 		BlockedSymSparseMatrix& operator=(const BlockedSymSparseMatrix&) = delete;
@@ -278,6 +388,8 @@ namespace ODER{
 		double *values;
 		int *blockRows;
 		int *blockPcol;
+
+		int diagIndices[blockLength];
 
 		template<int blockLength, int blockWidth> 
 		friend void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 

@@ -364,11 +364,11 @@ namespace ODER{
 			std::swap(values, denseVector.values);
 			return *this;
 		}
-		double operator[](int index) const{
+		double operator[](int index) const noexcept{
 			Assert(index > -1 && index < width);
 			return values[index];
 		}
-		double& operator[](int index){
+		double& operator[](int index) noexcept{
 			Assert(index > -1 && index < width);
 			return values[index];
 		}
@@ -407,7 +407,12 @@ namespace ODER{
 				ret += values[i] * values[i];
 			return ret;
 		}
-		double Length() const { return sqrt(length2()); }
+		double Length() const {
+			double ret = 0.0;
+			for (int i = 0; i < width; i++)
+				ret += values[i] * values[i];
+			return sqrt(ret);
+		}
 		void setZeros(){ memset(values, 0, sizeof(double)*width); }
 		int getWidth() const { return width; }
 		~DenseVector();
@@ -415,6 +420,49 @@ namespace ODER{
 	private:
 		int width;
 		double *values;
+	};
+
+	class SparseVector{
+	public:
+		using IndexConstIter = std::list<int>::const_iterator;
+		SparseVector() :width(0), values(NULL){}
+		SparseVector(int w);
+		SparseVector(const SparseVector&) = delete;
+		SparseVector& operator=(const SparseVector&) = delete;
+		SparseVector(SparseVector&& vec) : width(vec.width), values(vec.values), indices(std::move(vec.indices)){
+			vec.values = NULL;
+			vec.width = 0;
+		}
+		SparseVector& operator=(SparseVector&& vec){
+			std::swap(width, vec.width);
+			std::swap(values, vec.values);
+			indices = std::move(vec.indices);
+			return *this;
+		}
+		void Set(int index, double val){
+			values[index] = val;
+			auto iter = std::lower_bound(indices.begin(), indices.end(), index);
+			if (iter != indices.end() && *iter != index)
+				indices.insert(iter, index);
+		}
+		void Add(int index, double val){
+			values[index] += val;
+			auto iter = std::lower_bound(indices.begin(), indices.end(), index);
+			if (iter != indices.end() && *iter != index)
+				indices.insert(iter, index);
+		}
+		void emplaceBack(int index, double val){
+			values[index] = val;
+			indices.push_back(index);
+		}
+		IndexConstIter Begin() const { return indices.cbegin(); }
+		IndexConstIter End() const { return indices.cend(); }
+		double Get(int index) const { return values[index]; }
+		void Clear();
+	private:
+		int width;
+		double *values;
+		std::list<int> indices;
 	};
 	
 

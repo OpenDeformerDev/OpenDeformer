@@ -10,7 +10,7 @@
 namespace ODER{
 	class Preconditioner{
 	public:
-		virtual void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
+		virtual void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const = 0;
 		virtual ~Preconditioner() = default;
 	};
 }

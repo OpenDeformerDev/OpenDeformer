@@ -20,11 +20,11 @@ namespace ODER{
 			SpMV(mat, remainder, temp);
 			double alpha = delta / (direction * temp);
 			//result = result + alpha * direction
-			for (int i = 0; i < width; i++)
-				result[i] += alpha * direction[i];
 			//remainder = remainder - alpha * q
-			for (int i = 0; i < width; i++)
+			for (int i = 0; i < width; i++){
+				result[i] += alpha * direction[i];
 				remainder[i] -= alpha * temp[i];
+			}
 
 			// M * z = remainder
 			preconditioner->solvePreconditionerSystem(remainder, temp);

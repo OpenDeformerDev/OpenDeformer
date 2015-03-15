@@ -22,19 +22,6 @@
 #include <GL/glew.h>
 #include <GL/freeglut.h>
 
-namespace ODER{
-	using std::vector;
-	using std::map;
-	using std::unordered_set;
-	using std::unordered_map;
-	using std::priority_queue;
-	using std::queue;
-	using std::deque;
-	using std::set;
-	using std::atomic;
-	using std::min;
-	using std::max;
-
 #define L1_CACHE_LINE_SIZE 64
 #define DEFAULT_ARENA_OBJ_SIZE 1024
 #define DEFAULT_POOL_OBJ_COUNT 128
@@ -50,6 +37,19 @@ namespace ODER{
 #define Assert(expr) ((void)0)
 #endif
 
+namespace ODER{
+	using std::vector;
+	using std::map;
+	using std::unordered_set;
+	using std::unordered_map;
+	using std::priority_queue;
+	using std::queue;
+	using std::deque;
+	using std::set;
+	using std::atomic;
+	using std::min;
+	using std::max;
+
 	static unsigned int randomSeed = 23;
 
 	class SparseMatrixAssembler;
@@ -62,6 +62,7 @@ namespace ODER{
 	template<class FT> struct VectorBase;
 	struct Vector;
 	class DenseVector;
+	class SparseVector;
 	template<class FT> struct Tensor2;
 	struct Quaternion;
 	class MechMaterial;
@@ -79,10 +80,8 @@ namespace ODER{
 	template<class T> class MemoryArena;
 	template<class T> class MemoryPool;
 
-	constexpr int blockLength = 2;
-	constexpr int blockWidth = 4;
-	using BlockedSymSpMatrix = BlockedSymSparseMatrix< blockLength, blockWidth >;
-	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< blockLength, blockWidth > ;
+	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 2, 4 >;
+	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 2, 4 > ;
 
 	inline unsigned int Randomnation(unsigned int choices){
 		randomSeed = (randomSeed * 1366l + 150889l) % 714025l;

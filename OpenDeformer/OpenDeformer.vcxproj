@@ -100,6 +100,7 @@
       <MinimalRebuild>true</MinimalRebuild>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
+      <AdditionalOptions>/Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,6 +146,7 @@
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalOptions>/Qvec-report:2 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -208,6 +210,7 @@
     <ClInclude Include="element\tetelement.h" />
     <ClInclude Include="mesh\tetmesh.h" />
     <ClInclude Include="solver\cgSolver.h" />
+    <ClInclude Include="solver\inCholeskyPreconditioner.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -231,6 +234,7 @@
     <ClCompile Include="mesh\tetmesh.cpp" />
     <ClCompile Include="oder.cpp" />
     <ClCompile Include="solver\cgSolver.cpp" />
+    <ClCompile Include="solver\inCholeskyPreconditionercpp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\test.fs" />
