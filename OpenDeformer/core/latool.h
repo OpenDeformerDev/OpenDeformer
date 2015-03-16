@@ -6,6 +6,7 @@
 #define ODER_CORE_LATOOL_H
 
 #include "oder.h"
+#include "datastructure.h"
 
 namespace ODER{
 	template<class FT> struct VectorBase{
@@ -424,45 +425,37 @@ namespace ODER{
 
 	class SparseVector{
 	public:
-		using IndexConstIter = std::list<int>::const_iterator;
-		SparseVector() :width(0), values(NULL){}
-		SparseVector(int w);
+		using IndexValPair = std::pair<int, double>;
+		using IndexValConstIter = RecycledList<IndexValPair>::const_iterator;
+		SparseVector(){}
 		SparseVector(const SparseVector&) = delete;
 		SparseVector& operator=(const SparseVector&) = delete;
-		SparseVector(SparseVector&& vec) : width(vec.width), values(vec.values), indices(std::move(vec.indices)){
-			vec.values = NULL;
-			vec.width = 0;
-		}
-		SparseVector& operator=(SparseVector&& vec){
-			std::swap(width, vec.width);
-			std::swap(values, vec.values);
-			indices = std::move(vec.indices);
-			return *this;
-		}
+		SparseVector(SparseVector&&) = default;
+		SparseVector& operator=(SparseVector&&) = default;
 		void Set(int index, double val){
-			values[index] = val;
-			auto iter = std::lower_bound(indices.begin(), indices.end(), index);
-			if (iter != indices.end() && *iter != index)
-				indices.insert(iter, index);
+			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
+				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
+			if (iter != indices.end() && iter->first != index)
+				indices.insert(iter, IndexValPair(index, val));
+			else
+				iter->second = val;
 		}
 		void Add(int index, double val){
-			values[index] += val;
-			auto iter = std::lower_bound(indices.begin(), indices.end(), index);
-			if (iter != indices.end() && *iter != index)
-				indices.insert(iter, index);
+			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
+				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
+			if (iter != indices.end() && iter->first != index)
+				indices.insert(iter, IndexValPair(index, val));
+			else
+				iter->second += val;
 		}
 		void emplaceBack(int index, double val){
-			values[index] = val;
-			indices.push_back(index);
+			indices.push_back(IndexValPair(index, val));
 		}
-		IndexConstIter Begin() const { return indices.cbegin(); }
-		IndexConstIter End() const { return indices.cend(); }
-		double Get(int index) const { return values[index]; }
-		void Clear();
+		IndexValConstIter Begin() const { return indices.cbegin(); }
+		IndexValConstIter End() const { return indices.cend(); }
+		void Clear(){ indices.clear(); }
 	private:
-		int width;
-		double *values;
-		std::list<int> indices;
+		RecycledList<IndexValPair> indices;
 	};
 	
 

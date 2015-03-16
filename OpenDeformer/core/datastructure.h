@@ -7,6 +7,7 @@
 
 #include "oder.h"
 #include "memory.h"
+#include <type_traits>
 
 namespace ODER{
 	static size_t primeArray[] = { 17, 37, 79, 163, 331, 673, 1361, 2729,
@@ -311,6 +312,118 @@ namespace ODER{
 		DisjointSet<T>* sentinel;
 		set<DisjointSet<T>*, SetCompare> sets;
 		MemoryArena<DisjointSet<T>> arena;
+	};
+
+	//the list shouldn't be used if class T has non-trival destructor
+	template<class T> class RecycledList{
+	private:
+		template<class T> struct ListNode{
+			ListNode() = default;
+			ListNode(ListNode&&) = default;
+			ListNode& operator=(ListNode&&) = default;
+
+			ListNode* next;
+			ListNode* prev;
+			T data;
+		};
+	public:
+		RecycledList(){
+			node = pool.Alloc();
+			node->next = node;
+			node->prev = node;
+		}
+
+		template<class T, class Ref, class Ptr> struct ListIterator{
+			using iterator_category = std::bidirectional_iterator_tag;
+			using value_type = T;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = Ref;
+			using pointer = Ptr;
+
+			ListIterator():node(nullptr){}
+			ListIterator(ListNode<T>* n) :node(n){}
+			ListIterator(const ListIterator&) = default;
+			ListIterator(ListIterator&&) = default;
+			ListIterator& operator=(const ListIterator&) = default;
+			ListIterator& operator=(ListIterator&&) = default;
+
+			bool operator==(const ListIterator& x) const{ return node == x.node; }
+			bool operator!=(const ListIterator& x) const{ return node != x.node; }
+
+			reference operator*() const{ return node->data; }
+			pointer operator->() const{ return &(node->data); }
+
+			ListIterator& operator++(){
+				node = node->next;
+				return *this;
+			}
+			ListIterator operator++(int){
+				ListIterator temp = *this;
+				++*this;
+				return temp;
+			}
+			ListIterator& operator--(){
+				node = node->prev;
+				return *this;
+			}
+			ListIterator operator--(int){
+				ListIterator temp = *this;
+				--*this;
+				return temp;
+			}
+			ListNode<T>* node;
+		};
+
+		using const_type = typename std::add_const<T>::type;
+		using iterator = ListIterator<T, T&, T*>;
+		using const_iterator = ListIterator<T, const_type&, const_type*>;
+
+		iterator begin(){ return node->next; }
+		iterator end(){ return node; }
+		const_iterator cbegin() const{ return node->next; }
+		const_iterator cend() const{ return node; }
+
+		void push_back(T&& val){
+			emplace_back(std::forward<T>(val));
+		}
+		void insert(const const_iterator& pos, T&& val){
+			emplace(pos, std::forward<T>(val));
+		}
+		void insert(const iterator& pos, T&& val){
+			emplace(pos, std::forward<T>(val));
+		}
+		template<class Ref, class Ptr, class Val> void emplace(const ListIterator<T, Ref, Ptr>& pos, Val&& val){
+			ListNode<T>* postNode = pos.node;
+			ListNode<T>* tmp = pool.Alloc();
+			tmp->data = std::forward<Val>(val);
+			tmp->next = postNode;
+			tmp->prev = postNode->prev;
+			postNode->prev->next = tmp;
+			postNode->prev = tmp;
+		}
+		template<class Val> void emplace_back(Val&& val){
+			ListNode<T>* end = node;
+			ListNode<T>* tmp = pool.Alloc();
+			tmp->data = std::forward<Val>(val);
+			tmp->next = end;
+			tmp->prev = end->prev;
+			end->prev->next = tmp;
+			end->prev = tmp;
+		}
+		void clear(){
+			ListNode<T>* cur = node->next;
+			while (cur != node){
+				ListNode<T>* tmp = cur;
+				cur = cur->next;
+				pool.Dealloc(cur);
+			}
+			node->next = node;
+			node->prev = node;
+		}
+	private:
+		ListNode<T> *node;
+		MemoryPool<ListNode<T>> pool;
 	};
 }
 

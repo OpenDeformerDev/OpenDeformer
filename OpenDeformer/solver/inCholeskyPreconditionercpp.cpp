@@ -14,7 +14,7 @@ namespace ODER{
 		double *diags = new double[columnCount];
 		mat.getDiagonal(diags);
 
-		SparseVector w(columnCount);
+		SparseVector w;
 		mat.getColumn(0, w);
 		proccessSingleColumn(0, w, diags);
 
@@ -42,8 +42,8 @@ namespace ODER{
 		auto iter = vec.Begin(), vecEnd = vec.End();
 		int count = 0;
 		while (++iter != vecEnd){
-			int row = *iter;
-			double val = vec.Get(row);
+			int row = iter->first;
+			double val = iter->second;
 			if (val * val < epsilon * diag * diags[row]){
 				val = fabs(val);
 				double scale = sqrt(diag / diags[row]);
