@@ -64,8 +64,8 @@ namespace ODER{
 		}
 		MemoryArena(const MemoryArena& arena) = delete;
 		MemoryArena& operator=(const MemoryArena& arena) = delete;
-		T* Alloc(unsigned int size = 1){
-			unsigned int bytes = ((size*sizeof(T) + 7) & (~7));
+		template<class... Args> T* Alloc(unsigned int size = 1, Args&&... inits){
+			unsigned int bytes = ((size*sizeof(T) + 15) & (~15));
 			if (curBlockPos + bytes > blockSize){
 				usedBlocks.push_back(curBlock);
 				if (avaBlocks.size() && size <= blockSize){
@@ -79,7 +79,7 @@ namespace ODER{
 			T *ret = (T *)(curBlock + curBlockPos);
 			curBlockPos += bytes;
 
-			Initiation(ret, size);
+			Initiation(ret, size, std::forward<Args>(inits)...);
 			return ret;
 		}
 
@@ -113,14 +113,16 @@ namespace ODER{
 	template<class T> class MemoryPool{
 	public:
 		MemoryPool(unsigned int count = DEFAULT_POOL_OBJ_COUNT) : curBlockPos(0){
-			objectByteCounts = ((sizeof(T) + 15) & (~15));
+			constexpr int objectByteCounts = ((sizeof(T) + 15) & (~15));
 			blockSize = count*objectByteCounts;
 			curBlock = allocAligned<char>(blockSize);
 			deadStack = NULL;
 		}
 		MemoryPool(const MemoryPool& arena) = delete;
 		MemoryPool& operator=(const MemoryPool& arena) = delete;
-		T* Alloc(){
+		template<class... Args> T* Alloc(Args&&... inits){
+			constexpr int objectByteCounts = ((sizeof(T) + 15) & (~15));
+
 			T *ret = NULL;
 			if (deadStack != NULL){
 				ret = (T *)deadStack;
@@ -140,10 +142,11 @@ namespace ODER{
 				ret = (T *)(curBlock + curBlockPos);
 				curBlockPos += objectByteCounts;
 			}
-			new (ret)T();
+			Construct(ret, std::forward<Args>(inits)...);
 			return ret;
 		}
 		void Dealloc(T *item){
+			Destory(item);
 			*(char **)item = deadStack;
 			deadStack = (char *)item;
 		}
@@ -165,7 +168,7 @@ namespace ODER{
 				freeAligned(avaBlocks[i]);
 		}
 	private:
-		unsigned int curBlockPos, objectByteCounts, blockSize;
+		unsigned int curBlockPos, blockSize;
 		char *curBlock;
 		char *deadStack;
 		std::vector<char *> usedBlocks, avaBlocks;
@@ -181,9 +184,9 @@ namespace ODER{
 	}
 	void freeAligned(void *);
 
-	template<class T> inline void Initiation(T *vals, unsigned int size){
+	template<class T, class... Args> inline void Initiation(T *vals, unsigned int size, Args&&... inits){
 		for (unsigned int i = 0; i < size; i++){
-			new (&vals[i]) T();
+			new (&vals[i]) T(std::forward<Args>(inits)...);
 		}
 	}
 	template<> inline void Initiation(double *vals, unsigned int size){
@@ -197,6 +200,19 @@ namespace ODER{
 	}
 	template<> inline void Initiation(unsigned int *vals, unsigned int size){
 		memset(vals, 0, sizeof(unsigned int) * size);
+	}
+
+	template<class T> inline void Destory(T* p){
+		p->~T();
+	}
+	template<class T> inline void Destory(T* p, unsigned int size){
+		for (unsigned int i = 0; i < size; i++){
+			p[i].~T();
+		}
+	}
+
+	template<class T, class... Args> inline void Construct(T* p, Args&&... inits){
+		new (p) T(std::forward<Args>(inits)...);
 	}
 }
 

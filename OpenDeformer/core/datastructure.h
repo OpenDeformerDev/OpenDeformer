@@ -318,10 +318,12 @@ namespace ODER{
 	template<class T> class RecycledList{
 	private:
 		template<class T> struct ListNode{
-			ListNode() = default;
+			ListNode(){};
+			template<class... Args> ListNode(Args&&... vals): data(std::forward<Args>(vals)...){}
 			ListNode(ListNode&&) = default;
 			ListNode& operator=(ListNode&&) = default;
 
+			~ListNode(){ data.~T(); }
 			ListNode* next;
 			ListNode* prev;
 			T data;
@@ -372,6 +374,7 @@ namespace ODER{
 				--*this;
 				return temp;
 			}
+			~ListIterator() = default;
 			ListNode<T>* node;
 		};
 
@@ -393,19 +396,17 @@ namespace ODER{
 		void insert(const iterator& pos, T&& val){
 			emplace(pos, std::forward<T>(val));
 		}
-		template<class Ref, class Ptr, class Val> void emplace(const ListIterator<T, Ref, Ptr>& pos, Val&& val){
+		template<class Ref, class Ptr, class... Args> void emplace(const ListIterator<T, Ref, Ptr>& pos, Args&&... val){
 			ListNode<T>* postNode = pos.node;
-			ListNode<T>* tmp = pool.Alloc();
-			tmp->data = std::forward<Val>(val);
+			ListNode<T>* tmp = pool.Alloc(std::forward<Args>(val)...);
 			tmp->next = postNode;
 			tmp->prev = postNode->prev;
 			postNode->prev->next = tmp;
 			postNode->prev = tmp;
 		}
-		template<class Val> void emplace_back(Val&& val){
+		template<class... Args> void emplace_back(Args&&... val){
 			ListNode<T>* end = node;
-			ListNode<T>* tmp = pool.Alloc();
-			tmp->data = std::forward<Val>(val);
+			ListNode<T>* tmp = pool.Alloc(std::forward<Args>(val)...);
 			tmp->next = end;
 			tmp->prev = end->prev;
 			end->prev->next = tmp;
@@ -416,7 +417,7 @@ namespace ODER{
 			while (cur != node){
 				ListNode<T>* tmp = cur;
 				cur = cur->next;
-				pool.Dealloc(cur);
+				pool.Dealloc(tmp);
 			}
 			node->next = node;
 			node->prev = node;

@@ -435,21 +435,21 @@ namespace ODER{
 		void Set(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter != indices.end() && iter->first != index)
-				indices.insert(iter, IndexValPair(index, val));
+			if (iter == indices.end() && iter->first != index)
+				indices.emplace(iter, index, val);
 			else
 				iter->second = val;
 		}
 		void Add(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter != indices.end() && iter->first != index)
-				indices.insert(iter, IndexValPair(index, val));
+			if (iter == indices.end() && iter->first != index)
+				indices.emplace(iter, index, val);
 			else
 				iter->second += val;
 		}
 		void emplaceBack(int index, double val){
-			indices.push_back(IndexValPair(index, val));
+			indices.emplace_back(index, val);
 		}
 		IndexValConstIter Begin() const { return indices.cbegin(); }
 		IndexValConstIter End() const { return indices.cend(); }
