@@ -18,14 +18,9 @@
 #include <set>
 #include <cmath>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <GL/freeglut.h>
-
-#define L1_CACHE_LINE_SIZE 64
-#define DEFAULT_ARENA_OBJ_SIZE 1024
-#define DEFAULT_POOL_OBJ_COUNT 128
-#define GL_BUFFER_OFFSET( offset ) ((GLvoid*) (offset))
+#define ODER_L1_CACHE_LINE_SIZE 64
+#define ODER_DEFAULT_ARENA_OBJ_SIZE 1024
+#define ODER_DEFAULT_POOL_OBJ_COUNT 128
 
 #ifndef NDEBUG
 #define ODER_DEBUG
@@ -35,6 +30,16 @@
 #define Assert(expr) assert(expr)
 #else
 #define Assert(expr) ((void)0)
+#endif
+
+#if defined(_WIN32) || defined(_WIN64)
+#define ODER_IS_WINDOWS
+#elif defined(__linux__)
+#define ODER_IS_LINUX
+#elif defined(__APPLE__)
+#define ODER_IS_APPLE
+#elif defined(__OpenBSD__)
+#define ODER_IS_OPENBSD
 #endif
 
 namespace ODER{

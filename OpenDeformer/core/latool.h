@@ -423,6 +423,7 @@ namespace ODER{
 		double *values;
 	};
 
+	//not thread safe
 	class SparseVector{
 	public:
 		using IndexValPair = std::pair<int, double>;

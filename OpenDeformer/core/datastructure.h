@@ -314,12 +314,13 @@ namespace ODER{
 		MemoryArena<DisjointSet<T>> arena;
 	};
 
-	//the list shouldn't be used if class T has non-trival destructor
+	//not thread safe
 	template<class T> class RecycledList{
 	private:
 		template<class T> struct ListNode{
-			ListNode(){};
 			template<class... Args> ListNode(Args&&... vals): data(std::forward<Args>(vals)...){}
+			ListNode(const ListNode&) = delete;
+			ListNode& operator=(const ListNode&) = delete;
 			ListNode(ListNode&&) = default;
 			ListNode& operator=(ListNode&&) = default;
 
@@ -424,8 +425,10 @@ namespace ODER{
 		}
 	private:
 		ListNode<T> *node;
-		MemoryPool<ListNode<T>> pool;
+		static MemoryPool<ListNode<T>> pool;
 	};
+
+	template<class T> MemoryPool<typename RecycledList<T>::ListNode<T>> RecycledList<T>::pool;
 }
 
 #endif

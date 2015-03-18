@@ -56,10 +56,10 @@ namespace ODER{
 			return label;
 		}
 		void setListPointer(EdgeListNode *n){
-			pointer = size_t(n);
+			pointer = uintptr_t(n);
 		}
 		void setEndVertexPoint(Vertex *v){
-			pointer = size_t(v) | 0x1;
+			pointer = uintptr_t(v) | 0x1;
 		}
 		EdgeListNode *getListHead(){
 			return (EdgeListNode *)pointer;
@@ -80,7 +80,7 @@ namespace ODER{
 		REAL weight;
 	private:
 		int label;
-		size_t pointer;//point to the adjaceny list or another vertex
+		uintptr_t pointer;//point to the adjaceny list or another vertex
 		static Labeler labeler;
 	};
 
@@ -88,7 +88,7 @@ namespace ODER{
 	public:
 		VertexListNode() :currentVert(0x1), next(NULL){}
 		void setVertex(Vertex *vert){
-			currentVert = size_t(vert);
+			currentVert = uintptr_t(vert);
 		}
 		Vertex *getVertex() const{
 			return (Vertex *)(currentVert & (~0x1));
@@ -109,7 +109,7 @@ namespace ODER{
 			return (currentVert & 0x1) == 0x1;
 		}
 	private:
-		size_t currentVert;
+		uintptr_t currentVert;
 		VertexListNode *next;
 	};
 

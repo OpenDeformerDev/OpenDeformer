@@ -6,6 +6,7 @@
 #define ODER_CORE_MEMORY_H
 
 #include "oder.h"
+#include <cstdint>
 
 namespace ODER{
 	class ReferenceCounted{
@@ -57,15 +58,16 @@ namespace ODER{
 
 	template<class T> class MemoryArena{
 	public:
-		MemoryArena(unsigned int bs = DEFAULT_ARENA_OBJ_SIZE){
+		MemoryArena(unsigned int bs = ODER_DEFAULT_ARENA_OBJ_SIZE){
 			blockSize = bs * sizeof(T);
 			curBlockPos = 0;
-			curBlock = allocAligned<char>(blockSize);
+			curBlock = allocAligned<int8_t>(blockSize);
 		}
 		MemoryArena(const MemoryArena& arena) = delete;
 		MemoryArena& operator=(const MemoryArena& arena) = delete;
 		template<class... Args> T* Alloc(unsigned int size = 1, Args&&... inits){
-			unsigned int bytes = ((size*sizeof(T) + 15) & (~15));
+			constexpr int complement = 2 * sizeof(void *) - 1;
+			unsigned int bytes = ((size*sizeof(T) + complement) & (~complement));
 			if (curBlockPos + bytes > blockSize){
 				usedBlocks.push_back(curBlock);
 				if (avaBlocks.size() && size <= blockSize){
@@ -73,7 +75,7 @@ namespace ODER{
 					avaBlocks.pop_back();
 				}
 				else
-					curBlock = allocAligned<char>(max(size, blockSize));
+					curBlock = allocAligned<int8_t>(max(size, blockSize));
 				curBlockPos = 0;
 			}
 			T *ret = (T *)(curBlock + curBlockPos);
@@ -105,28 +107,30 @@ namespace ODER{
 
 	private:
 		unsigned int curBlockPos, blockSize;
-		char *curBlock;
-		std::vector<char *> usedBlocks, avaBlocks;
+		int8_t *curBlock;
+		std::vector<int8_t *> usedBlocks, avaBlocks;
 	};
 
 
 	template<class T> class MemoryPool{
 	public:
-		MemoryPool(unsigned int count = DEFAULT_POOL_OBJ_COUNT) : curBlockPos(0){
-			constexpr int objectByteCounts = ((sizeof(T) + 15) & (~15));
+		MemoryPool(unsigned int count = ODER_DEFAULT_POOL_OBJ_COUNT) : curBlockPos(0){
+			constexpr int complement = 2 * sizeof(void *) - 1;
+			constexpr int objectByteCounts = ((sizeof(T) + complement) & (~complement));
 			blockSize = count*objectByteCounts;
-			curBlock = allocAligned<char>(blockSize);
+			curBlock = allocAligned<int8_t>(blockSize);
 			deadStack = NULL;
 		}
 		MemoryPool(const MemoryPool& arena) = delete;
 		MemoryPool& operator=(const MemoryPool& arena) = delete;
 		template<class... Args> T* Alloc(Args&&... inits){
-			constexpr int objectByteCounts = ((sizeof(T) + 15) & (~15));
+			constexpr int complement = 2 * sizeof(void *) - 1;
+			constexpr int objectByteCounts = ((sizeof(T) + complement) & (~complement));
 
 			T *ret = NULL;
 			if (deadStack != NULL){
 				ret = (T *)deadStack;
-				deadStack = *(char **)deadStack;
+				deadStack = *(int8_t **)deadStack;
 			}
 			else{
 				if (curBlockPos + objectByteCounts > blockSize){
@@ -136,7 +140,7 @@ namespace ODER{
 						avaBlocks.pop_back();
 					}
 					else
-						curBlock = allocAligned<char>(blockSize);
+						curBlock = allocAligned<int8_t>(blockSize);
 					curBlockPos = 0;
 				}
 				ret = (T *)(curBlock + curBlockPos);
@@ -147,8 +151,8 @@ namespace ODER{
 		}
 		void Dealloc(T *item){
 			Destory(item);
-			*(char **)item = deadStack;
-			deadStack = (char *)item;
+			*(int8_t **)item = deadStack;
+			deadStack = (int8_t *)item;
 		}
 		void freeAll(){
 			curBlockPos = 0;
@@ -169,16 +173,15 @@ namespace ODER{
 		}
 	private:
 		unsigned int curBlockPos, blockSize;
-		char *curBlock;
-		char *deadStack;
-		std::vector<char *> usedBlocks, avaBlocks;
+		int8_t *curBlock;
+		int8_t *deadStack;
+		std::vector<int8_t *> usedBlocks, avaBlocks;
 	};
 
 	void *allocAligned(size_t size);
 	template <class T> T *allocAligned(size_t num = 1){
 		return (T *)allocAligned(num*sizeof(T));
 	}
-	void *reallocAligned(void* memory, size_t size);
 	template <class T> T *reallocAligned(T* memory, size_t num){
 		return (T *)reallocAligned(memory, num*sizeof(T));
 	}

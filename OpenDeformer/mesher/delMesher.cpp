@@ -741,7 +741,7 @@ bool DelMesher::Adjacent(const Face &f, Vertex **z) const{
 
 bool DelMesher::Adjacent(Vertex *w, Vertex *x, Vertex *y, Vertex **z) const{
 	bool found = false;
-	if (size_t(w) > size_t(x)){
+	if (uintptr_t(w) > uintptr_t(x)){
 		if (x->hasList()){
 			EdgeListNode *linkHead = x->getListHead();
 			while (linkHead != NULL && linkHead->getEndVertex() != w){
@@ -847,7 +847,7 @@ void DelMesher::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int m
 		break;
 	case 2:
 	{
-		size_t v[4];
+		int v[4];
 		v[0] = aIndex; v[1] = bIndex; v[2] = cIndex; v[3] = dIndex;
 		int max = 0;
 		for (int i = 1; i < 4; i++){
