@@ -83,8 +83,6 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;__GNUG__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -101,6 +99,7 @@
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <AdditionalOptions>/Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -182,6 +181,7 @@
     <ClInclude Include="core\numerMethod.h" />
     <ClInclude Include="core\preconditioner.h" />
     <ClInclude Include="core\simulator.h" />
+    <ClInclude Include="InitShader.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="material\hyperelastic.h" />
     <ClInclude Include="material\stvk.h" />
@@ -198,7 +198,6 @@
     <ClInclude Include="core\forcer.h" />
     <ClInclude Include="material\hooke.h" />
     <ClInclude Include="intergrator\linearNewmark.h" />
-    <ClInclude Include="InitShader.h" />
     <ClInclude Include="core\intergrator.h" />
     <ClInclude Include="core\latool.h" />
     <ClInclude Include="core\mechMaterial.h" />
@@ -217,6 +216,9 @@
     <ClCompile Include="core\mechMaterial.cpp" />
     <ClCompile Include="core\meshRelabler.cpp" />
     <ClCompile Include="core\simulator.cpp" />
+    <ClCompile Include="core\Stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\stvk.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />

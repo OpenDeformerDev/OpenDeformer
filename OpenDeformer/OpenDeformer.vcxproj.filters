@@ -132,9 +132,6 @@
     <ClInclude Include="material\hyperelastic.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
-    <ClInclude Include="InitShader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="intergrator\linearNewmark.h">
       <Filter>头文件\intergrator</Filter>
     </ClInclude>
@@ -161,6 +158,9 @@
     </ClInclude>
     <ClInclude Include="solver\inCholeskyPreconditioner.h">
       <Filter>头文件\solver</Filter>
+    </ClInclude>
+    <ClInclude Include="InitShader.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -229,6 +229,9 @@
     </ClCompile>
     <ClCompile Include="solver\inCholeskyPreconditionercpp.cpp">
       <Filter>源文件\solver</Filter>
+    </ClCompile>
+    <ClCompile Include="core\Stdafx.cpp">
+      <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -5,18 +5,9 @@
 #ifndef ODER_CORE_ODER_H
 #define ODER_CORE_ODER_H
 
-#include <vector>
-#include <map>
 #include <algorithm>
-#include <unordered_map>
-#include <unordered_set>
-#include <queue>
-#include <deque>
 #include <functional>
 #include <assert.h>
-#include <atomic>
-#include <set>
-#include <cmath>
 
 #define ODER_L1_CACHE_LINE_SIZE 64
 #define ODER_DEFAULT_ARENA_OBJ_SIZE 1024
@@ -43,18 +34,6 @@
 #endif
 
 namespace ODER{
-	using std::vector;
-	using std::map;
-	using std::unordered_set;
-	using std::unordered_map;
-	using std::priority_queue;
-	using std::queue;
-	using std::deque;
-	using std::set;
-	using std::atomic;
-	using std::min;
-	using std::max;
-
 	static unsigned int randomSeed = 23;
 
 	class SparseMatrixAssembler;
@@ -106,6 +85,7 @@ namespace ODER{
 		else if (val>high) return high;
 		else return val;
 	}
+
 }
 
 #endif

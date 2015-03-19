@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "cgSolver.h"
 #include "numerMethod.h"
 #include "latool.h"

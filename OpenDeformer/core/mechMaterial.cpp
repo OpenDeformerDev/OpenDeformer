@@ -23,8 +23,8 @@ namespace ODER{
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
 						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);
 						if (i_index >= 0 && j_index >= 0){
-							int rowIndex = max(i_index, j_index);
-							int columnIndex = min(i_index, j_index);
+							int rowIndex = std::max(i_index, j_index);
+							int columnIndex = std::min(i_index, j_index);
 							m.addEntry(rowIndex, columnIndex, entry);
 						}
 					}

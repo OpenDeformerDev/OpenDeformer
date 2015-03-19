@@ -1,12 +1,13 @@
 #include "stdafx.h"
 #include "DelMesher.h"
+#include <set>
 
 namespace ODER{
 
 Predicator<REAL> DelTriangulator::predicator;
 Labeler Vertex::labeler;
 
-void DelTriangulator::generateSubPolygons(vector<Vertex *> &vertices){
+void DelTriangulator::generateSubPolygons(std::vector<Vertex *> &vertices){
 	topology.clear();
 	nodePool->freeAll();
 
@@ -50,7 +51,7 @@ void DelTriangulator::generateSubPolygons(vector<Vertex *> &vertices){
 }
 
 void DelTriangulator::outPut(DelMesher *mesher){
-	set<Face, face_compare> output;
+	std::set<Face, face_compare> output;
 	VertexListNode *head = NULL;
 	VertexListNode *parent = NULL;
 	VertexListNode *child = NULL;
@@ -113,7 +114,7 @@ void DelTriangulator::deleteTriangle(Vertex *a, Vertex *b, Vertex *c){
 }
 
 Face DelTriangulator::findPosition(Vertex *u, const Face &f, const DelVector &n) const{
-	int maxIter = max(topology.size(), size_t(128));
+	int maxIter = std::max(topology.size(), size_t(128));
 	Vertex *a = f.v[0], *b = f.v[1], *c = f.v[2];
 	//ghost triangle
 	if (a == ghost){
@@ -566,7 +567,7 @@ void DelMesher::Tetrahedron::setRationAndRadius(const Vertex *ghost){
 
 	predicator.Orthosphere(v[0]->vert, v[0]->weight, v[1]->vert, v[1]->weight, v[2]->vert, v[2]->weight, v[3]->vert, v[3]->weight, NULL, &r);
 	
-	REAL minEdgeLength = sqrt(min(da.length2(), min(db.length2(), min(dc.length2(), min(ca.length2(), min(cb.length2(), ba.length2()))))));
+	REAL minEdgeLength = sqrt(std::min(da.length2(), std::min(db.length2(), std::min(dc.length2(), std::min(ca.length2(), std::min(cb.length2(), ba.length2()))))));
 	reRation = r / minEdgeLength;
 }
 
@@ -641,7 +642,7 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 		mayEncroachedSegs.push_back(s);
 	}
 	//triangluate every polygon
-	vector<Vertex *> polygonVerts;
+	std::vector<Vertex *> polygonVerts;
 	DelTriangulator t;
 	for (int i = 0; i < numpol; i++){
 		for (int j = 0; j < numsubpol[i]; j++){
@@ -1674,7 +1675,7 @@ void DelMesher::Protect(){
 			if (lfs < lfses[i]) lfses[i] = lfs;
 			if (lfs < lfses[j]) lfses[j] = lfs;
 		}
-		v->weight = min(maxRadius2, lfses[i] * REAL(0.125));
+		v->weight = std::min(maxRadius2, lfses[i] * REAL(0.125));
 	}
 	delete[] lfses;
 }
@@ -1696,7 +1697,7 @@ Vertex* DelMesher::Cover(const Segment &s){
 	Segment s0, s1;
 	Vertex *newVert = NULL;
 	//determine whether the protection ends here
-	if (weight <= min(maxRadius2, localGapSize2*REAL(0.25))){
+	if (weight <= std::min(maxRadius2, localGapSize2*REAL(0.25))){
 		newVert = allocVertex(v, weight);
 		vertices.push_back(newVert);
 		s0 = Segment(newVert, s.v[0], true);
@@ -1710,7 +1711,7 @@ Vertex* DelMesher::Cover(const Segment &s){
 		REAL rb = sqrt(bWeight);
 		REAL extraLength = (ra - rb) / (REAL(2.0) * abLen);
 		REAL gapLength = abLen - ra - rb;
-		newVert = allocVertex(a + (REAL(0.5) + extraLength)*ab, min(maxRadius2, min(localGapSize2 * REAL(0.25), gapLength*gapLength / (REAL(36.0) - REAL(16.0)*SQRTF_2))));
+		newVert = allocVertex(a + (REAL(0.5) + extraLength)*ab, std::min(maxRadius2, std::min(localGapSize2 * REAL(0.25), gapLength*gapLength / (REAL(36.0) - REAL(16.0)*SQRTF_2))));
 		vertices.push_back(newVert);
 		s0 = Segment(newVert, s.v[0], true);
 		s1 = Segment(newVert, s.v[1], true);
@@ -1733,7 +1734,7 @@ REAL DelMesher::estimateLocalGapSize2(const DelVector &c) const{
 		DelVector a = segment.v[0]->vert, b = segment.v[1]->vert;
 		REAL size = FLT_MAX;
 		if (predicator.coLine(a, b, c)){
-			size = max((c - a).length2(), (c - b).length2());
+			size = std::max((c - a).length2(), (c - b).length2());
 		}
 		else{
 			DelVector ab = b - a;
@@ -2465,7 +2466,7 @@ start:
 	}
 
 	//output to mesh
-	set<Tetrahedron, tet_compare> tets;
+	std::set<Tetrahedron, tet_compare> tets;
 	for (auto vert : vertices){
 		if (vert->hasList()){
 			EdgeListNode *linkHead = vert->getListHead();
@@ -2493,7 +2494,7 @@ start:
 		}
 	}
 
-	set<Face, face_compare> polygons;
+	std::set<Face, face_compare> polygons;
 	for (auto entry : polygonTopology){
 		Vertex *center = entry.first;
 		if (entry.second){
@@ -2516,7 +2517,7 @@ start:
 		}
 	}	
 
-	map<Vertex*, int> vi;
+	std::map<Vertex*, int> vi;
 	for (int i = 0; i < vertices.size(); i++){
 		vi[vertices[i]] = i;
 	}

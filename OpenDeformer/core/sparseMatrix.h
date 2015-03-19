@@ -5,6 +5,8 @@
 #include "oder.h"
 #include "memory.h"
 #include "latool.h"
+#include <map>
+#include <vector>
 
 #ifndef ODER_CORE_SPARSEMARTIX_H
 #define ODER_CORE_SPARSEMARTIX_H
@@ -13,7 +15,7 @@ namespace ODER{
 	class SparseMatrixAssembler{
 	public:
 		SparseMatrixAssembler(int nc) :numColumns(nc){
-			map<int, double> empty;
+			std::map<int, double> empty;
 			for (int i = 0; i < numColumns; i++)
 				rowEntries.push_back(empty);
 		}
@@ -23,7 +25,7 @@ namespace ODER{
 		void removeColumnAndRow(int num);
 
 		int numColumns;
-		vector<map<int, double>> rowEntries;
+		std::vector<std::map<int, double>> rowEntries;
 	};
 
 	class SparseMatrix{
@@ -59,6 +61,8 @@ namespace ODER{
 		friend class EigenSolver;
 	};
 
+	constexpr size_t diagIndicesGen(size_t length, size_t index){ return index * length - (((index - 1)*index) >> 1); }
+
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler{
 	public:
 		BlockedSymSparseMatrixAssembler(int columnCount) 
@@ -69,11 +73,6 @@ namespace ODER{
 				remainedEntryCount = new int[numRemainedColumn];
 				Initiation(remainedEntryCount, numRemainedColumn);
 			}
-
-			diagIndices[0] = 0;
-			for (int i = 0; i < blockLength - 1; i++)
-				diagIndices[i + 1] = diagIndices[i] + (blockLength - i);
-
 		}
 
 		void addEntry(int row, int column, double data){
@@ -143,18 +142,29 @@ namespace ODER{
 		~BlockedSymSparseMatrixAssembler(){ if (remainedEntryCount) delete[] remainedEntryCount; }
 
 	private:
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndicesHelper(Sequence<index...>&& seqs){
+			return{ { diagIndicesGen(blockLength, index)... } };
+		}
+		static inline std::array<size_t, blockLength> getDiagIndices(){
+			return getDiagIndicesHelper(SequenceGenrator<blockLength>{});
+		}
+
 		int numColumn;
 		int numBlockColumn;
 		int numRemainedColumn;
-		vector<map<int, double*>> blockEntries;
-		map<int, double> remainedEntries;
+		std::vector<std::map<int, double*>> blockEntries;
+		std::map<int, double> remainedEntries;
 		int *remainedEntryCount;
 
-		int diagIndices[blockLength];
+		static const std::array<size_t, blockLength> diagIndices;
 		MemoryArena<double> entryMem;
 
-		friend class BlockedSymSparseMatrix < blockLength, blockWidth > ;
+		friend class BlockedSymSparseMatrix <blockLength, blockWidth>;
 	};
+
+	template<int blockLength, int blockWidth> 
+	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
+		= BlockedSymSparseMatrixAssembler::getDiagIndices();
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
@@ -165,7 +175,6 @@ namespace ODER{
 
 			blockPcol = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
 			blockColumnOris = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
-			std::copy(assembler.diagIndices, assembler.diagIndices + blockLength, diagIndices);
 
 			constexpr int regularSize = blockLength*blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
@@ -379,6 +388,13 @@ namespace ODER{
 
 		int getNumColumns() const{ return numColumns; }
 	private:
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndicesHelper(Sequence<index...>&& seqs){
+			return{ { diagIndicesGen(blockLength, index)... } };
+		}
+		static inline std::array<size_t, blockLength> getDiagIndices(){
+			return getDiagIndicesHelper(SequenceGenrator<blockLength>{});
+		}
+
 		int numColumns;
 		int numBlockColumn;
 		int numRemainedColumn;
@@ -387,12 +403,16 @@ namespace ODER{
 		int *blockPcol;
 		int *blockColumnOris;
 
-		int diagIndices[blockLength];
+		static const std::array<size_t, blockLength> diagIndices;
 
 		template<int blockLength, int blockWidth> 
 		friend void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
 			const DenseVector& src, DenseVector& dest);
 	};
+
+	template<int blockLength, int blockWidth>
+	const std::array<size_t, blockLength> BlockedSymSparseMatrix<blockLength, blockWidth>::diagIndices
+		= BlockedSymSparseMatrix::getDiagIndices();
 }
 
 #endif

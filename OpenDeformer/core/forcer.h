@@ -10,6 +10,7 @@
 #include "memory.h"
 #include "mesh.h"
 #include "element.h"
+#include <map>
 
 namespace ODER{
 	class Forcer{
@@ -20,7 +21,7 @@ namespace ODER{
 		void getVirtualWorks(int dofs, int totalDofs, const double *basises, double *vws) const;
 	private:
 		void addConstraint(int constraintCounts);
-		map<int, double> virtualWorks;
+		std::map<int, double> virtualWorks;
 	};
 }
 

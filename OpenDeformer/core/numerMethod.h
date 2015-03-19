@@ -103,7 +103,7 @@ namespace ODER{
 				if (p > 0.0) q = -q;
 				else p = -p;
 
-				if (FT(2.0)*p < min(FT(3.0)*q*m - fabs(tol*q), fabs(e*q))){
+				if (FT(2.0)*p < std::min(FT(3.0)*q*m - fabs(tol*q), fabs(e*q))){
 					e = d;
 					d = p / q;
 				}

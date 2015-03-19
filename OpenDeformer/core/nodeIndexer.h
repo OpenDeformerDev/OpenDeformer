@@ -7,11 +7,12 @@
 
 #include "oder.h"
 #include "memory.h"
+#include <vector>
 
 namespace ODER{
 	class NodeIndexer : public ReferenceCounted{
 	public:
-		typedef vector<int>::const_iterator ConstrainIter;
+		typedef std::vector<int>::const_iterator ConstrainIter;
 
 		NodeIndexer(const Constrainer& constrainer);
 		NodeIndexer(NodeIndexer && indexer);
@@ -24,7 +25,7 @@ namespace ODER{
 		ConstrainIter getConstrainIterEnd() const{ return constrainIndices.end(); }
 
 	private:
-		vector<int> constrainIndices;
+		std::vector<int> constrainIndices;
 	};
 }
 

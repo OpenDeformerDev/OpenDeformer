@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "inCholeskyPreconditioner.h"
 #include "sparseMatrix.h"
 #include "latool.h"

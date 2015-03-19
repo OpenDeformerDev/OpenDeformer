@@ -2,6 +2,8 @@
 #include "meshRelabeler.h"
 #include "datastructure.h"
 #include "mesh.h"
+#include <set>
+#include <map>
 
 namespace ODER{
 	void MeshGraphVertexNode::insertArc(int lable, MemoryPool<MeshGraphArcNode>& pool){
@@ -35,7 +37,7 @@ namespace ODER{
 		}
 	}
 
-	RootedLevelStructure::RootedLevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer){
+	RootedLevelStructure::RootedLevelStructure(MeshGraphVertexNode *rootNode, const std::vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer){
 		generateLevels(rootNode, graphVerts, visitedBuffer);
 	}
 
@@ -51,7 +53,7 @@ namespace ODER{
 		return width;
 	}
 
-	void RootedLevelStructure::generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer){
+	void RootedLevelStructure::generateLevels(MeshGraphVertexNode *rootNode, const std::vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer){
 		root = rootNode;
 		visitedBuffer[root->getOldLable()] = true;
 		MeshGraphArcNode *node = root->getAdjacentNodes();
@@ -120,7 +122,7 @@ namespace ODER{
 	}
 
 	void MeshRelabeler::generateGraphFromElementIndices(int elementCount, int nodePerElementCount, int *elements){
-		set<MeshGraphEdge> edges;
+		std::set<MeshGraphEdge> edges;
 		const int* element = elements;
 		for (int i = 0; i < elementCount; i++){
 			for (int j = 0; j < nodePerElementCount; j++){
@@ -137,7 +139,7 @@ namespace ODER{
 	}
 
 	void MeshRelabeler::generateGraphFromMesh(const Mesh& mesh){
-		set<MeshGraphEdge> edges;
+		std::set<MeshGraphEdge> edges;
 		int elementCount = mesh.getElementCount();
 		int nodePerElementCount = mesh.getNodePerElementCount();
 		for (int i = 0; i < elementCount; i++){
@@ -156,7 +158,7 @@ namespace ODER{
 
 	void MeshRelabeler::processSigleVert(MeshGraphVertexNode * vert, std::list<MeshGraphVertexNode *>& levelNodes,
 		std::queue<MeshGraphVertexNode *>& working, 
-		std::priority_queue<MeshGraphVertexNode *, vector<MeshGraphVertexNode *>, DegreeComparer> &toBeAssigned){
+		std::priority_queue<MeshGraphVertexNode *, std::vector<MeshGraphVertexNode *>, DegreeComparer> &toBeAssigned){
 
 		vert->setNewLable(nextFreeLable++);
 		working.push(vert);
@@ -217,7 +219,7 @@ namespace ODER{
 
 		//minimizing level width
 		int startLevelSize = startLevels.getLevelSize(), endLevelSize = endLevels.getLevelSize();
-		int size = max(startLevelSize, endLevelSize);
+		int size = std::max(startLevelSize, endLevelSize);
 		int startSmaller = endLevels.getWidth() > startLevels.getWidth();
 
 		struct OrderedPair{
@@ -225,10 +227,10 @@ namespace ODER{
 			int endLevel;
 		};
 
-		map<MeshGraphVertexNode *, OrderedPair> pairs;
+		std::map<MeshGraphVertexNode *, OrderedPair> pairs;
 		std::deque<MeshGraphVertexNode *> deletedVerts;
 		std::queue<MeshGraphVertexNode *> remainedVertices;
-		vector<std::list<MeshGraphVertexNode *>> newLevels(size, std::list<MeshGraphVertexNode *>());
+		std::vector<std::list<MeshGraphVertexNode *>> newLevels(size, std::list<MeshGraphVertexNode *>());
 
 		pairs.insert(std::pair<MeshGraphVertexNode *, OrderedPair>(startLevels.getRoot(), OrderedPair{ 0, INT_MIN }));
 		for (int i = 1; i < startLevelSize; i++){
@@ -276,7 +278,7 @@ namespace ODER{
 		}
 
 		std::queue<MeshGraphVertexNode *> working;
-		vector<vector<MeshGraphVertexNode *>> connectComponents;
+		std::vector<std::vector<MeshGraphVertexNode *>> connectComponents;
 		memset(visited, 0, sizeof(bool)*vertSize);
 
 		//depth-first search for connected components
@@ -313,7 +315,7 @@ namespace ODER{
 		delete[] visited;
 
 		std::sort(connectComponents.begin(), connectComponents.end(),
-			[](const vector<MeshGraphVertexNode *> &left, const vector<MeshGraphVertexNode *> &right)
+			[](const std::vector<MeshGraphVertexNode *> &left, const std::vector<MeshGraphVertexNode *> &right)
 		{ return left.size() < right.size(); });
 
 		int *mem =new int[size * 2];
@@ -400,7 +402,7 @@ namespace ODER{
 		}
 
 		int level = init;
-		std::priority_queue<MeshGraphVertexNode *, vector<MeshGraphVertexNode *>, DegreeComparer> toBeAssigned(degreeCompare);
+		std::priority_queue<MeshGraphVertexNode *, std::vector<MeshGraphVertexNode *>, DegreeComparer> toBeAssigned(degreeCompare);
 
 		//dealing with root
 		processSigleVert(root, newLevels[level], working, toBeAssigned);

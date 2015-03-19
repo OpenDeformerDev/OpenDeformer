@@ -6,6 +6,7 @@
 #define ODER_SOLVER_INCHOLESKYPRECONDITIONNER_H
 
 #include "preconditioner.h"
+#include <vector>
 
 namespace ODER{
 	class InCholeskyPreconditioner : public Preconditioner{
@@ -15,9 +16,9 @@ namespace ODER{
 	private:
 		void proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags);
 
-		vector<double> values;
-		vector<int> rows;
-		vector<int> pcol;
+		std::vector<double> values;
+		std::vector<int> rows;
+		std::vector<int> pcol;
 		double epsilon;
 	};
 }

@@ -12,6 +12,9 @@
 #include "datastructure.h"
 #include "aabb.h"
 #include "meshRelabeler.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace ODER{
 #define REAL double
@@ -21,7 +24,7 @@ namespace ODER{
 #define SQRTF_2 REAL(1.41422)
 #define ODD_MAKE 1
 
-	typedef VectorBase<REAL> DelVector;
+	using DelVector = VectorBase<REAL>;
 
 	class Labeler{
 	public:
@@ -247,7 +250,7 @@ namespace ODER{
 			freeAligned(ghost);
 			delete nodePool;
 		}
-		void generateSubPolygons(vector<Vertex *> &vertices);
+		void generateSubPolygons(std::vector<Vertex *> &vertices);
 		void outPut(DelMesher *mesher);
 	private:
 		void addTriangle(Vertex *a, Vertex *b, Vertex *c);
@@ -276,7 +279,7 @@ namespace ODER{
 
 		Vertex *ghost;
 		DelVector n;
-		unordered_map<Vertex *, VertexListNode *, vertex_hash> topology;
+		std::unordered_map<Vertex *, VertexListNode *, vertex_hash> topology;
 		MemoryPool<VertexListNode> *nodePool;
 	};
 
@@ -408,29 +411,29 @@ namespace ODER{
 		REAL maxRadius;
 		static Predicator<REAL> predicator;
 
-		unordered_set<Segment, segment_hash> segments;
-		vector<Segment> oriSegments;
+		std::unordered_set<Segment, segment_hash> segments;
+		std::vector<Segment> oriSegments;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
 
-		unordered_map<Vertex *, VertexListNode *, vertex_hash> polygonTopology;
+		std::unordered_map<Vertex *, VertexListNode *, vertex_hash> polygonTopology;
 
 		//unordered_map<Face, Vertex *, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<std::pair<Face, Vertex*>>> fvHash;
 		//unordered_map<Segment, Vertex *, segment_hash, std::equal_to<Segment>, NONE_SYNC_CHUNK_ALLOC<std::pair<Segment, Vertex*>>> svHash;
 		//unordered_map<Vertex *, Segment, vertex_hash> vfHash;
 		//unordered_map<Vertex *, Vertex *, vertex_hash> vsHash;
 
-		priority_queue<Tetrahedron, vector<Tetrahedron>> skinnyTets;
-		deque<Face> mayEncroachedFaces;
-		deque<Segment> mayEncroachedSegs;
+		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>> skinnyTets;
+		std::deque<Face> mayEncroachedFaces;
+		std::deque<Segment> mayEncroachedSegs;
 
-		vector<Face> tobeDeletedFaces;
-		vector<Segment> newSegsOfFaces;
+		std::vector<Face> tobeDeletedFaces;
+		std::vector<Segment> newSegsOfFaces;
 
-		vector<Tetrahedron> tobeDeletedTets;
-		vector<Face> newFacesOfTets;
+		std::vector<Tetrahedron> tobeDeletedTets;
+		std::vector<Face> newFacesOfTets;
 
-		vector<Vertex *> vertices;
+		std::vector<Vertex *> vertices;
 		MemoryArena<Vertex> vertArena;
 		MemoryPool<VertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;

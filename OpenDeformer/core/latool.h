@@ -7,6 +7,7 @@
 
 #include "oder.h"
 #include "datastructure.h"
+#include <array>
 
 namespace ODER{
 	template<class FT> struct VectorBase{
@@ -458,6 +459,17 @@ namespace ODER{
 	private:
 		RecycledList<IndexValPair> indices;
 	};
+
+	template<size_t...index> struct Sequence{};
+	template<size_t N, size_t...index> struct SequenceGenrator : public SequenceGenrator <N - 1, N - 1, index... > {};
+	template<size_t... index> struct SequenceGenrator<0, index... > : public Sequence<index...>{};
+	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequenceHelper(FUN&& f, Sequence<index...>&& seqs){
+		return{ { f(index)... } };
+	}
+	//can be further optimized with constexpr
+	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN&& f){
+		return generateSequenceHelper(std::forward<FUN>(f), Sequence<N>());
+	}
 	
 
 	//inline funtion for vec

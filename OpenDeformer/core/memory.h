@@ -7,12 +7,14 @@
 
 #include "oder.h"
 #include <cstdint>
+#include <vector>
+#include <atomic>
 
 namespace ODER{
 	class ReferenceCounted{
 	public:
 		ReferenceCounted(){ nReference = 0; }
-		atomic<int> nReference;
+		std::atomic<int> nReference;
 	};
 
 	template <class T> class Reference{
@@ -75,7 +77,7 @@ namespace ODER{
 					avaBlocks.pop_back();
 				}
 				else
-					curBlock = allocAligned<int8_t>(max(size, blockSize));
+					curBlock = allocAligned<int8_t>(std::max(size, blockSize));
 				curBlockPos = 0;
 			}
 			T *ret = (T *)(curBlock + curBlockPos);

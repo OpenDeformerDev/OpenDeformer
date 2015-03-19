@@ -83,12 +83,12 @@ public:
 
 	bool coPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
 		VectorBase<FT> n = (b - a) % (c - a);
-		return fabs(n*(d - a)) <= arthemetricer.epsilon*max(fabs(n.x), max(fabs(n.y), fabs(n.z)));
+		return fabs(n*(d - a)) <= arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}
 
 	inline bool coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c) const{
 		VectorBase<FT> n = (b - a) % (c - a);
-		return n.length2() <= arthemetricer.epsilon*arthemetricer.epsilon*max(fabs(n.x), max(fabs(n.y), fabs(n.z)));
+		return n.length2() <= arthemetricer.epsilon*arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}
 
 	bool inHalfSpace3D(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT>& b, const VectorBase<FT> &c) const;

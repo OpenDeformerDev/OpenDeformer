@@ -12,6 +12,8 @@
 #include "mesh.h"
 #include "forcer.h"
 #include "element.h"
+#include <set>
+#include <vector>
 
 namespace ODER{
 	enum ConstrainType{
@@ -29,10 +31,10 @@ namespace ODER{
 		Constrainer(const Reference<Mesh> &m) :mesh(m){}
 		void setConstrains(int nodeCounts, int *nodeIndices, ConstrainType *constrainTypes = NULL);
 		void setConstrains(const Vector& origin, const Vector& normal, ConstrainType constrainType = Constrain_XYZ);
-		void outputConstrains(vector<int> &out) const;
+		void outputConstrains(std::vector<int> &out) const;
 	private:
 		void setConstrain(int nodeIndex, ConstrainType constrainType);
-		set<int> constrains;
+		std::set<int> constrains;
 		Reference<Mesh> mesh;
 	};
 }

@@ -8,6 +8,7 @@
 #include "oder.h"
 #include "memory.h"
 #include <type_traits>
+#include <set>
 
 namespace ODER{
 	static size_t primeArray[] = { 17, 37, 79, 163, 331, 673, 1361, 2729,
@@ -310,7 +311,7 @@ namespace ODER{
 			Compare comparer;
 		};
 		DisjointSet<T>* sentinel;
-		set<DisjointSet<T>*, SetCompare> sets;
+		std::set<DisjointSet<T>*, SetCompare> sets;
 		MemoryArena<DisjointSet<T>> arena;
 	};
 

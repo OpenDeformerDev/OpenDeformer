@@ -36,8 +36,8 @@ namespace ODER{
 									int i_index = indexer->getGlobalIndex(*element, aNodeIndex, subRow);
 									int j_index = indexer->getGlobalIndex(*element, bNodeIndex, subColumn);
 									if (i_index >= 0 && j_index >= 0){
-										int rowIndex = max(i_index, j_index);
-										int columnIndex = min(i_index, j_index);
+										int rowIndex = std::max(i_index, j_index);
+										int columnIndex = std::min(i_index, j_index);
 										matrix.addEntry(rowIndex, columnIndex, subStiffness[3 * subRow + subColumn]);
 									}
 								}

@@ -70,7 +70,7 @@ namespace ODER{
 		delete facet;
 	}
 
-	void Constrainer::outputConstrains(vector<int> &out) const{
+	void Constrainer::outputConstrains(std::vector<int> &out) const{
 		int size = constrains.size();
 		out.reserve(size);
 		for (auto constrain : constrains)

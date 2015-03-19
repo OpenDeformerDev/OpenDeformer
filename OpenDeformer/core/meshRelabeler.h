@@ -9,6 +9,9 @@
 #include "latool.h"
 #include "memory.h"
 #include <deque>
+#include <queue>
+#include <list>
+
 
 namespace ODER{
 	class MeshGraphArcNode{
@@ -65,14 +68,14 @@ namespace ODER{
 	public:
 		RootedLevelStructure() :root(NULL){}
 		RootedLevelStructure(MeshGraphVertexNode *rootNode) :root(rootNode){}
-		RootedLevelStructure(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
+		RootedLevelStructure(MeshGraphVertexNode *rootNode, const std::vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		RootedLevelStructure(const RootedLevelStructure&) = default;
 		RootedLevelStructure& operator=(const RootedLevelStructure&) = default;
 		RootedLevelStructure(RootedLevelStructure&& levelstructure) = default;
 		RootedLevelStructure& operator=(RootedLevelStructure&& levelstructure) = default;
 		void setRoot(MeshGraphVertexNode *node){ root = node; }
 		MeshGraphVertexNode *getRoot(){ return root; }
-		void generateLevels(MeshGraphVertexNode *rootNode, const vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
+		void generateLevels(MeshGraphVertexNode *rootNode, const std::vector<MeshGraphVertexNode *> &graphVerts, bool *visitedBuffer);
 		void Clear(){ levels.clear(); }
 		void insertVertex(int levelNum, MeshGraphVertexNode *node){
 			Assert(levelNum > 0);
@@ -114,7 +117,7 @@ namespace ODER{
 	private:
 		void setNewNodeLables(int *newNodeLables);
 		void processSigleVert(MeshGraphVertexNode * vert, std::list<MeshGraphVertexNode *>& levelNodes,
-			std::queue<MeshGraphVertexNode *>& working, std::priority_queue<MeshGraphVertexNode *, vector<MeshGraphVertexNode *>, DegreeComparer> &toBeAssigned);
+			std::queue<MeshGraphVertexNode *>& working, std::priority_queue<MeshGraphVertexNode *, std::vector<MeshGraphVertexNode *>, DegreeComparer> &toBeAssigned);
 		void generateGraphFromElementIndices(int elementCount, int nodePerElementCount, int *elements);
 		void generateGraphFromMesh(const Mesh& mesh);
 		struct OrderedElement{
@@ -127,7 +130,7 @@ namespace ODER{
 
 		int nextFreeLable;
 		MemoryPool<MeshGraphArcNode> graphArcPool;
-		vector<MeshGraphVertexNode *> graphVerts;
+		std::vector<MeshGraphVertexNode *> graphVerts;
 	};
 }
 

@@ -10,33 +10,33 @@
 
 namespace ODER{
 	template<class FT> struct AABB{
-		typedef VectorBase<FT> Point;
+		using Point = VectorBase<FT>;
 		AABB(){
 			pMin = Point(FLT_MAX, FLT_MAX, FLT_MAX);
 			pMax = Point(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 		}
 		AABB(const Point& p) :pMin(p), pMax(p){}
 		AABB(const Point& p1, const Point& p2){
-			pMin = Point(min(p1.x, p2.x), min(p1.y, p2.y), min(p1.z, p2.z));
-			pMax = Point(max(p1.x, p2.x), max(p1.y, p2.y), max(p1.z, p2.z));
+			pMin = Point(std::min(p1.x, p2.x), std::min(p1.y, p2.y), std::min(p1.z, p2.z));
+			pMax = Point(std::max(p1.x, p2.x), std::max(p1.y, p2.y), std::max(p1.z, p2.z));
 		}
 
 		void Insert(const Point &p){
-			pMin.x = min(pMin.x, p.x);
-			pMin.y = min(pMin.y, p.y);
-			pMin.z = min(pMin.z, p.z);
-			pMax.x = max(pMax.x, p.x);
-			pMax.y = max(pMax.y, p.y);
-			pMax.z = max(pMax.z, p.z);
+			pMin.x = std::min(pMin.x, p.x);
+			pMin.y = std::min(pMin.y, p.y);
+			pMin.z = std::min(pMin.z, p.z);
+			pMax.x = std::max(pMax.x, p.x);
+			pMax.y = std::max(pMax.y, p.y);
+			pMax.z = std::max(pMax.z, p.z);
 		}
 
 		void Insert(const Vector& p){
-			pMin.x = min(pMin.x, FT(p.x));
-			pMin.y = min(pMin.y, FT(p.y));
-			pMin.z = min(pMin.z, FT(p.z));
-			pMax.x = max(pMax.x, FT(p.x));
-			pMax.y = max(pMax.y, FT(p.y));
-			pMax.z = max(pMax.z, FT(p.z));
+			pMin.x = std::min(pMin.x, FT(p.x));
+			pMin.y = std::min(pMin.y, FT(p.y));
+			pMin.z = std::min(pMin.z, FT(p.z));
+			pMax.x = std::max(pMax.x, FT(p.x));
+			pMax.y = std::max(pMax.y, FT(p.y));
+			pMax.z = std::max(pMax.z, FT(p.z));
 		}
 
 		bool Overlap(const AABB& b){
