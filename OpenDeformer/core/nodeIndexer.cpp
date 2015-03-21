@@ -8,10 +8,6 @@ namespace ODER{
 		constrainer.outputConstrains(constrainIndices);
 	}
 
-	NodeIndexer::NodeIndexer(NodeIndexer&& indexer){
-		constrainIndices = std::move(indexer.constrainIndices);
-	}
-
 	int NodeIndexer::getGlobalIndex(const Element& element, int localNodeIndex, int axis) const{
 		int index = 3 * element.getNodeIndex(localNodeIndex) + axis;
 		if (constrainIndices.empty())

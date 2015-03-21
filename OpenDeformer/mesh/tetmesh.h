@@ -12,12 +12,17 @@ namespace ODER{
 	class TetMesh : public Mesh{
 	public:
 		TetMesh(int numN, int numE, int numS) : Mesh(numN, numE, numS, 4, 3){}
+		TetMesh(const TetMesh&) = delete;
+		TetMesh(TetMesh&& mesh) : Mesh(std::move(mesh)){}
+		TetMesh& operator=(const TetMesh&) = delete;
+		TetMesh& operator=(TetMesh&& mesh) = delete;
 		Element* getEmptyElement() const;
 		Element* getEmptyMaterialElement(MarterialType type) const;
 		Facet* getEmptyFacet() const;
 		Element* getElement(int elementIndex, MarterialType type) const;
 		int getCloestNode(const Vector &v)  const { return -1; }
 		int getCloestElement(const Vector &v) const { return -1; }
+		~TetMesh() = default;
 	};
 }
 

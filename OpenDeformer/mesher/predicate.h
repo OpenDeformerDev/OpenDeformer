@@ -27,21 +27,7 @@
 namespace ODER{
 template<class FT> class Predicator{
 public:
-	Predicator(){
-		if (!hadInit){
-			commonBound = (FT(3.0) + FT(8.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			o2dErrorBoundA = (FT(3.0) + FT(16.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			o2dErrorBoundB = (FT(2.0) + FT(12.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			o2dErrorBoundC = (FT(9.0) + FT(64.0) * arthemetricer.epsilon) * arthemetricer.epsilon * arthemetricer.epsilon;
-			o3dErrorBoundA = (FT(7.0) + FT(56.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			o3dErrorBoundB = (FT(3.0) + FT(28.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			o3dErrorBoundC = (FT(26.0) + FT(288.0) * arthemetricer.epsilon) * arthemetricer.epsilon * arthemetricer.epsilon;
-			inSpeErrorBoundA = (FT(16.0) + FT(224.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			inSpeErrorBoundB = (FT(5.0) + FT(72.0) * arthemetricer.epsilon) * arthemetricer.epsilon;
-			inSpeErrorBoundC = (FT(71.0) + FT(1408.0) * arthemetricer.epsilon) * arthemetricer.epsilon * arthemetricer.epsilon;
-			hadInit = true;
-		}
-	}
+	static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::Predicator support IEEE 754-1985 floating point only");
 
 	FT orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const;
 
@@ -109,33 +95,32 @@ private:
 
 	FT inSphereExact(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
 
-	ExactArthmeticer<FT> arthemetricer;
-	static bool hadInit;
-	static FT epsilon;
-	static FT commonBound;
-	static FT o2dErrorBoundA;
-	static FT o2dErrorBoundB;
-	static FT o2dErrorBoundC;
-	static FT o3dErrorBoundA;
-	static FT o3dErrorBoundB;
-	static FT o3dErrorBoundC;
-	static FT inSpeErrorBoundA;
-	static FT inSpeErrorBoundB;
-	static FT inSpeErrorBoundC;
+	static const ExactArthmeticer<FT> arthemetricer;
+	static const FT epsilon;
+	static const FT commonBound;
+	static const FT o2dErrorBoundA;
+	static const FT o2dErrorBoundB;
+	static const FT o2dErrorBoundC;
+	static const FT o3dErrorBoundA;
+	static const FT o3dErrorBoundB;
+	static const FT o3dErrorBoundC;
+	static const FT inSpeErrorBoundA;
+	static const FT inSpeErrorBoundB;
+	static const FT inSpeErrorBoundC;
 };
 
-template<class FT> bool Predicator<FT>::hadInit = false;
-template<class FT> FT Predicator<FT>::epsilon = FT(1e-8);
-template<class FT> FT Predicator<FT>::commonBound = 0.0;
-template<class FT> FT Predicator<FT>::o2dErrorBoundA = 0.0;
-template<class FT> FT Predicator<FT>::o2dErrorBoundB = 0.0;
-template<class FT> FT Predicator<FT>::o2dErrorBoundC = 0.0;
-template<class FT> FT Predicator<FT>::o3dErrorBoundA = 0.0;
-template<class FT> FT Predicator<FT>::o3dErrorBoundB = 0.0;
-template<class FT> FT Predicator<FT>::o3dErrorBoundC = 0.0;
-template<class FT> FT Predicator<FT>::inSpeErrorBoundA = 0.0;
-template<class FT> FT Predicator<FT>::inSpeErrorBoundB = 0.0;
-template<class FT> FT Predicator<FT>::inSpeErrorBoundC = 0.0;
+template<class FT> const ExactArthmeticer<FT> Predicator<FT>::arthemetricer;
+template<class FT> const FT Predicator<FT>::epsilon = FT(1e-8);
+template<class FT> const FT Predicator<FT>::commonBound = (FT(3.0) + FT(8.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const  FT Predicator<FT>::o2dErrorBoundA = (FT(3.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o2dErrorBoundB = (FT(2.0) + FT(12.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o2dErrorBoundC = (FT(9.0) + FT(64.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o3dErrorBoundA = (FT(7.0) + FT(56.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const  FT Predicator<FT>::o3dErrorBoundB = (FT(3.0) + FT(28.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o3dErrorBoundC = (FT(26.0) + FT(288.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSpeErrorBoundA = (FT(16.0) + FT(224.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSpeErrorBoundB = (FT(5.0) + FT(72.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSpeErrorBoundC = (FT(71.0) + FT(1408.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 
 template<class FT> FT Predicator<FT>::orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const{
 	FT detLeft = (ax - cx)*(by - cy);

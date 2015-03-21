@@ -12,7 +12,7 @@ namespace ODER{
 	class Mesher{
 	public:
 		virtual Reference<Mesh> generateMesh() = 0;
-		virtual ~Mesher(){}
+		virtual ~Mesher() = default;
 	};
 }
 

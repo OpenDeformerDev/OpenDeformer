@@ -14,7 +14,7 @@ namespace ODER{
 		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces) = 0;
 		virtual void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer) = 0;
 		int getNonlinearAsymptoticOrder(){ return orderCount; }
-
+		virtual ~HyperelasticMaterial() = default;
 	private:
 		int orderCount;
 	};

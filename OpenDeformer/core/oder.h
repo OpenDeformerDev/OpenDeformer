@@ -44,7 +44,7 @@ namespace ODER{
 	struct Element;
 	struct Facet;
 	template<class FT> struct VectorBase;
-	struct Vector;
+	using Vector = VectorBase<float>;
 	class DenseVector;
 	class SparseVector;
 	template<class FT> struct Tensor2;
@@ -60,9 +60,10 @@ namespace ODER{
 	class Constrainer;
 	class NodeIndexer;
 	class Simulator;
+	template<class FT> class ExactArthmeticer;
 
-	template<class T> class MemoryArena;
-	template<class T> class MemoryPool;
+	template<class T, unsigned int Align> class MemoryArena;
+	template<class T, unsigned int Align> class MemoryPool;
 
 	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 2, 4 >;
 	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 2, 4 > ;
@@ -85,7 +86,6 @@ namespace ODER{
 		else if (val>high) return high;
 		else return val;
 	}
-
 }
 
 #endif

@@ -18,7 +18,7 @@ namespace ODER{
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
 		virtual void runOneTimeStep() = 0;
 		virtual void getRawDisplacements(double *displacements) const = 0;
-		virtual ~Intergrator(){}
+		virtual ~Intergrator() = default;
 
 	protected:
 		int dofs;

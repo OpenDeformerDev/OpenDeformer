@@ -21,22 +21,22 @@ namespace ODER{
 			pMax = Point(std::max(p1.x, p2.x), std::max(p1.y, p2.y), std::max(p1.z, p2.z));
 		}
 
-		void Insert(const Point &p){
-			pMin.x = std::min(pMin.x, p.x);
-			pMin.y = std::min(pMin.y, p.y);
-			pMin.z = std::min(pMin.z, p.z);
-			pMax.x = std::max(pMax.x, p.x);
-			pMax.y = std::max(pMax.y, p.y);
-			pMax.z = std::max(pMax.z, p.z);
-		}
-
-		void Insert(const Vector& p){
+		template<class T> void Insert(const VectorBase<T> &p){
 			pMin.x = std::min(pMin.x, FT(p.x));
 			pMin.y = std::min(pMin.y, FT(p.y));
 			pMin.z = std::min(pMin.z, FT(p.z));
 			pMax.x = std::max(pMax.x, FT(p.x));
 			pMax.y = std::max(pMax.y, FT(p.y));
 			pMax.z = std::max(pMax.z, FT(p.z));
+		}
+
+		template<> void Insert<FT>(const Point &p){
+			pMin.x = std::min(pMin.x, p.x);
+			pMin.y = std::min(pMin.y, p.y);
+			pMin.z = std::min(pMin.z, p.z);
+			pMax.x = std::max(pMax.x, p.x);
+			pMax.y = std::max(pMax.y, p.y);
+			pMax.z = std::max(pMax.z, p.z);
 		}
 
 		bool Overlap(const AABB& b){

@@ -24,6 +24,7 @@ namespace ODER{
 		void removeColumn(int column);
 		void removeColumnAndRow(int num);
 
+		~SparseMatrixAssembler() = default;
 		int numColumns;
 		std::vector<std::map<int, double>> rowEntries;
 	};
@@ -142,11 +143,8 @@ namespace ODER{
 		~BlockedSymSparseMatrixAssembler(){ if (remainedEntryCount) delete[] remainedEntryCount; }
 
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndicesHelper(Sequence<index...>&& seqs){
-			return{ { diagIndicesGen(blockLength, index)... } };
-		}
-		static inline std::array<size_t, blockLength> getDiagIndices(){
-			return getDiagIndicesHelper(SequenceGenrator<blockLength>{});
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(IndexSequence<index...>&& seqs){
+			return { diagIndicesGen(blockLength, index)... };
 		}
 
 		int numColumn;
@@ -164,7 +162,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth> 
 	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrixAssembler::getDiagIndices();
+		= BlockedSymSparseMatrixAssembler::getDiagIndices(IndexSequenceGenerator<blockLength>());
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
@@ -388,11 +386,8 @@ namespace ODER{
 
 		int getNumColumns() const{ return numColumns; }
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndicesHelper(Sequence<index...>&& seqs){
-			return{ { diagIndicesGen(blockLength, index)... } };
-		}
-		static inline std::array<size_t, blockLength> getDiagIndices(){
-			return getDiagIndicesHelper(SequenceGenrator<blockLength>{});
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(IndexSequence<index...>&& seqs){
+			return { diagIndicesGen(blockLength, index)... };
 		}
 
 		int numColumns;
@@ -412,7 +407,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth>
 	const std::array<size_t, blockLength> BlockedSymSparseMatrix<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrix::getDiagIndices();
+		= BlockedSymSparseMatrix::getDiagIndices(IndexSequenceGenerator<blockLength>());
 }
 
 #endif

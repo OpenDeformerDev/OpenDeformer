@@ -26,7 +26,7 @@ namespace ODER{
 		double getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }
 		
-		virtual ~MechMaterial(){}
+		virtual ~MechMaterial() = default;
 	protected:
 		double density;
 		MarterialType type;

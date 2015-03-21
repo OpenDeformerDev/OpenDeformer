@@ -49,10 +49,8 @@ namespace ODER{
 			if (v0 > v1) std::swap(v0, v1);
 			head = v0; tail = v1;
 		}
-		bool operator<(const MeshGraphEdge& edge) const{
-			if (head == edge.head)
-				return tail < edge.tail;
-			return head < edge.head;
+		bool operator==(const MeshGraphEdge& edge) const{
+			return head == edge.head && tail == edge.tail;
 		}
 		int head;
 		int tail;
@@ -107,7 +105,10 @@ namespace ODER{
 		MeshRelabeler(int nodeCount);
 		MeshRelabeler(const Mesh& mesh);
 		MeshRelabeler() = delete;
+		MeshRelabeler(const MeshRelabeler&) = delete;
+		MeshRelabeler(MeshRelabeler&&) = delete;
 		MeshRelabeler& operator=(const MeshRelabeler&) = delete;
+		MeshRelabeler& operator=(MeshRelabeler&&) = delete;
 
 		void getNewLables(int elementCount, int nodePerElementCount, int *newNodeLables, int *elements);
 		void getNewLables(int *newNodeLables, Mesh& mesh);

@@ -5,9 +5,9 @@
 #ifndef ODER_MESHER_DELMESHER_H
 #define ODER_MESHER_DELMESHER_H
 
+#include "predicate.h"
 #include "memory.h"
 #include "mesher.h"
-#include "predicate.h"
 #include "tetmesh.h"
 #include "datastructure.h"
 #include "aabb.h"
@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <deque>
 
 namespace ODER{
 #define REAL double
@@ -43,11 +44,8 @@ namespace ODER{
 
 	struct Vertex{
 		Vertex() : weight(0.0), label(-1), pointer(0){}
-		Vertex(const Vector& vv) :weight(0.0), label(-1), pointer(0){
-			vert.x = vv.x; vert.y = vv.y; vert.z = vv.z;
-		}
-		Vertex(const DelVector& vv, REAL w) :vert(vv), weight(w), label(-1), pointer(0){}
-		Vertex(const DelVector& vv) :vert(vv), weight(0.0), label(-1), pointer(0){}
+		template<class FT> Vertex(const VectorBase<FT>& vv) : vert{ vv.x, vv.y, vv.z }, weight(0.0), label(-1), pointer(0){}
+		Vertex(const DelVector& vv, REAL w = 0) :vert(vv), weight(w), label(-1), pointer(0){}
 		void setGhost(){
 			vert.x = FLT_MAX; vert.y = FLT_MAX; vert.z = FLT_MAX;
 			label = labeler.getSpecilGhostLabel();
@@ -223,10 +221,9 @@ namespace ODER{
 
 	struct segment_hash{
 		size_t operator()(const Segment &s) const{
-			size_t hashVal = 0;
-			hashCombine(hashVal, s.v[0]->getLabel());
-			hashCombine(hashVal, s.v[1]->getLabel());
-			return hashVal;
+			int smallerLable = s.v[0]->getLabel();
+			int biggerLable = s.v[1]->getLabel();
+			return ((biggerLable * (biggerLable + 1)) >> 1) + smallerLable;
 		}
 	};
 

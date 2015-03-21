@@ -5,5 +5,4 @@ uniform mat4 ModalView;
 
 void main(){
     gl_Position=ModalView*vec4(vPosition, 1.0);
-
 }

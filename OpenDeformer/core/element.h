@@ -38,7 +38,7 @@ namespace ODER{
 		void setVertIndexs(int vertIndex){ vertIndexs = mesh->getFacetVertReference(vertIndex); }
 		int getVertIndex(int localIndex) const { return vertIndexs[localIndex]; }
 
-		virtual ~Facet(){}
+		virtual ~Facet() = default;
 	protected:
 		const int *vertIndexs;
 		Reference<Mesh> mesh;

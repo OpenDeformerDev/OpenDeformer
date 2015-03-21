@@ -19,6 +19,8 @@ namespace ODER{
 		Mesh(int numN, int numE, int numS, int numNPE, int numVPS = 3);
 		Mesh(const Mesh& m) = delete;
 		Mesh& operator=(const Mesh& m) = delete;
+		Mesh(Mesh&& m);
+		Mesh& operator=(Mesh&& m) = delete;
 
 		virtual Element* getEmptyElement() const = 0;
 		virtual Element* getEmptyMaterialElement(MarterialType type) const = 0;

@@ -13,7 +13,6 @@ namespace ODER{
 	template<class FT> struct VectorBase{
 		VectorBase(){ x = y = z = FT(0.0); }
 		VectorBase(FT xx, FT yy, FT zz) :x(xx), y(yy), z(zz){}
-		VectorBase(const VectorBase &v) :x(v.x), y(v.y), z(v.z){}
 
 		VectorBase operator+(const VectorBase &v) const{
 			return VectorBase(x + v.x, y + v.y, z + v.z);
@@ -111,16 +110,6 @@ namespace ODER{
 			return _isnan(x) || _isnan(y) || _isnan(z);
 		}
 		FT x, y, z;
-	};
-
-	struct Vector : public VectorBase <float> {
-		Vector() : VectorBase(){}
-		Vector(float xx, float yy, float zz) :VectorBase(xx, yy, zz){}
-		Vector(const Vector &v) : VectorBase(v){}
-		Vector(const VectorBase<float> &v) : VectorBase(v){}
-		Vector(const VectorBase<double> &v){
-			x = float(v.x); y = float(v.y); z = float(v.z);
-		}
 	};
 
 	template<class FT> struct Tensor2{
@@ -438,7 +427,7 @@ namespace ODER{
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
 			if (iter == indices.end() && iter->first != index)
-				indices.emplace(iter, index, val);
+				indices.insert(iter, IndexValPair(index, val));
 			else
 				iter->second = val;
 		}
@@ -446,7 +435,7 @@ namespace ODER{
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
 			if (iter == indices.end() && iter->first != index)
-				indices.emplace(iter, index, val);
+				indices.insert(iter, IndexValPair(index, val));
 			else
 				iter->second += val;
 		}
@@ -460,15 +449,16 @@ namespace ODER{
 		RecycledList<IndexValPair> indices;
 	};
 
-	template<size_t...index> struct Sequence{};
-	template<size_t N, size_t...index> struct SequenceGenrator : public SequenceGenrator <N - 1, N - 1, index... > {};
-	template<size_t... index> struct SequenceGenrator<0, index... > : public Sequence<index...>{};
-	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequenceHelper(FUN&& f, Sequence<index...>&& seqs){
-		return{ { f(index)... } };
+	template<size_t N, size_t...index> struct IndexSequenceGenerator : public IndexSequenceGenerator <N - 1, N - 1, index... > {};
+	template<size_t... index> struct IndexSequenceGenerator<0, index...> {};
+	template<size_t...index> using IndexSequence = IndexSequenceGenerator<0, index...>;
+	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequence(FUN&& f, IndexSequence<index...>&& seqs){
+		return {  f(index)...  };
 	}
+
 	//can be further optimized with constexpr
 	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN&& f){
-		return generateSequenceHelper(std::forward<FUN>(f), Sequence<N>());
+		return generateSequence<T>(std::forward<FUN>(f), IndexSequenceGenerator<N>{});
 	}
 	
 

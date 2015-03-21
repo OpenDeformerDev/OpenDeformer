@@ -15,7 +15,6 @@ namespace ODER{
 		typedef std::vector<int>::const_iterator ConstrainIter;
 
 		NodeIndexer(const Constrainer& constrainer);
-		NodeIndexer(NodeIndexer && indexer);
 		int getGlobalIndex(const Element& element, int localNodeIndex, int axis) const;
 		int getGlobalIndex(const Facet& facet, int localVertIndex, int axis) const;
 		int getGlobalIndex(int nodeIndex, int axis) const;

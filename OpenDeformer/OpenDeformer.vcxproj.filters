@@ -227,11 +227,11 @@
     <ClCompile Include="solver\cgSolver.cpp">
       <Filter>源文件\solver</Filter>
     </ClCompile>
-    <ClCompile Include="solver\inCholeskyPreconditionercpp.cpp">
-      <Filter>源文件\solver</Filter>
-    </ClCompile>
     <ClCompile Include="core\Stdafx.cpp">
       <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="solver\inCholeskyPreconditioner.cpp">
+      <Filter>源文件\solver</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

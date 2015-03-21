@@ -10,6 +10,17 @@ namespace ODER{
 		surfaces = new int[numVertPerSur * numSurfaces];
 	}
 
+	Mesh::Mesh(Mesh&& m) : numNodes(m.numNodes), numElements(m.numElements), numSurfaces(m.numSurfaces),
+		numNodesPerElement(m.numNodesPerElement), numVertPerSur(m.numVertPerSur),
+		vertices(m.vertices), elements(m.elements), surfaces(m.surfaces){
+		m.numNodes = 0; 
+		m.numElements = 0; 
+		m.numSurfaces = 0;
+		m.vertices = NULL; 
+		m.elements = NULL; 
+		m.surfaces = NULL;
+	}
+
 	void Mesh::setElement(int elementIndex, int *nodeIndices){
 		for (int i = 0; i < numNodesPerElement; i++){
 			elements[numNodesPerElement * elementIndex + i] = nodeIndices[i];

@@ -58,17 +58,21 @@ namespace ODER{
 		T* p;
 	};
 
-	template<class T> class MemoryArena{
+	template<class T, unsigned int Align = 8> class MemoryArena{
 	public:
+		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryArena requires larger Align parameter");
+		static_assert((Align & (Align - 1)) == 0, "ODER::MemoryArena Align parameter should be power of 2");
 		MemoryArena(unsigned int bs = ODER_DEFAULT_ARENA_OBJ_SIZE){
 			blockSize = bs * sizeof(T);
 			curBlockPos = 0;
 			curBlock = allocAligned<int8_t>(blockSize);
 		}
 		MemoryArena(const MemoryArena& arena) = delete;
+		MemoryArena(MemoryArena&& arena) = delete;
 		MemoryArena& operator=(const MemoryArena& arena) = delete;
+		MemoryArena& operator=(MemoryArena&& arena) = delete;
 		template<class... Args> T* Alloc(unsigned int size = 1, Args&&... inits){
-			constexpr int complement = 2 * sizeof(void *) - 1;
+			constexpr unsigned int complement = Align - 1;
 			unsigned int bytes = ((size*sizeof(T) + complement) & (~complement));
 			if (curBlockPos + bytes > blockSize){
 				usedBlocks.push_back(curBlock);
@@ -113,21 +117,24 @@ namespace ODER{
 		std::vector<int8_t *> usedBlocks, avaBlocks;
 	};
 
-
-	template<class T> class MemoryPool{
+	template<class T, unsigned int Align = 8> class MemoryPool{
 	public:
+		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryPool requires larger Align parameter");
+		static_assert((Align & (Align - 1)) == 0, "ODER::MemoryPool Align parameter should be power of 2");
 		MemoryPool(unsigned int count = ODER_DEFAULT_POOL_OBJ_COUNT) : curBlockPos(0){
-			constexpr int complement = 2 * sizeof(void *) - 1;
-			constexpr int objectByteCounts = ((sizeof(T) + complement) & (~complement));
+			constexpr unsigned int complement = Align - 1;
+			constexpr unsigned int objectByteCounts = ((sizeof(T) + complement) & (~complement));
 			blockSize = count*objectByteCounts;
 			curBlock = allocAligned<int8_t>(blockSize);
 			deadStack = NULL;
 		}
-		MemoryPool(const MemoryPool& arena) = delete;
-		MemoryPool& operator=(const MemoryPool& arena) = delete;
+		MemoryPool(const MemoryPool&) = delete;
+		MemoryPool(MemoryPool&&) = delete;
+		MemoryPool& operator=(const MemoryPool&) = delete;
+		MemoryPool& operator=(MemoryPool&&) = delete;
 		template<class... Args> T* Alloc(Args&&... inits){
-			constexpr int complement = 2 * sizeof(void *) - 1;
-			constexpr int objectByteCounts = ((sizeof(T) + complement) & (~complement));
+			constexpr unsigned int complement = Align - 1;
+			constexpr unsigned int objectByteCounts = ((sizeof(T) + complement) & (~complement));
 
 			T *ret = NULL;
 			if (deadStack != NULL){

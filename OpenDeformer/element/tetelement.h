@@ -19,6 +19,7 @@ namespace ODER{
 		void generateSubMassMatrix(double *result) const;
 		void Intergration(const double *C, double *nlpart, double *nnpart) const;
 		void getBodyVirtualWorks(double bodyForce[3], double *result) const;
+		~TetElement() = default;
 	private:
 		float getVolume() const;
 		void getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const;
@@ -28,6 +29,7 @@ namespace ODER{
 		TetFacet(TetMesh *m) :Facet(m){}
 		TetFacet(TetMesh *m, int index) :Facet(m, index){}
 		void getSurfVirtualWorks(double surfForce[3], double *result) const;
+		~TetFacet() = default;
 	private:
 		float getArea() const;
 	};

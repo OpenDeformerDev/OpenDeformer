@@ -114,7 +114,7 @@ void DelTriangulator::deleteTriangle(Vertex *a, Vertex *b, Vertex *c){
 }
 
 Face DelTriangulator::findPosition(Vertex *u, const Face &f, const DelVector &n) const{
-	int maxIter = std::max(topology.size(), size_t(128));
+	size_t maxIter = std::max(topology.size(), size_t(128));
 	Vertex *a = f.v[0], *b = f.v[1], *c = f.v[2];
 	//ghost triangle
 	if (a == ghost){
@@ -742,7 +742,7 @@ bool DelMesher::Adjacent(const Face &f, Vertex **z) const{
 
 bool DelMesher::Adjacent(Vertex *w, Vertex *x, Vertex *y, Vertex **z) const{
 	bool found = false;
-	if (uintptr_t(w) > uintptr_t(x)){
+	if (w->getLabel() > x->getLabel()){
 		if (x->hasList()){
 			EdgeListNode *linkHead = x->getListHead();
 			while (linkHead != NULL && linkHead->getEndVertex() != w){
@@ -1082,7 +1082,7 @@ DelMesher::Tetrahedron DelMesher::findPosition(Vertex *u, const Tetrahedron &t, 
 }
 
 Face DelMesher::findPosition(Vertex *u, const Face& f) const{
-	int maxIter = 16384;
+	size_t maxIter = std::max(vertices.size(), size_t(16384));
 	Vertex *a = f.v[0];
 	Vertex *b = f.v[1], *c = f.v[2];
 
@@ -2536,13 +2536,14 @@ start:
 		tetNodeIndex[3] = vi[t.v[3]];
 		mesh->setElement(i++, tetNodeIndex);
 	}
-
 	int *vertIndices = allocAligned<int>(vertCount);
 	MeshRelabeler labler(vertCount);
 	labler.getNewLables(vertIndices, *mesh);
 
-	for (int i = 0; i < vertCount; i++)
-		mesh->setVertex(vertIndices[i], vertices[i]->vert);
+	for (int i = 0; i < vertCount; i++){
+		Vertex *vertex = vertices[i];
+		mesh->setVertex(vertIndices[i], Vector{ float(vertex->vert.x), float(vertex->vert.y), float(vertex->vert.z) });
+	}
 
 	i = 0;
 	int surfVertIndices[3];

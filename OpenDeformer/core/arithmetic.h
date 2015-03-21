@@ -6,31 +6,13 @@
 #define ODER_CORE_ARITHMETRIC_H
 
 #include "oder.h"
+#include <cstdint>
 
 #define ABOSOLUTE_GREATER(x, y) ((x)>(y)) == ((x)>(-y)) //returns ture if |x| > |y|
 
 namespace ODER{
 	template<class FT> class ExactArthmeticer{
 	public:
-		ExactArthmeticer(){
-			if (!hadInit){
-				FT epsilonTest = FT(1.0), splitterTest = FT(1.0);
-				FT half = FT(0.5), check = FT(1.0), lastcheck = FT(0.0);
-				bool everyOther = true;
-				do {
-					lastcheck = check;
-					epsilonTest *= half;
-					if (everyOther)
-						splitterTest *= FT(2.0);
-					everyOther = !everyOther;
-					check = FT(1.0) + epsilonTest;
-				} while ((check != FT(1.0)) && (check != lastcheck));
-				epsilon = epsilonTest;
-				splitter = splitterTest + FT(1.0);
-				hadInit = true;
-			}
-		}
-
 		inline FT Estimate(FT *e, int n) const{
 			FT ret = e[0];
 			for (int i = 1; i < n; i++){
@@ -221,14 +203,42 @@ namespace ODER{
 			return hi;
 		}
 
-		static FT epsilon;
-		static FT splitter;
-		static bool hadInit;
+		static const FT epsilon;
+		static const FT splitter;
+
+		private:
+			template<class FT> static FT getEpsilon(){
+				static_assert(false, "ODER::ExactArthmeticer support IEEE 754-1985 floating point only");
+				return 0;
+			}
+			template<> static float getEpsilon<float>(){
+				//return pow(2.f, -24); 
+				uint32_t native = 0x33800000;
+				return *(float *)&native;
+			}
+			template<> static double getEpsilon<double>(){ 
+				//return pow(2.0, -53); 
+				uint64_t native = 0x3ca0000000000000;
+				return *(double *)&native;
+			}
+
+			template<class FT> static constexpr FT getSplitter(){
+				static_assert(false, "ODER::ExactArthmeticer support IEEE 754-1985 floating point only");
+				return 0;
+			}
+			template<> static constexpr float getSplitter<float>(){
+				//return pow(2.f, 12) + 1.f; 
+				return 4097.f;
+			}
+			template<> static constexpr double getSplitter<double>(){
+				//return pow(2.0, 27) + 1.0;
+				return 134217729.0; 
+			}
 	};
 
-	template<class FT> bool ExactArthmeticer<FT>::hadInit = false;
-	template<class FT> FT ExactArthmeticer<FT>::epsilon = FT(1.0);
-	template<class FT> FT ExactArthmeticer<FT>::splitter = FT(1.0);
+	template<class FT> const FT ExactArthmeticer<FT>::epsilon = ExactArthmeticer<FT>::getEpsilon<FT>();
+	template<class FT> const FT ExactArthmeticer<FT>::splitter = ExactArthmeticer<FT>::getSplitter<FT>();
+
 }
 
 #endif

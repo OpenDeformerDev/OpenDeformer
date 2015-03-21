@@ -2,8 +2,8 @@
 #include "meshRelabeler.h"
 #include "datastructure.h"
 #include "mesh.h"
-#include <set>
-#include <map>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace ODER{
 	void MeshGraphVertexNode::insertArc(int lable, MemoryPool<MeshGraphArcNode>& pool){
@@ -122,7 +122,9 @@ namespace ODER{
 	}
 
 	void MeshRelabeler::generateGraphFromElementIndices(int elementCount, int nodePerElementCount, int *elements){
-		std::set<MeshGraphEdge> edges;
+		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>>
+			edges(2 * elementCount,
+			[](const MeshGraphEdge& edge)->size_t{ return ((edge.tail * (edge.tail + 1)) >> 1) + edge.head; });
 		const int* element = elements;
 		for (int i = 0; i < elementCount; i++){
 			for (int j = 0; j < nodePerElementCount; j++){
@@ -139,14 +141,17 @@ namespace ODER{
 	}
 
 	void MeshRelabeler::generateGraphFromMesh(const Mesh& mesh){
-		std::set<MeshGraphEdge> edges;
+		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>> 
+			edges(2 * mesh.getElementCount(), 
+			[](const MeshGraphEdge& edge)->size_t{ return ((edge.tail * (edge.tail + 1)) >> 1) + edge.head; });
 		int elementCount = mesh.getElementCount();
 		int nodePerElementCount = mesh.getNodePerElementCount();
 		for (int i = 0; i < elementCount; i++){
 			const int* element = mesh.getElementNodeReference(i);
 			for (int j = 0; j < nodePerElementCount; j++){
-				for (int k = j + 1; k < nodePerElementCount; k++)
+				for (int k = j + 1; k < nodePerElementCount; k++){
 					edges.insert(MeshGraphEdge(element[j], element[k]));
+				}
 			}
 		}
 
@@ -165,9 +170,10 @@ namespace ODER{
 		MeshGraphArcNode *node = vert->getAdjacentNodes();
 		while (node){
 			MeshGraphVertexNode *vertex = graphVerts[node->getLable()];
-			if (std::find(levelNodes.begin(), levelNodes.end(), vertex) != levelNodes.end()){
+			auto found = std::find(levelNodes.begin(), levelNodes.end(), vertex);
+			if (found != levelNodes.end()){
 				toBeAssigned.push(vertex);
-				levelNodes.remove(vertex);
+				levelNodes.erase(found);
 			}
 			node = node->getNextNode();
 		}
@@ -220,28 +226,31 @@ namespace ODER{
 		//minimizing level width
 		int startLevelSize = startLevels.getLevelSize(), endLevelSize = endLevels.getLevelSize();
 		int size = std::max(startLevelSize, endLevelSize);
-		int startSmaller = endLevels.getWidth() > startLevels.getWidth();
+		int startLevelWidth = startLevels.getWidth();
+		bool startSmaller = endLevels.getWidth() > startLevelWidth;
 
 		struct OrderedPair{
 			int startLevel;
 			int endLevel;
 		};
-
-		std::map<MeshGraphVertexNode *, OrderedPair> pairs;
+		
+		OrderedPair *pairs = new OrderedPair[vertSize];
 		std::deque<MeshGraphVertexNode *> deletedVerts;
 		std::queue<MeshGraphVertexNode *> remainedVertices;
 		std::vector<std::list<MeshGraphVertexNode *>> newLevels(size, std::list<MeshGraphVertexNode *>());
 
-		pairs.insert(std::pair<MeshGraphVertexNode *, OrderedPair>(startLevels.getRoot(), OrderedPair{ 0, INT_MIN }));
+		pairs[startLevels.getRoot()->getOldLable()] = OrderedPair{ 0, INT_MIN };
 		for (int i = 1; i < startLevelSize; i++){
 			auto levelNode = startLevels.getLevelNodeIterBeign(i);
 			auto levelEnd = startLevels.getLevelNodeIterEnd(i);
-			while (levelNode != levelEnd)
-				pairs.insert(std::pair<MeshGraphVertexNode *, OrderedPair>(*levelNode++, OrderedPair{ i, INT_MIN }));
+			while (levelNode != levelEnd){
+				MeshGraphVertexNode *v = *levelNode++;
+				pairs[v->getOldLable()] = OrderedPair{ i, INT_MIN };
+			}
 		}
 
 		MeshGraphVertexNode *vert = endLevels.getRoot();
-		OrderedPair& endLevelRootPair = pairs[vert];
+		OrderedPair& endLevelRootPair = pairs[vert->getOldLable()];
 		int end = endLevelSize - 1;
 		endLevelRootPair.endLevel = end;
 		if (endLevelRootPair.startLevel == end){
@@ -256,7 +265,7 @@ namespace ODER{
 			auto levelEnd = endLevels.getLevelNodeIterEnd(i);
 			while (levelNode != levelEnd){
 				vert = *levelNode++;
-				OrderedPair& pair = pairs[vert];
+				OrderedPair& pair = pairs[vert->getOldLable()];
 				pair.endLevel = end;
 				if (pair.startLevel == end){
 					deletedVerts.push_back(vert);
@@ -327,7 +336,7 @@ namespace ODER{
 			memset(firstLevelCount, 0, size*sizeof(int));
 			memset(secondLevelCount, 0, size*sizeof(int));
 			for (auto vertex : connectComponents[i]){
-				OrderedPair pair = pairs[vertex];
+				OrderedPair pair = pairs[vertex->getOldLable()];
 				firstLevelCount[pair.startLevel]++;
 				secondLevelCount[pair.endLevel]++;
 				toBeInsert.push(pair);
@@ -393,7 +402,7 @@ namespace ODER{
 			compare = [](int i) noexcept { return i >= 0; };
 		}
 
-		OrderedPair rootPair = pairs[root];
+		OrderedPair rootPair = pairs[root->getOldLable()];
 		if (rootPair.startLevel == rootPair.endLevel)
 			newLevels[init].remove(root);
 		else{
@@ -401,8 +410,13 @@ namespace ODER{
 			newLevels[rootPair.endLevel].remove(root);
 		}
 
+		delete[] pairs;
+
 		int level = init;
-		std::priority_queue<MeshGraphVertexNode *, std::vector<MeshGraphVertexNode *>, DegreeComparer> toBeAssigned(degreeCompare);
+		std::vector<MeshGraphVertexNode *> container;
+		container.reserve(startLevelWidth);
+		std::priority_queue<MeshGraphVertexNode *, std::vector<MeshGraphVertexNode *>, DegreeComparer> 
+			toBeAssigned(degreeCompare, std::move(container));
 
 		//dealing with root
 		processSigleVert(root, newLevels[level], working, toBeAssigned);

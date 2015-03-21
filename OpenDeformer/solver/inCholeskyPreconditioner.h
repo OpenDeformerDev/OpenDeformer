@@ -12,7 +12,10 @@ namespace ODER{
 	class InCholeskyPreconditioner : public Preconditioner{
 	public:
 		InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double epsilon);
+		InCholeskyPreconditioner(const InCholeskyPreconditioner&&) = delete;
+		InCholeskyPreconditioner& operator=(const InCholeskyPreconditioner&&) = delete;
 		void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
+		~InCholeskyPreconditioner() = default;
 	private:
 		void proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags);
 
