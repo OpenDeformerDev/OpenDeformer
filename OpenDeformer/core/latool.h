@@ -452,13 +452,13 @@ namespace ODER{
 	template<size_t N, size_t...index> struct IndexSequenceGenerator : public IndexSequenceGenerator <N - 1, N - 1, index... > {};
 	template<size_t... index> struct IndexSequenceGenerator<0, index...> {};
 	template<size_t...index> using IndexSequence = IndexSequenceGenerator<0, index...>;
-	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequence(FUN&& f, IndexSequence<index...>&& seqs){
+	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequence(FUN f, IndexSequence<index...> seqs){
 		return {  f(index)...  };
 	}
 
 	//can be further optimized with constexpr
-	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN&& f){
-		return generateSequence<T>(std::forward<FUN>(f), IndexSequenceGenerator<N>{});
+	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN f){
+		return generateSequence<T>(f, IndexSequenceGenerator<N>{});
 	}
 	
 

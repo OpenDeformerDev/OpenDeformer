@@ -130,10 +130,15 @@ namespace ODER{
 		return 0.0;
 	}
 
-	template<int blockLength, int blockWidth>
-	void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
-		const DenseVector& src, DenseVector& dest){
-		Assert(src.getWidth() == dest.getWidth() && src.getWidth() == mat.getNumColumns());
+	template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
+	void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
+		const LhsVec& src, RhsVec& dest){
+		static_assert(std::is_same<std::remove_const_t<LhsVec>, double *>::value || 
+			std::is_same<std::decay_t<decltype(std::declval<LhsVec>().operator[](std::declval<int>()))>, double>::value,
+			"only type with operator[] return double or double pointer supported for ODER::SpMV src yet");
+		static_assert(std::is_same<RhsVec, double *>::value || 
+			std::is_same<std::decay_t<decltype(std::declval<RhsVec>().operator[](std::declval<int>()))>, double>::value,
+			"only type with operator[] return double or non-const double pointer supported for ODER::SpMV dest yet");
 
 		const int blockColumnCount = mat.numBlockColumn;
 		const int columnCount = mat.numColumns;

@@ -13,7 +13,7 @@
 namespace ODER{
 	template<class FT> class ExactArthmeticer{
 	public:
-		inline FT Estimate(FT *e, int n) const{
+		FT Estimate(FT *e, int n) const{
 			FT ret = e[0];
 			for (int i = 1; i < n; i++){
 				ret += e[i];
@@ -21,51 +21,51 @@ namespace ODER{
 			return ret;
 		}
 
-		inline void fastTwoSum(FT a, FT b, FT &esti, FT& err) const {
+		void fastTwoSum(FT a, FT b, FT &esti, FT& err) const {
 			//|a| >= |b| must be confirmed
 			esti = a + b;
 			err = b - (esti - a);
 		}
 
-		inline FT fastTwoSumError(FT a, FT b, FT esti) const{
+		FT fastTwoSumError(FT a, FT b, FT esti) const{
 			//|a| >= |b| must be confirmed
 			return b - (esti - a);
 		}
 
-		inline void twoSum(FT a, FT b, FT &esti, FT& err) const {
+		void twoSum(FT a, FT b, FT &esti, FT& err) const {
 			esti = a + b;
 			FT bvirt = esti - a;
 			FT avirt = esti - bvirt;
 			err = (b - bvirt) + (a - avirt);
 		}
 
-		inline FT twoSumError(FT a, FT b, FT esti) const{
+		FT twoSumError(FT a, FT b, FT esti) const{
 			FT bvirt = esti - a;
 			FT avirt = esti - bvirt;
 			return (b - bvirt) + (a - avirt);
 		}
 
-		inline void twoDiff(FT a, FT b, FT &esti, FT& err) const{
+		void twoDiff(FT a, FT b, FT &esti, FT& err) const{
 			esti = a - b;
 			FT bvirt = a - esti;
 			FT avirt = esti + bvirt;
 			err = (bvirt - b) + (a - avirt);
 		}
 
-		inline FT twoDiffError(FT a, FT b, FT esti) const{
+		FT twoDiffError(FT a, FT b, FT esti) const{
 			FT bvirt = a - esti;
 			FT avirt = esti + bvirt;
 			return (bvirt - b) + (a - avirt);
 		}
 
-		inline void Split(FT a, FT &high, FT& low) const {
+		void Split(FT a, FT &high, FT& low) const {
 			FT c = splitter*a;
 			FT big = c - a;
 			high = c - big;
 			low = a - high;
 		}
 
-		inline void twoProduct(FT a, FT b, FT& esti, FT& err) const {
+		void twoProduct(FT a, FT b, FT& esti, FT& err) const {
 			esti = a * b;
 			FT aHigh, bHigh;
 			FT aLow, bLow;
@@ -77,7 +77,7 @@ namespace ODER{
 			err = (aLow*bLow) - e2;
 		}
 
-		inline void twoProductPreSplit(FT a, FT b, FT bHigh, FT bLow, FT& esti, FT& err) const{
+		void twoProductPreSplit(FT a, FT b, FT bHigh, FT bLow, FT& esti, FT& err) const{
 			esti = a * b;
 			FT aHigh, aLow;
 			Split(a, aHigh, aLow);
@@ -87,20 +87,20 @@ namespace ODER{
 			err = (aLow*bLow) - e2;
 		}
 
-		inline void twoOneDiff(FT a1, FT a0, FT b, FT& x2, FT& x1, FT& x0) const{
+		void twoOneDiff(FT a1, FT a0, FT b, FT& x2, FT& x1, FT& x0) const{
 			FT iq;
 			//a1 + a0 - b
 			twoDiff(a0, b, iq, x0);
 			twoSum(a1, iq, x2, x1);
 		}
 
-		inline void twoTwoDiff(FT a1, FT a0, FT b1, FT b0, FT& x3, FT& x2, FT& x1, FT& x0) const{
+		void twoTwoDiff(FT a1, FT a0, FT b1, FT b0, FT& x3, FT& x2, FT& x1, FT& x0) const{
 			FT i, j;
 			twoOneDiff(a1, a0, b0, i, j, x0);
 			twoOneDiff(i, j, b1, x3, x2, x1);
 		}
 
-		inline void twoOneProduct(FT a1, FT a0, FT b, FT& x3, FT& x2, FT& x1, FT& x0) const{
+		void twoOneProduct(FT a1, FT a0, FT b, FT& x3, FT& x2, FT& x1, FT& x0) const{
 			FT bHigh, bLow, i, j, k, l;
 			Split(b, bHigh, bLow);
 			twoProductPreSplit(a0, b, bHigh, bLow, i, x0);

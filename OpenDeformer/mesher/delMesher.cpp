@@ -848,8 +848,7 @@ void DelMesher::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int m
 		break;
 	case 2:
 	{
-		int v[4];
-		v[0] = aIndex; v[1] = bIndex; v[2] = cIndex; v[3] = dIndex;
+		int v[4] = { aIndex, bIndex, cIndex, dIndex };
 		int max = 0;
 		for (int i = 1; i < 4; i++){
 			if (v[i] > v[max])
@@ -1177,68 +1176,69 @@ void DelMesher::addTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d){
 	bool ac = parityCheck(a, c);
 	bool ad = parityCheck(a, d);
 
-	if (ab){
-		if (ac){
-			if (ad){
-				insertToTetTopology(Segment(a, b), c, d);
-				insertToTetTopology(Segment(a, c), d, b);
-				insertToTetTopology(Segment(a, d), b, c);
-				insertToTetTopology(Segment(b, c), a, d);
-				insertToTetTopology(Segment(b, d), c, a);
-				insertToTetTopology(Segment(c, d), a, b);
-				addSupplyVerts(a, b, c, d, 2);
-			}
-			else{
-				insertToTetTopology(Segment(a, b), c, d);
-				insertToTetTopology(Segment(a, c), d, b);
-				insertToTetTopology(Segment(b, c), a, d);
+	int condition = ab + (ac << 1) + (ad << 2);
 
-				addSupplyVerts(a, b, c, NULL, 1);
-			}
-		}
-		else if (ad){
-			insertToTetTopology(Segment(a, b), c, d);
-			insertToTetTopology(Segment(a, d), b, c);
-			insertToTetTopology(Segment(b, d), c, a);
-
-			addSupplyVerts(a, b, d, NULL, 1);
-		}
-		else{
-			insertToTetTopology(Segment(a, b), c, d);
-			insertToTetTopology(Segment(c, d), a, b);
-
-			addSupplyVerts(a, b, c, d, 0);
-		}
-	}
-	else if (ac){
-		if (ad){
-			insertToTetTopology(Segment(a, c), d, b);
-			insertToTetTopology(Segment(a, d), b, c);
-			insertToTetTopology(Segment(c, d), a, b);
-
-			addSupplyVerts(a, c, d, NULL, 1);
-		}
-		else{
-			insertToTetTopology(Segment(a, c), d, b);
-			insertToTetTopology(Segment(b, d), c, a);
-
-			addSupplyVerts(a, c, b, d, 0);
-		}
-	}
-	else if (ad){
-		insertToTetTopology(Segment(a, d), b, c);
-		insertToTetTopology(Segment(b, c), a, d);
-
-		addSupplyVerts(a, d, b, c, 0);
-	}
-	else{
+	switch (condition){
+	case 0:
 		insertToTetTopology(Segment(b, c), a, d);
 		insertToTetTopology(Segment(b, d), c, a);
 		insertToTetTopology(Segment(c, d), a, b);
 
 		addSupplyVerts(b, c, d, NULL, 1);
-	}
+		break;
+	case 1:
+		insertToTetTopology(Segment(a, b), c, d);
+		insertToTetTopology(Segment(c, d), a, b);
 
+		addSupplyVerts(a, b, c, d, 0);
+		break;
+	case 2:
+		insertToTetTopology(Segment(a, c), d, b);
+		insertToTetTopology(Segment(b, d), c, a);
+
+		addSupplyVerts(a, c, b, d, 0);
+		break;
+	case 3:
+		insertToTetTopology(Segment(a, b), c, d);
+		insertToTetTopology(Segment(a, c), d, b);
+		insertToTetTopology(Segment(b, c), a, d);
+
+		addSupplyVerts(a, b, c, NULL, 1);
+		break;
+	case 4:
+		insertToTetTopology(Segment(a, d), b, c);
+		insertToTetTopology(Segment(b, c), a, d);
+
+		addSupplyVerts(a, d, b, c, 0);
+		break;
+	case 5:
+		insertToTetTopology(Segment(a, b), c, d);
+		insertToTetTopology(Segment(a, d), b, c);
+		insertToTetTopology(Segment(b, d), c, a);
+
+		addSupplyVerts(a, b, d, NULL, 1);
+		break;
+	case 6:
+		insertToTetTopology(Segment(a, c), d, b);
+		insertToTetTopology(Segment(a, d), b, c);
+		insertToTetTopology(Segment(c, d), a, b);
+
+		addSupplyVerts(a, c, d, NULL, 1);
+		break;
+	case 7:
+		insertToTetTopology(Segment(a, b), c, d);
+		insertToTetTopology(Segment(a, c), d, b);
+		insertToTetTopology(Segment(a, d), b, c);
+		insertToTetTopology(Segment(b, c), a, d);
+		insertToTetTopology(Segment(b, d), c, a);
+		insertToTetTopology(Segment(c, d), a, b);
+
+		addSupplyVerts(a, b, c, d, 2);
+		break;
+	default:
+		Severe("Unexpected Case in DelMesher::addTet");
+		break;
+	}
 }
 
 void DelMesher::deleteTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d){
@@ -1255,56 +1255,56 @@ void DelMesher::deleteTet(Vertex *a, Vertex *b, Vertex *c, Vertex *d){
 	bool ac = parityCheck(a, c);
 	bool ad = parityCheck(a, d);
 
-	if (ab){
-		if (ac){
-			if (ad){
-				removeFromTetTopology(Segment(a, b), c, d);
-				removeFromTetTopology(Segment(a, c), d, b);
-				removeFromTetTopology(Segment(a, d), b, c);
-				removeFromTetTopology(Segment(b, c), a, d);
-				removeFromTetTopology(Segment(b, d), c, a);
-				removeFromTetTopology(Segment(c, d), a, b);
-			}
-			else{
-				removeFromTetTopology(Segment(a, b), c, d);
-				removeFromTetTopology(Segment(a, c), d, b);
-				removeFromTetTopology(Segment(b, c), a, d);
-			}
-		}
-		else if (ad){
-			removeFromTetTopology(Segment(a, b), c, d);
-			removeFromTetTopology(Segment(a, d), b, c);
-			removeFromTetTopology(Segment(b, d), c, a);
-		}
-		else{
-			removeFromTetTopology(Segment(a, b), c, d);
-			removeFromTetTopology(Segment(c, d), a, b);
-		}
-	}
-	else if (ac){
-		if (ad){
-			removeFromTetTopology(Segment(a, c), d, b);
-			removeFromTetTopology(Segment(a, d), b, c);
-			removeFromTetTopology(Segment(c, d), a, b);
-		}
-		else{
-			removeFromTetTopology(Segment(a, c), d, b);
-			removeFromTetTopology(Segment(b, d), c, a);
-		}
-	}
-	else if (ad){
-		removeFromTetTopology(Segment(a, d), b, c);
-		removeFromTetTopology(Segment(b, c), a, d);
-	}
-	else{
+	int condition = ab + (ac << 1) + (ad << 2);
+
+	switch (condition){
+	case 0:
 		removeFromTetTopology(Segment(b, c), a, d);
 		removeFromTetTopology(Segment(b, d), c, a);
 		removeFromTetTopology(Segment(c, d), a, b);
+		break;
+	case 1:
+		removeFromTetTopology(Segment(a, b), c, d);
+		removeFromTetTopology(Segment(c, d), a, b);
+		break;
+	case 2:
+		removeFromTetTopology(Segment(a, c), d, b);
+		removeFromTetTopology(Segment(b, d), c, a);
+		break;
+	case 3:
+		removeFromTetTopology(Segment(a, b), c, d);
+		removeFromTetTopology(Segment(a, c), d, b);
+		removeFromTetTopology(Segment(b, c), a, d);
+		break;
+	case 4:
+		removeFromTetTopology(Segment(a, d), b, c);
+		removeFromTetTopology(Segment(b, c), a, d);
+		break;
+	case 5:
+		removeFromTetTopology(Segment(a, b), c, d);
+		removeFromTetTopology(Segment(a, d), b, c);
+		removeFromTetTopology(Segment(b, d), c, a);
+		break;
+	case 6:
+		removeFromTetTopology(Segment(a, c), d, b);
+		removeFromTetTopology(Segment(a, d), b, c);
+		removeFromTetTopology(Segment(c, d), a, b);
+		break;
+	case 7:
+		removeFromTetTopology(Segment(a, b), c, d);
+		removeFromTetTopology(Segment(a, c), d, b);
+		removeFromTetTopology(Segment(a, d), b, c);
+		removeFromTetTopology(Segment(b, c), a, d);
+		removeFromTetTopology(Segment(b, d), c, a);
+		removeFromTetTopology(Segment(c, d), a, b);
+		break;
+	default:
+		Severe("Unexpected Case in DelMesher::deleteTet");
+		break;
 	}
-
 }
 
-void DelMesher::digCavity(Vertex *u, const Face &f, Tetrahedron *rt, bool insertToSkinny, bool trulyDeleteOrAdd, bool boundaryVert){
+void DelMesher::digCavity(Vertex *u, const Face& f, Tetrahedron *rt, bool insertToSkinny, bool trulyDeleteOrAdd, bool boundaryVert){
 	Vertex *a;
 	if (!Adjacent(f, &a))
 		return;
@@ -1562,23 +1562,6 @@ void DelMesher::splitTetrahedron(const Tetrahedron& tet){
 	}
 	tobeDeletedTets.clear();
 	newFacesOfTets.clear();
-}
-
-Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight){
-	Vertex *newVertex = vertArena.Alloc();
-	newVertex->vert = vert;
-	newVertex->weight = weight;
-	newVertex->setLabel();
-	Assert(boundBox.Inside(newVertex->vert));
-	return newVertex;
-}
-
-Vertex* DelMesher::allocVertex(const Vertex &vertex){
-	Vertex *newVertex = vertArena.Alloc();
-	*newVertex = vertex;
-	newVertex->setLabel();
-	Assert(boundBox.Inside(newVertex->vert));
-	return newVertex;
 }
 
 void DelMesher::insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt, bool insertToSkinny, bool boundaryVert){

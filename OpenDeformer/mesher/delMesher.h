@@ -360,7 +360,7 @@ namespace ODER{
 
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
 
-		inline bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
+		bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
 		bool findSubPolygons(const Face& f) const;
 		bool findTet(const Tetrahedron& t) const;
 
@@ -378,8 +378,8 @@ namespace ODER{
 		void splitSubPolygon(const Face& f);
 		void splitTetrahedron(const Tetrahedron& tet);
 
-		inline Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
-		inline Vertex* allocVertex(const Vertex &vert);
+		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
+		Vertex* allocVertex(const Vertex &vert);
 		void insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool boundaryVert = false);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 
@@ -389,7 +389,7 @@ namespace ODER{
 		void insertToTetTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTetTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 
-		void digCavity(Vertex *u, const Face &f, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool trulyDeleteOrAdd = true, bool boundaryVert = false);
+		void digCavity(Vertex *u, const Face& f, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool trulyDeleteOrAdd = true, bool boundaryVert = false);
 		void digCavity(Vertex *u, const Vertex& aboveVert, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
@@ -440,9 +440,28 @@ namespace ODER{
 		friend class DelTriangulator;
 	};
 
+	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight){
+		Vertex *newVertex = vertArena.Alloc();
+		newVertex->vert = vert;
+		newVertex->weight = weight;
+		newVertex->setLabel();
+		Assert(boundBox.Inside(newVertex->vert));
+		return newVertex;
+	}
+
+	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
+		Vertex *newVertex = vertArena.Alloc();
+		*newVertex = vertex;
+		newVertex->setLabel();
+		Assert(boundBox.Inside(newVertex->vert));
+		return newVertex;
+	}
+
 	inline bool parityCheck(const Vertex *x, const Vertex *y){
 		return (std::hash<int>()(x->getLabel()) & ODD_MAKE) == (std::hash<int>()(y->getLabel()) & ODD_MAKE);
 	}
+
+
 }
 
 #endif

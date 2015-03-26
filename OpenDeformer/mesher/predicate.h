@@ -72,7 +72,7 @@ public:
 		return fabs(n*(d - a)) <= arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}
 
-	inline bool coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c) const{
+	bool coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c) const{
 		VectorBase<FT> n = (b - a) % (c - a);
 		return n.length2() <= arthemetricer.epsilon*arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}

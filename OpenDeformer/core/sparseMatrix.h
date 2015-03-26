@@ -164,6 +164,10 @@ namespace ODER{
 	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
 		= BlockedSymSparseMatrixAssembler::getDiagIndices(IndexSequenceGenerator<blockLength>());
 
+	template<class Vec> using spmv_vec_para_type = 
+		std::conditional_t<std::is_same<std::remove_const_t<Vec>, double *>::value,
+		double *, Vec&>;
+
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrixAssembler<blockLength, blockWidth>& assembler){
@@ -400,9 +404,9 @@ namespace ODER{
 
 		static const std::array<size_t, blockLength> diagIndices;
 
-		template<int blockLength, int blockWidth> 
+		template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
 		friend void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
-			const DenseVector& src, DenseVector& dest);
+			const LhsVec& src, RhsVec& dest);
 	};
 
 	template<int blockLength, int blockWidth>
