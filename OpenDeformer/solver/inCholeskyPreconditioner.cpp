@@ -40,7 +40,7 @@ namespace ODER{
 	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags){
 		values.emplace_back(0.0);
 		double diag = diags[columnIndex];
-		auto iter = vec.Begin(), vecEnd = vec.End();
+		auto iter = vec.begin(), vecEnd = vec.end();
 		int count = 0;
 		while (++iter != vecEnd){
 			int row = iter->first;

@@ -8,7 +8,7 @@ namespace ODER{
 		const int width = mat.getNumColumns();
 		DenseVector remainder(width), direction(width), temp(width);
 		// remainder = rhs - mat * result
-		SpMV(mat, result, remainder);
+		SpMDV(mat, result, remainder);
 		for (int i = 0; i < width; i++)
 			remainder[i] = rhs[i] - remainder[i];
 		//M * d = r
@@ -18,7 +18,7 @@ namespace ODER{
 
 		for (int i = 0; i < width && delta > epsilon; i++){
 			// q = mat * direction
-			SpMV(mat, remainder, temp);
+			SpMDV(mat, remainder, temp);
 			double alpha = delta / (direction * temp);
 			//result = result + alpha * direction
 			//remainder = remainder - alpha * q

@@ -405,8 +405,12 @@ namespace ODER{
 		static const std::array<size_t, blockLength> diagIndices;
 
 		template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
-		friend void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
+		friend void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
 			const LhsVec& src, RhsVec& dest);
+
+		template<int blockLength, int blockWidth>
+		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+			const SparseVector& src, SparseVector& dest);
 	};
 
 	template<int blockLength, int blockWidth>

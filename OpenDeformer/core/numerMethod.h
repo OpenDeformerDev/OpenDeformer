@@ -131,7 +131,7 @@ namespace ODER{
 	}
 
 	template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
-	void SpMV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
+	void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
 		const LhsVec& src, RhsVec& dest){
 		static_assert(std::is_same<std::remove_const_t<LhsVec>, double *>::value || 
 			std::is_same<std::decay_t<decltype(std::declval<LhsVec>().operator[](std::declval<int>()))>, double>::value,
@@ -261,6 +261,101 @@ namespace ODER{
 			}
 
 			dest[i] += y;
+
+		}
+	}
+
+	template<int blockLength, int blockWidth> 
+	void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+		const SparseVector& src, SparseVector& dest){
+		constexpr int regularSize = blockLength * blockWidth;
+		constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+		const int blockColumnCount = mat.numBlockColumn;
+		const int columnCount = mat.numColumns;
+
+		const double *values = mat.values;
+		const int *blockPcol = mat.blockPcol;
+		const int *blockRows = mat.blockRows;
+		const int *blockColumnOris = mat.blockColumnOris;
+
+		for (auto indexValPair : src){
+			const int column = indexValPair.first;
+			const double entry = indexValPair.second;
+
+			int blockIndex = column / blockLength;
+			int blockStartColumn = blockIndex * blockLength;
+			for (int i = 0, startColumn = 0; i < blockIndex; i++, startColumn += blockLength){
+				int start = blockPcol[i], end = blockPcol[i + 1];
+				if (start != end){
+					int blockRow = ((column - blockLength) / blockWidth) * blockWidth + blockLength;
+					int offset = column - blockRow;
+					const int *blockRowIndexStart = &blockRows[start], *blockRowIndexEnd = &blockRows[end];
+
+					auto iter = std::lower_bound(blockRowIndexStart, blockRowIndexEnd, blockRow);
+					if (*iter == blockRow){
+						const double* block = values + blockColumnOris[i];
+						block += diagSize + (iter - blockRowIndexStart - 1)*regularSize;
+						if (*blockRowIndexStart != startColumn)
+							block += regularSize - diagSize;
+
+						for (int j = 0; j < blockLength; j++)
+							dest.Add(startColumn + j, block[j * blockWidth + offset] * entry);
+					}
+				}
+			}
+
+			if (blockIndex < blockColumnCount){
+				int start = blockPcol[blockIndex], end = blockPcol[blockIndex + 1];
+				if (start != end){
+					const int *blockRowIndex = &blockRows[start];
+					int offset = column - blockStartColumn;
+					const double* block = values + blockColumnOris[blockIndex];
+					if (*blockRowIndex == blockStartColumn){
+						for (int i = offset; i > 0; i--)
+							dest.Add(column - i, block[mat.diagIndices[offset - i] + i] * entry);
+
+						int entryCount = blockLength - offset;
+						for (int i = 0; i < entryCount; i++)
+							dest.Add(column + i, block[mat.diagIndices[offset] + i] * entry);
+						block += diagSize;
+						blockRowIndex++;
+					}
+					const int *blockRowEnd = &blockRows[end];
+					if (blockRowIndex == blockRowEnd) continue;
+
+					int adjust = offset * blockWidth;
+					while (blockRowIndex != blockRowEnd - 1){
+						int row = *blockRowIndex;
+						for (int i = 0; i < blockWidth; i++)
+							dest.Add(row + i, block[adjust + i] * entry);
+						block += regularSize;
+						blockRowIndex++;
+					}
+
+					int row = *blockRowIndex;
+					int mayDegenWidth = columnCount - row;
+					if (mayDegenWidth >= blockWidth){
+						for (int i = 0; i < blockWidth; i++)
+							dest.Add(row + i, block[adjust + i] * entry);
+					}
+					else{
+						adjust = offset * mayDegenWidth;
+						for (int i = 0; i < mayDegenWidth; i++)
+							dest.Add(row + i, block[adjust + i] * entry);
+					}
+				}
+			}
+			else{
+				const int index = blockIndex + column - blockStartColumn;
+				const int start = blockPcol[index], end = blockPcol[index + 1];
+
+				const double *vals = values + blockColumnOris[index];
+				const int *rowIndex = &blockRows[start];
+
+				for (int i = 0; i < end - start; i++)
+					dest.Add(rowIndex[i], vals[i] * entry);
+			}
 
 		}
 	}

@@ -426,7 +426,7 @@ namespace ODER{
 		void Set(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter == indices.end() && iter->first != index)
+			if (iter == indices.end() || iter->first != index)
 				indices.insert(iter, IndexValPair(index, val));
 			else
 				iter->second = val;
@@ -434,7 +434,7 @@ namespace ODER{
 		void Add(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter == indices.end() && iter->first != index)
+			if (iter == indices.end() || iter->first != index)
 				indices.insert(iter, IndexValPair(index, val));
 			else
 				iter->second += val;
@@ -442,8 +442,8 @@ namespace ODER{
 		void emplaceBack(int index, double val){
 			indices.emplace_back(index, val);
 		}
-		IndexValConstIter Begin() const { return indices.cbegin(); }
-		IndexValConstIter End() const { return indices.cend(); }
+		IndexValConstIter begin() const { return indices.cbegin(); }
+		IndexValConstIter end() const { return indices.cend(); }
 		void Clear(){ indices.clear(); }
 	private:
 		RecycledList<IndexValPair> indices;
