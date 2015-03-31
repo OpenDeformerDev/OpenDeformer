@@ -418,11 +418,13 @@ namespace ODER{
 	public:
 		using IndexValPair = std::pair<int, double>;
 		using IndexValConstIter = RecycledList<IndexValPair>::const_iterator;
+		using IndexValIter = RecycledList<IndexValPair>::iterator;
 		SparseVector(){}
 		SparseVector(const SparseVector&) = delete;
 		SparseVector& operator=(const SparseVector&) = delete;
 		SparseVector(SparseVector&&) = default;
 		SparseVector& operator=(SparseVector&&) = default;
+		double operator*(const SparseVector& vec) const;
 		void Set(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
@@ -439,11 +441,21 @@ namespace ODER{
 			else
 				iter->second += val;
 		}
+		IndexValIter Set(const IndexValIter& pos, int index, double val){
+			return indices.insert(pos, IndexValPair(index, val));
+		}
+		IndexValConstIter Set(const IndexValConstIter& pos, int index, double val){
+			return indices.insert(pos, IndexValPair(index, val));
+		}
 		void emplaceBack(int index, double val){
 			indices.emplace_back(index, val);
 		}
-		IndexValConstIter begin() const { return indices.cbegin(); }
-		IndexValConstIter end() const { return indices.cend(); }
+		IndexValConstIter Delete(const IndexValConstIter& iter){ return indices.erase(iter); }
+		IndexValIter Delete(const IndexValIter& iter){ return indices.erase(iter); }
+		IndexValConstIter cbegin() const { return indices.cbegin(); }
+		IndexValConstIter cend() const { return indices.cend(); }
+		IndexValIter begin() { return indices.begin(); }
+		IndexValIter end() { return indices.end(); }
 		void Clear(){ indices.clear(); }
 	private:
 		RecycledList<IndexValPair> indices;
@@ -550,6 +562,28 @@ namespace ODER{
 		return std::move(v);
 	}
 
+	inline double SparseVector::operator*(const SparseVector& vec) const{
+		auto rightIter = vec.cbegin();
+		auto rightEnd = vec.cend();
+		auto leftIter = cbegin();
+		auto leftEnd = cend();
+
+		double dot = 0.0;
+		while (rightIter != rightEnd && leftIter != leftEnd){
+			int gap = rightIter->first - leftIter->first;
+			if (gap == 0){
+				dot += rightIter->second * leftIter->second;
+				++rightIter;
+				++leftIter;
+			}
+			else if (gap > 0)
+				++leftIter;
+			else
+				++rightIter;
+		}
+
+		return dot;
+	}
 }
 
 #endif

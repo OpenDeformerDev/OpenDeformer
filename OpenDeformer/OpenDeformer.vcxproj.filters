@@ -162,6 +162,9 @@
     <ClInclude Include="InitShader.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="solver\inLDLTPreconditioner.h">
+      <Filter>头文件\solver</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -231,6 +234,9 @@
       <Filter>源文件\core</Filter>
     </ClCompile>
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp">
+      <Filter>源文件\solver</Filter>
+    </ClCompile>
+    <ClCompile Include="solver\inLDLTPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
     </ClCompile>
   </ItemGroup>

@@ -279,9 +279,10 @@ namespace ODER{
 		const int *blockRows = mat.blockRows;
 		const int *blockColumnOris = mat.blockColumnOris;
 
-		for (auto indexValPair : src){
-			const int column = indexValPair.first;
-			const double entry = indexValPair.second;
+		auto end = src.cend();
+		for (auto iter = src.cbegin(); iter != end; ++iter){
+			const int column = iter->first;
+			const double entry = iter->second;
 
 			int blockIndex = column / blockLength;
 			int blockStartColumn = blockIndex * blockLength;
@@ -356,7 +357,6 @@ namespace ODER{
 				for (int i = 0; i < end - start; i++)
 					dest.Add(rowIndex[i], vals[i] * entry);
 			}
-
 		}
 	}
 }

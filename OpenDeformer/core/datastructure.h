@@ -392,19 +392,21 @@ namespace ODER{
 		void push_back(T&& val){
 			emplace_back(std::forward<T>(val));
 		}
-		void insert(const const_iterator& pos, T&& val){
-			emplace(pos, std::forward<T>(val));
+		const_iterator insert(const const_iterator& pos, T&& val){
+			return emplace(pos, std::forward<T>(val));
 		}
-		void insert(const iterator& pos, T&& val){
-			emplace(pos, std::forward<T>(val));
+		iterator insert(const iterator& pos, T&& val){
+			return emplace(pos, std::forward<T>(val));
 		}
-		template<class Ref, class Ptr, class... Args> void emplace(const ListIterator<T, Ref, Ptr>& pos, Args&&... val){
+		template<class Ref, class Ptr, class... Args> ListIterator<T, Ref, Ptr> emplace(const ListIterator<T, Ref, Ptr>& pos, Args&&... val){
 			ListNode<T>* postNode = pos.node;
 			ListNode<T>* tmp = pool.Alloc(std::forward<Args>(val)...);
 			tmp->next = postNode;
 			tmp->prev = postNode->prev;
 			postNode->prev->next = tmp;
 			postNode->prev = tmp;
+
+			return tmp;
 		}
 		template<class... Args> void emplace_back(Args&&... val){
 			ListNode<T>* end = node;
@@ -423,6 +425,17 @@ namespace ODER{
 			}
 			node->next = node;
 			node->prev = node;
+		}
+		template<class Ref, class Ptr> ListIterator<T, Ref, Ptr> erase(const ListIterator<T, Ref, Ptr>& iter){
+			ListNode<T>* toBeDelete = iter.node;
+			ListNode<T>* prev = toBeDelete->prev;
+			ListNode<T>* next = toBeDelete->next;
+
+			prev->next = next;
+			next->prev = prev;
+			pool.Dealloc(toBeDelete);
+
+			return next;
 		}
 	private:
 		ListNode<T> *node;

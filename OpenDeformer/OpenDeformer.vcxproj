@@ -209,6 +209,7 @@
     <ClInclude Include="mesh\tetmesh.h" />
     <ClInclude Include="solver\cgSolver.h" />
     <ClInclude Include="solver\inCholeskyPreconditioner.h" />
+    <ClInclude Include="solver\inLDLTPreconditioner.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -236,6 +237,7 @@
     <ClCompile Include="oder.cpp" />
     <ClCompile Include="solver\cgSolver.cpp" />
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp" />
+    <ClCompile Include="solver\inLDLTPreconditioner.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shader\test.fs" />

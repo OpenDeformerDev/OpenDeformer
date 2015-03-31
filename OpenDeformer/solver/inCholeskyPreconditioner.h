@@ -14,10 +14,13 @@ namespace ODER{
 		InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double epsilon);
 		InCholeskyPreconditioner(const InCholeskyPreconditioner&&) = delete;
 		InCholeskyPreconditioner& operator=(const InCholeskyPreconditioner&&) = delete;
+		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
 		void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
 		~InCholeskyPreconditioner() = default;
 	private:
+		void incompleteCholeskyDecomposition(const BlockedSymSpMatrix& mat);
 		void proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags);
+
 
 		std::vector<double> values;
 		std::vector<int> rows;

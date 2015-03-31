@@ -107,4 +107,5 @@ namespace ODER{
 	DenseVector::~DenseVector(){
 		if (values) freeAligned(values);
 	}
+
 }
