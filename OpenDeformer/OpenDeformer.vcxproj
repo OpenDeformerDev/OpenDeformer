@@ -182,7 +182,7 @@
     <ClInclude Include="core\simulator.h" />
     <ClInclude Include="InitShader.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
-    <ClInclude Include="material\hyperelastic.h" />
+    <ClInclude Include="material\reducedHyperelastic.h" />
     <ClInclude Include="material\stvk.h" />
     <ClInclude Include="mesher\aabb.h" />
     <ClInclude Include="core\arithmetic.h" />

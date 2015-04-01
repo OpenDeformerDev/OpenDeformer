@@ -8,12 +8,12 @@
 #include "oder.h"
 #include "linearSolver.h"
 #include "sparseMatrix.h"
-#include "preconditioner.h"
 
 namespace ODER{
-	class CGSolver : public LinearSolver{
+	class CGSolver : public LinearSolver<BlockedSymSpMatrix>{
 	public:
-		CGSolver(BlockedSymSpMatrix&& m, double tolerant, const Preconditioner* preconditioner);
+		CGSolver(const BlockedSymSpMatrix* m, double tol, const Preconditioner* precondition)
+			:LinearSolver(m), tolerant(tol), preconditioner(precondition){}
 		CGSolver(const CGSolver&) = delete;
 		CGSolver& operator=(const CGSolver&) = delete;
 		CGSolver(CGSolver&&) = default;
@@ -21,8 +21,7 @@ namespace ODER{
 		void solveLinearSystem(const DenseVector& rhs, DenseVector& result) const;
 		~CGSolver() = default;
 	private:
-		BlockedSymSpMatrix mat;
-		double tol;
+		double tolerant;
 		const Preconditioner* preconditioner;
 	};
 }

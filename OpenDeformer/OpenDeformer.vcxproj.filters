@@ -129,9 +129,6 @@
     <ClInclude Include="intergrator\asymptoticNewmark.h">
       <Filter>头文件\intergrator</Filter>
     </ClInclude>
-    <ClInclude Include="material\hyperelastic.h">
-      <Filter>头文件\material</Filter>
-    </ClInclude>
     <ClInclude Include="intergrator\linearNewmark.h">
       <Filter>头文件\intergrator</Filter>
     </ClInclude>
@@ -164,6 +161,9 @@
     </ClInclude>
     <ClInclude Include="solver\inLDLTPreconditioner.h">
       <Filter>头文件\solver</Filter>
+    </ClInclude>
+    <ClInclude Include="material\reducedHyperelastic.h">
+      <Filter>头文件\material</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

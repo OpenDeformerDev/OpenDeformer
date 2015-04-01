@@ -6,7 +6,7 @@
 
 namespace ODER{
 	LinearNewmark::LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MechMaterial& mater)
+		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const HookeMaterial& mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
 		d = allocAligned<double>(dofs);
 		v = allocAligned<double>(dofs);

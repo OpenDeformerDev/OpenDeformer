@@ -7,12 +7,13 @@
 
 #include "intergrator.h"
 #include "eigenSolver.h"
+#include "hooke.h"
 
 namespace ODER{
 	class LinearNewmark : public Intergrator{
 	public:
 		LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const MechMaterial& mater);
+			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, const HookeMaterial& mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void getRawDisplacements(double *displacements) const;

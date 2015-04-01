@@ -6,7 +6,7 @@
 
 namespace ODER{
 	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, int orderNum)
-		: HyperelasticMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear), orderNum),
+		:ReducedHyperelasticMaterial(rho, orderNum),
 		lambda(lameFirst), mu(lameSecond){
 
 		D[0] = lambda + 2.0 * mu;

@@ -5,10 +5,10 @@
 #ifndef ODER_MATERIAL_STVK_H
 #define ODER_MATERIAL_STVK_H
 
-#include "hyperelastic.h"
+#include "reducedHyperelastic.h"
 
 namespace ODER{
-	class StVKMaterial :public HyperelasticMaterial{
+	class StVKMaterial :public ReducedHyperelasticMaterial{
 	public:
 		StVKMaterial(double rho, double lameFirst, double lameSecond, int orders);
 		void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;

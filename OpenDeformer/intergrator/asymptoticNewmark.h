@@ -7,13 +7,13 @@
 
 #include "intergrator.h"
 #include "eigenSolver.h"
-#include "hyperelastic.h"
+#include "reducedHyperelastic.h"
 
 namespace ODER{
 	class AsymptoticNewmark : public Intergrator{
 	public:
 		AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, HyperelasticMaterial* mater);
+			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void getRawDisplacements(double *displacements) const;
@@ -30,7 +30,7 @@ namespace ODER{
 
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
-		HyperelasticMaterial* material;
+		ReducedHyperelasticMaterial* material;
 		int totalDofs;
 		double betaDeltaT2, gammaDeltaT, minusBetaDeltaT2, minusGammaDeltaT;
 		double *frequencies2;

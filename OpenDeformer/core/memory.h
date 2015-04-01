@@ -120,7 +120,9 @@ namespace ODER{
 	template<class T, unsigned int Align = 8> class MemoryPool{
 	public:
 		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryPool requires larger Align parameter");
+		static_assert(sizeof(void *) <= Align, "ODER::MemoryPool requires Align parameter larger than the size of a pointer");
 		static_assert((Align & (Align - 1)) == 0, "ODER::MemoryPool Align parameter should be power of 2");
+
 		MemoryPool(unsigned int count = ODER_DEFAULT_POOL_OBJ_COUNT) : curBlockPos(0){
 			constexpr unsigned int complement = Align - 1;
 			constexpr unsigned int objectByteCounts = ((sizeof(T) + complement) & (~complement));

@@ -55,7 +55,7 @@ namespace ODER{
 	class Intergrator;
 	class Forcer;
 	class EigenSolver;
-	class LinearSolver;
+	template<class SpMatrix> class LinearSolver;
 	class Preconditioner;
 	class Constrainer;
 	class NodeIndexer;

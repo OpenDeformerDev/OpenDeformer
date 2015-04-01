@@ -8,10 +8,14 @@
 #include "oder.h"
 
 namespace ODER{
-    class LinearSolver{
+    template<class SpMatrix> class LinearSolver{
 	public:
+		LinearSolver(const SpMatrix* m) : mat(m){}
+		void resetLinerSystem(const SpMatrix* m){ mat = m; }
 		virtual void solveLinearSystem(const DenseVector& rhs, DenseVector& result) const = 0;
 		virtual ~LinearSolver() = default;
+	protected:
+		const SpMatrix *mat;
 	};
 }
 
