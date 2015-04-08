@@ -85,7 +85,7 @@ namespace ODER{
 				if (row - columnStart < blockLength){
 					int subRow = row - columnStart;
 					int index = subRow - subColumn + diagIndices[subColumn];
-					auto found = blockEntries[blockCloumn].find(0);
+					auto found = blockEntries[blockCloumn].find(columnStart);
 					if (found != blockEntries[blockCloumn].end())
 						found->second[index] += data;
 					else{
@@ -196,7 +196,7 @@ namespace ODER{
 					if (start->first == i*blockLength)
 						blockDataCount -= (regularSize - diagSize);
 					auto last = --(assembler.blockEntries[i].cend());
-					if (numColumns - last->first < blockWidth)
+					if (last != start && numColumns - last->first < blockWidth)
 						blockDataCount -= (last->first + blockWidth - numColumns)*blockLength;
 					dataCount += blockDataCount;
 				}

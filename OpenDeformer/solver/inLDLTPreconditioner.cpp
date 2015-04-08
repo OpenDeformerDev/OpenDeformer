@@ -65,12 +65,7 @@ namespace ODER{
 					auto jEnd = vecs[j].end();
 					auto jIter = vecs[j].begin();
 					for (auto iter = vecs[i].cbegin(); iter != end; ++iter){
-						while (jIter != jEnd && jIter->first < iter->first){
-							if (fabs(jIter->second) < sainvEpsilon)
-								jIter = vecs[j].Delete(jIter);
-							else
-							    ++jIter;
-						}
+						while (jIter != jEnd && jIter->first < iter->first) ++jIter;
 
 						if (jIter != jEnd && jIter->first == iter->first){
 							double entry = jIter->second - factor*iter->second;
@@ -109,6 +104,8 @@ namespace ODER{
 		int end = pcol[1];
 		double sub = rhs[0];
 		result[0] = sub;
+		for (int j = 1; j < width; j++)
+			result[j] = rhs[j];
 		for (int j = 1; j < end; j++){
 			int row = rows[j];
 			result[row] = rhs[row] - values[j] * sub;
