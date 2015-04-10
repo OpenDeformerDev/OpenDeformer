@@ -16,8 +16,9 @@ namespace ODER{
 	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags){
 		values.emplace_back(0.0);
 		rows.emplace_back(columnIndex);
-		double diag = diags[columnIndex];
 		auto iter = vec.cbegin(), vecEnd = vec.cend();
+		double diag = iter->second;
+
 		int count = 1;
 		while (++iter != vecEnd){
 			int row = iter->first;
@@ -68,6 +69,8 @@ namespace ODER{
 		for (int i = 1; i < columnCount; i++){
 			w.Clear();
 			mat.getColumn(i, w);
+			w.begin()->second = diags[i];
+
 			for (int j = 0; j < i; j++){
 				int *start = &rows[pcol[j]], *end = &rows[pcol[j + 1] - 1] + 1;
 				int *rowIter = std::lower_bound(start, end, i);
@@ -92,10 +95,8 @@ namespace ODER{
 		result[0] = sub;
 		for (int j = 1; j < width; j++)
 			result[j] = rhs[j];
-		for (int j = 1; j < end; j++){
-			int row = rows[j];
-			result[row] -= values[j] * sub;
-		}
+		for (int j = 1; j < end; j++)
+			result[rows[j]] -= values[j] * sub;
 
 		for (int column = 1; column < width; column++){
 			int start = pcol[column], end = pcol[column + 1];
@@ -106,13 +107,15 @@ namespace ODER{
 			}
 		}
 
-		for (int row = width - 1; row > 0; row--){
+		result[width - 1] /= values[pcol[width - 1]];
+
+		for (int row = width - 2; row >= 0; row--){
 			double dot = 0.0;
-			int start = pcol[row - 1], end = pcol[row];
+			int start = pcol[row], end = pcol[row + 1];
 			for (int column = start + 1; column < end; column++)
 				dot += result[rows[column]] * values[column];
-			int actualRow = rows[row];
-			result[actualRow] = (result[actualRow] - dot) / values[start];
+
+			result[row] = (result[row] - dot) / values[start];
 		}
 	}
 }

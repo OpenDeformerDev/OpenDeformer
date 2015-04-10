@@ -280,28 +280,30 @@ namespace ODER{
 		const int *blockColumnOris = mat.blockColumnOris;
 
 		auto end = src.cend();
-		for (auto iter = src.cbegin(); iter != end; ++iter){
-			const int column = iter->first;
-			const double entry = iter->second;
+		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter){
+			const int column = vecIter->first;
+			const double entry = vecIter->second;
 
 			int blockIndex = column / blockLength;
 			int blockStartColumn = blockIndex * blockLength;
 			for (int i = 0, startColumn = 0; i < blockIndex; i++, startColumn += blockLength){
 				int start = blockPcol[i], end = blockPcol[i + 1];
 				if (start != end){
-					int blockRow = ((column - blockLength) / blockWidth) * blockWidth + blockLength;
+					int blockRow = ((column - startColumn) / blockWidth) * blockWidth + startColumn + blockLength;
 					int offset = column - blockRow;
 					const int *blockRowIndexStart = &blockRows[start], *blockRowIndexEnd = &blockRows[end];
 
 					auto iter = std::lower_bound(blockRowIndexStart, blockRowIndexEnd, blockRow);
 					if (*iter == blockRow){
 						const double* block = values + blockColumnOris[i];
-						block += diagSize + (iter - blockRowIndexStart - 1)*regularSize;
+						block += diagSize + (iter - blockRowIndexStart - 1) * regularSize;
 						if (*blockRowIndexStart != startColumn)
 							block += regularSize - diagSize;
 
+						int mayDegenWidth = columnCount - blockRow;
+						int gap = mayDegenWidth >= blockWidth ? blockWidth : mayDegenWidth;
 						for (int j = 0; j < blockLength; j++)
-							dest.Add(startColumn + j, block[j * blockWidth + offset] * entry);
+							dest.Add(startColumn + j, block[j * gap + offset] * entry);
 					}
 				}
 			}

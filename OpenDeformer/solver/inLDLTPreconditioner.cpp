@@ -37,6 +37,9 @@ namespace ODER{
 		for (int i = 0; i < columnCount; i++)
 			vecs[i].emplaceBack(i, 1.0);
 
+		SparseVector test, ret;
+		test.emplaceBack(6, 1.0);
+		SpMSV(mat, test, ret);
 		int count = 0;
 		for (int i = 0; i < columnCount - 1; i++){
 			SpMSV(mat, vecs[i], temp);
@@ -48,7 +51,7 @@ namespace ODER{
 			for (int j = i + 1; j < columnCount; j++){
 				double entry = temp * vecs[j];
 				double lower = entry * inv;
-				if (fabs(lower) >= ldltEpsilon){
+				if (fabs(lower * inv) > ldltEpsilon){
 					values.push_back(lower);
 					rows.push_back(j);
 					++count;
@@ -68,17 +71,16 @@ namespace ODER{
 						while (jIter != jEnd && jIter->first < iter->first) ++jIter;
 
 						if (jIter != jEnd && jIter->first == iter->first){
-							double entry = jIter->second - factor*iter->second;
-							if (fabs(entry) > sainvEpsilon)
+							double entry = jIter->second - factor * iter->second;
+							if (fabs(entry * inv) > sainvEpsilon)
 								jIter->second = entry;
 							else
 								jIter = vecs[j].Delete(jIter);
 						}
 						else{
-							double entry = -factor*iter->second;
-							if (fabs(entry) > sainvEpsilon){
+							double entry = -factor * iter->second;
+							if (fabs(entry * inv) > sainvEpsilon)
 								vecs[j].Set(jIter, iter->first, entry);
-							}
 						}
 
 					}
@@ -106,7 +108,8 @@ namespace ODER{
 		result[0] = sub;
 		for (int j = 1; j < width; j++)
 			result[j] = rhs[j];
-		for (int j = 1; j < end; j++){
+
+		for (int j = 0; j < end; j++){
 			int row = rows[j];
 			result[row] = rhs[row] - values[j] * sub;
 		}
@@ -122,12 +125,13 @@ namespace ODER{
 		for (int i = 0; i < width; i++)
 			result[i] *= invDiagonal[i];
 
-		for (int row = width - 2; row > 0; row--){
+		for (int row = width - 2; row >= 0; row--){
 			double dot = 0.0;
-			int start = pcol[row - 1], end = pcol[row];
+			int start = pcol[row], end = pcol[row + 1];
 			for (int column = start; column < end; column++)
 				dot += result[rows[column]] * values[column];
-			result[rows[row]] -= dot;
+
+			result[row] -= dot;
 		}
 	}
 
