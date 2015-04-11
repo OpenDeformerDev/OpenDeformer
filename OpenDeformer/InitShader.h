@@ -6,8 +6,7 @@
 #define ODER_INITSHADER_H
 
 #include <iostream>
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include "oder.h"
 
 namespace ODER{
 	char* ReadShaderSource(const char* shaderFile){
