@@ -26,6 +26,7 @@ namespace ODER{
 		std::vector<int> pcol;
 		double *invDiagonal;
 
+		std::vector<std::pair<int, double>> preColumn;
 		double sainvEpsilon;
 		double ldltEpsilon;
 	};

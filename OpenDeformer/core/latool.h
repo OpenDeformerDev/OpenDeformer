@@ -392,7 +392,7 @@ namespace ODER{
 				rhs.values[i] = values[i] - rhs.values[i];
 			return std::move(rhs);
 		}
-		double length2() const{
+		double Length2() const{
 			double ret = 0.0;
 			for (int i = 0; i < width; i++)
 				ret += values[i] * values[i];
@@ -449,6 +449,16 @@ namespace ODER{
 		}
 		void emplaceBack(int index, double val){
 			indices.emplace_back(index, val);
+		}
+		double Length2() const{
+			auto end = indices.cend();
+			double ret = 0.0;
+			for (auto iter = indices.cbegin(); iter != end; ++iter)
+				ret += iter->second * iter->second;
+			return ret;
+		}
+		double Length() const{
+			return sqrt(Length2());
 		}
 		IndexValConstIter Delete(const IndexValConstIter& iter){ return indices.erase(iter); }
 		IndexValIter Delete(const IndexValIter& iter){ return indices.erase(iter); }

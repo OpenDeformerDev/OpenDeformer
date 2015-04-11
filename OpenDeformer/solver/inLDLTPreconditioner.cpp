@@ -12,6 +12,7 @@ namespace ODER{
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
 		pcol.reserve(columnCount);
+		preColumn.reserve(std::max(columnCount >> 6, 16));
 
 		invDiagonal = new double[columnCount];
 
@@ -37,13 +38,10 @@ namespace ODER{
 		for (int i = 0; i < columnCount; i++)
 			vecs[i].emplaceBack(i, 1.0);
 
-		SparseVector test, ret;
-		test.emplaceBack(6, 1.0);
-		SpMSV(mat, test, ret);
 		int count = 0;
 		for (int i = 0; i < columnCount - 1; i++){
 			SpMSV(mat, vecs[i], temp);
-			
+
 			double diag = temp * vecs[i];
 			double inv = 1.0 / diag;
 			invDiagonal[i] = inv;
@@ -51,7 +49,7 @@ namespace ODER{
 			for (int j = i + 1; j < columnCount; j++){
 				double entry = temp * vecs[j];
 				double lower = entry * inv;
-				if (fabs(lower * inv) > ldltEpsilon){
+				if (fabs(lower) >= ldltEpsilon){
 					values.push_back(lower);
 					rows.push_back(j);
 					++count;
@@ -72,14 +70,14 @@ namespace ODER{
 
 						if (jIter != jEnd && jIter->first == iter->first){
 							double entry = jIter->second - factor * iter->second;
-							if (fabs(entry * inv) > sainvEpsilon)
+							if (fabs(entry) > sainvEpsilon)
 								jIter->second = entry;
 							else
 								jIter = vecs[j].Delete(jIter);
 						}
 						else{
 							double entry = -factor * iter->second;
-							if (fabs(entry * inv) > sainvEpsilon)
+							if (fabs(entry) >= sainvEpsilon)
 								vecs[j].Set(jIter, iter->first, entry);
 						}
 
