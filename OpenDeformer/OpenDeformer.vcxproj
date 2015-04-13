@@ -180,7 +180,6 @@
     <ClInclude Include="core\numerMethod.h" />
     <ClInclude Include="core\preconditioner.h" />
     <ClInclude Include="core\simulator.h" />
-    <ClInclude Include="InitShader.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="material\reducedHyperelastic.h" />
     <ClInclude Include="material\stvk.h" />
@@ -210,6 +209,7 @@
     <ClInclude Include="solver\cgSolver.h" />
     <ClInclude Include="solver\inCholeskyPreconditioner.h" />
     <ClInclude Include="solver\inLDLTPreconditioner.h" />
+    <ClInclude Include="test\testers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -238,10 +238,9 @@
     <ClCompile Include="solver\cgSolver.cpp" />
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp" />
     <ClCompile Include="solver\inLDLTPreconditioner.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shader\test.fs" />
-    <None Include="shader\test.vs" />
+    <ClCompile Include="test\mesherTest.cpp" />
+    <ClCompile Include="test\simulTest.cpp" />
+    <ClCompile Include="test\solverTest.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

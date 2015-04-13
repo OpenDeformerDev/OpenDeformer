@@ -2,14 +2,14 @@
 #pragma once
 #endif
 
+#ifndef ODER_CORE_SPARSEMARTIX_H
+#define ODER_CORE_SPARSEMARTIX_H
+
 #include "oder.h"
 #include "memory.h"
 #include "latool.h"
 #include <map>
 #include <vector>
-
-#ifndef ODER_CORE_SPARSEMARTIX_H
-#define ODER_CORE_SPARSEMARTIX_H
 
 namespace ODER{
 	class SparseMatrixAssembler{

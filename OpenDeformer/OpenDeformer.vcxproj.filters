@@ -25,9 +25,6 @@
     <Filter Include="源文件\mesh">
       <UniqueIdentifier>{de9f680c-c72d-48b4-944d-d96f2fc53573}</UniqueIdentifier>
     </Filter>
-    <Filter Include="源文件\shader">
-      <UniqueIdentifier>{c594763d-f60b-47ef-8921-7407285e18c1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="头文件\material">
       <UniqueIdentifier>{2a20659b-424c-4800-ae53-83d85de0530c}</UniqueIdentifier>
     </Filter>
@@ -57,6 +54,12 @@
     </Filter>
     <Filter Include="源文件\solver">
       <UniqueIdentifier>{8c2e63db-b1e9-45cc-9e6c-dd5569cbe781}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\test">
+      <UniqueIdentifier>{646969d0-666e-4f1a-9766-06fbb47c72c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\test">
+      <UniqueIdentifier>{4526f0bc-ef99-4d97-80a2-2faffbe84899}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -156,14 +159,14 @@
     <ClInclude Include="solver\inCholeskyPreconditioner.h">
       <Filter>头文件\solver</Filter>
     </ClInclude>
-    <ClInclude Include="InitShader.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="solver\inLDLTPreconditioner.h">
       <Filter>头文件\solver</Filter>
     </ClInclude>
     <ClInclude Include="material\reducedHyperelastic.h">
       <Filter>头文件\material</Filter>
+    </ClInclude>
+    <ClInclude Include="test\testers.h">
+      <Filter>头文件\test</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -203,9 +206,6 @@
     <ClCompile Include="core\nodeIndexer.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
-    <ClCompile Include="oder.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="material\stvk.cpp">
       <Filter>源文件\material</Filter>
     </ClCompile>
@@ -239,13 +239,17 @@
     <ClCompile Include="solver\inLDLTPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shader\test.vs">
-      <Filter>源文件\shader</Filter>
-    </None>
-    <None Include="shader\test.fs">
-      <Filter>源文件\shader</Filter>
-    </None>
+    <ClCompile Include="test\mesherTest.cpp">
+      <Filter>源文件\test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\simulTest.cpp">
+      <Filter>源文件\test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\solverTest.cpp">
+      <Filter>源文件\test</Filter>
+    </ClCompile>
+    <ClCompile Include="oder.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

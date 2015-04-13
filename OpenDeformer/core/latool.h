@@ -72,7 +72,7 @@ namespace ODER{
 		}
 
 
-		inline Tensor2<FT> operator^(const VectorBase& v) const;
+		Tensor2<FT> operator^(const VectorBase& v) const;
 
 		FT operator[](int i) const{
 			Assert(i > -1 && i<3);
@@ -392,7 +392,7 @@ namespace ODER{
 				rhs.values[i] = values[i] - rhs.values[i];
 			return std::move(rhs);
 		}
-		double length2() const{
+		double Length2() const{
 			double ret = 0.0;
 			for (int i = 0; i < width; i++)
 				ret += values[i] * values[i];
