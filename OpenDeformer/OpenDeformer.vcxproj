@@ -26,7 +26,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>CTP_Nov2013</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -38,7 +38,7 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>CTP_Nov2013</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -209,7 +209,6 @@
     <ClInclude Include="solver\cgSolver.h" />
     <ClInclude Include="solver\inCholeskyPreconditioner.h" />
     <ClInclude Include="solver\inLDLTPreconditioner.h" />
-    <ClInclude Include="test\testers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -234,13 +233,9 @@
     <ClCompile Include="core\sparseMatrix.cpp" />
     <ClCompile Include="element\tetelement.cpp" />
     <ClCompile Include="mesh\tetmesh.cpp" />
-    <ClCompile Include="oder.cpp" />
     <ClCompile Include="solver\cgSolver.cpp" />
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp" />
     <ClCompile Include="solver\inLDLTPreconditioner.cpp" />
-    <ClCompile Include="test\mesherTest.cpp" />
-    <ClCompile Include="test\simulTest.cpp" />
-    <ClCompile Include="test\solverTest.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -332,9 +332,21 @@ namespace ODER{
 		};
 	public:
 		RecycledList(){
-			node = pool.Alloc();
+			if (listCount++ == 0)
+				pool = new MemoryPool<ListNode<T>>();
+			node = pool->Alloc();
 			node->next = node;
 			node->prev = node;
+		}
+
+		RecycledList(const RecycledList &) = default;
+		RecycledList& operator=(const RecycledList &) = default;
+		RecycledList(RecycledList&& list) noexcept{
+			node = list.node;
+			list.node = NULL;
+		}
+		RecycledList& operator=(RecycledList&& list) noexcept{
+			std::swap(node, list.node);
 		}
 
 		template<class T, class Ref, class Ptr> struct ListIterator{
@@ -400,7 +412,7 @@ namespace ODER{
 		}
 		template<class Ref, class Ptr, class... Args> ListIterator<T, Ref, Ptr> emplace(const ListIterator<T, Ref, Ptr>& pos, Args&&... val){
 			ListNode<T>* postNode = pos.node;
-			ListNode<T>* tmp = pool.Alloc(std::forward<Args>(val)...);
+			ListNode<T>* tmp = pool->Alloc(std::forward<Args>(val)...);
 			tmp->next = postNode;
 			tmp->prev = postNode->prev;
 			postNode->prev->next = tmp;
@@ -410,7 +422,7 @@ namespace ODER{
 		}
 		template<class... Args> void emplace_back(Args&&... val){
 			ListNode<T>* end = node;
-			ListNode<T>* tmp = pool.Alloc(std::forward<Args>(val)...);
+			ListNode<T>* tmp = pool->Alloc(std::forward<Args>(val)...);
 			tmp->next = end;
 			tmp->prev = end->prev;
 			end->prev->next = tmp;
@@ -421,7 +433,7 @@ namespace ODER{
 			while (cur != node){
 				ListNode<T>* tmp = cur;
 				cur = cur->next;
-				pool.Dealloc(tmp);
+				pool->Dealloc(tmp);
 			}
 			node->next = node;
 			node->prev = node;
@@ -433,16 +445,25 @@ namespace ODER{
 
 			prev->next = next;
 			next->prev = prev;
-			pool.Dealloc(toBeDelete);
+			pool->Dealloc(toBeDelete);
 
 			return next;
 		}
+
+		~RecycledList(){
+			if (--listCount == 0){
+				delete pool;
+				pool = NULL;
+			}
+		}
 	private:
 		ListNode<T> *node;
-		static MemoryPool<ListNode<T>> pool;
+		static int listCount;
+		static MemoryPool<ListNode<T>> *pool;
 	};
 
-	template<class T> MemoryPool<typename RecycledList<T>::ListNode<T>> RecycledList<T>::pool;
+	template<class T> int RecycledList<T>::listCount = 0;
+	template<class T> MemoryPool<typename RecycledList<T>::ListNode<T>> *RecycledList<T>::pool = NULL;
 }
 
 #endif

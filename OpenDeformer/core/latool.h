@@ -355,11 +355,11 @@ namespace ODER{
 			std::swap(values, denseVector.values);
 			return *this;
 		}
-		double operator[](int index) const noexcept{
+		double operator[](int index) const{
 			Assert(index > -1 && index < width);
 			return values[index];
 		}
-		double& operator[](int index) noexcept{
+		double& operator[](int index){
 			Assert(index > -1 && index < width);
 			return values[index];
 		}

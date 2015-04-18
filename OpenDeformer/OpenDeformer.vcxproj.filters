@@ -55,12 +55,6 @@
     <Filter Include="源文件\solver">
       <UniqueIdentifier>{8c2e63db-b1e9-45cc-9e6c-dd5569cbe781}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\test">
-      <UniqueIdentifier>{646969d0-666e-4f1a-9766-06fbb47c72c1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\test">
-      <UniqueIdentifier>{4526f0bc-ef99-4d97-80a2-2faffbe84899}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mesher\delMesher.h">
@@ -165,9 +159,6 @@
     <ClInclude Include="material\reducedHyperelastic.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
-    <ClInclude Include="test\testers.h">
-      <Filter>头文件\test</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -238,18 +229,6 @@
     </ClCompile>
     <ClCompile Include="solver\inLDLTPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
-    </ClCompile>
-    <ClCompile Include="test\mesherTest.cpp">
-      <Filter>源文件\test</Filter>
-    </ClCompile>
-    <ClCompile Include="test\simulTest.cpp">
-      <Filter>源文件\test</Filter>
-    </ClCompile>
-    <ClCompile Include="test\solverTest.cpp">
-      <Filter>源文件\test</Filter>
-    </ClCompile>
-    <ClCompile Include="oder.cpp">
-      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

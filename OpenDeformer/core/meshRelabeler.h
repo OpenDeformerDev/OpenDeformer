@@ -57,7 +57,7 @@ namespace ODER{
 	};
 
 	struct DegreeComparer{
-		bool operator()(const MeshGraphVertexNode *left, const MeshGraphVertexNode *right) noexcept{
+		bool operator()(const MeshGraphVertexNode *left, const MeshGraphVertexNode *right){
 			return left->getDegree() < right->getDegree(); 
 		}
 	};

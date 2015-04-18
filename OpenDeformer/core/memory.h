@@ -193,9 +193,6 @@ namespace ODER{
 	template <class T> T *allocAligned(size_t num = 1){
 		return (T *)allocAligned(num*sizeof(T));
 	}
-	template <class T> T *reallocAligned(T* memory, size_t num){
-		return (T *)reallocAligned(memory, num*sizeof(T));
-	}
 	void freeAligned(void *);
 
 	template<class T, class... Args> inline void Initiation(T *vals, unsigned int size, Args&&... inits){
