@@ -332,8 +332,7 @@ namespace ODER{
 		};
 	public:
 		RecycledList(){
-			if (listCount++ == 0)
-				pool = new MemoryPool<ListNode<T>>();
+			++listCount;
 			node = pool->Alloc();
 			node->next = node;
 			node->prev = node;
@@ -451,10 +450,8 @@ namespace ODER{
 		}
 
 		~RecycledList(){
-			if (--listCount == 0){
-				delete pool;
-				pool = NULL;
-			}
+			if (--listCount == 0)
+				pool->freeAll();
 		}
 	private:
 		ListNode<T> *node;
@@ -463,7 +460,7 @@ namespace ODER{
 	};
 
 	template<class T> int RecycledList<T>::listCount = 0;
-	template<class T> MemoryPool<typename RecycledList<T>::ListNode<T>> *RecycledList<T>::pool = NULL;
+	template<class T> MemoryPool<typename RecycledList<T>::ListNode<T>> *RecycledList<T>::pool = new MemoryPool<typename RecycledList<T>::ListNode<T>>();
 }
 
 #endif

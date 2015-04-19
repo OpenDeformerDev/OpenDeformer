@@ -159,6 +159,9 @@
     <ClInclude Include="material\reducedHyperelastic.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
+    <ClInclude Include="core\allocator.h">
+      <Filter>头文件\core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -229,6 +232,9 @@
     </ClCompile>
     <ClCompile Include="solver\inLDLTPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
+    </ClCompile>
+    <ClCompile Include="core\allocator.cpp">
+      <Filter>源文件\core</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

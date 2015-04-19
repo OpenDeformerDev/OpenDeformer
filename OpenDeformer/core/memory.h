@@ -19,31 +19,31 @@ namespace ODER{
 
 	template <class T> class Reference{
 	public:
-		Reference(T *ptr = NULL){
+		Reference(T *ptr = NULL) noexcept{
 			p = ptr;
 			if (p) p->nReference++;
 		}
-		Reference(const Reference &r){
+		Reference(const Reference &r) noexcept{
 			p = r.p;
 			if (p) p->nReference++;
 		}
-		Reference(Reference &&r){
+		Reference(Reference &&r) noexcept{
 			p = r.p;
 			r.p = NULL;
 		}
-		Reference &operator=(T *ptr){
+		Reference &operator=(T *ptr) noexcept{
 			if (ptr) ptr->nReference++;
 			if (p && --p->nReference == 0) delete p;
 			p = ptr;
 			return *this;
 		}
-		Reference &operator=(const Reference &r){
+		Reference &operator=(const Reference &r) noexcept{
 			if (r.p) r.p->nReference++;
 			if (p && --p->nReference) delete p;
 			p = r.p;
 			return *this;
 		}
-		Reference &operator=(Reference &&r){
+		Reference &operator=(Reference &&r) noexcept{
 			std::swap(p, r.p);
 			return *this;
 		}
@@ -58,7 +58,7 @@ namespace ODER{
 		T* p;
 	};
 
-	template<class T, unsigned int Align = 8> class MemoryArena{
+	template<class T, unsigned int Align = std::alignment_of<T>::value> class MemoryArena{
 	public:
 		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryArena requires larger Align parameter");
 		static_assert((Align & (Align - 1)) == 0, "ODER::MemoryArena Align parameter should be power of 2");
@@ -168,7 +168,13 @@ namespace ODER{
 		void freeAll(){
 			curBlockPos = 0;
 			unsigned int us = usedBlocks.size();
-			for (unsigned int i = 0; i < us; i++){
+			unsigned int deleteSize = (us + 1) >> 1;
+			unsigned int remainSize = us - deleteSize;
+			for (unsigned int i = 0; i < deleteSize; i++){
+				freeAligned(usedBlocks.back());
+				usedBlocks.pop_back();
+			}
+			for (unsigned int i = 0; i < remainSize; i++){
 				avaBlocks.push_back(usedBlocks.back());
 				usedBlocks.pop_back();
 			}
@@ -188,6 +194,8 @@ namespace ODER{
 		int8_t *deadStack;
 		std::vector<int8_t *> usedBlocks, avaBlocks;
 	};
+
+
 
 	void *allocAligned(size_t size);
 	template <class T> T *allocAligned(size_t num = 1){
