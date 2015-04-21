@@ -2,7 +2,103 @@
 #include "allocator.h"
 
 namespace ODER{
-	Freelist::Freelist(unsigned int bs){
+	ThreadSafeFreelist::ThreadSafeFreelist(unsigned int bs){
+		blockSize = bs + std::alignment_of<std::max_align_t>::value;
+		perInitBytes = std::min(512U, bs);
+		MemBlock memBlock;
+		memBlock.usedBlockBytes = 0;
+
+		uintptr_t block = (uintptr_t)malloc(blockSize);
+		*(uintptr_t *)block = 0;
+		usedBlocks = block;
+		memBlock.blockHead = block + std::alignment_of<std::max_align_t>::value;
+		curBlock = memBlock;
+		for (int i = 0; i < ODER_FREELIST_COUNT; i++)
+			freeLists[i] = 0;
+	}
+
+	void *ThreadSafeFreelist::Alloc(size_t size){
+		if (size <= ODER_FREELIST_MAXBYTES){
+			unsigned int bytes = roundUp(size);
+			size_t index = getListIndex(bytes);
+
+			uintptr_t ret = 0;
+			uintptr_t head = freeLists[index];//std::memory_order_relaxed
+			do{
+				if (head != 0)
+					ret = head;
+				else
+					return (void *)initList(index);
+			} while (!freeLists[index].compare_exchange_weak(head, *(uintptr_t *)ret));
+			//std::memory_order_acquire,std::memory_order_relaxed
+
+			return (void *)ret;
+		}
+		else
+			return malloc(size);
+	}
+
+	uintptr_t ThreadSafeFreelist::initList(size_t index){
+		unsigned int size = (index + 1) * ODER_FREELIST_ALIGN;
+		unsigned int objectCount = perInitBytes / size;
+
+		MemBlock preBlock = curBlock, newBlock;
+		//thread-safe(which depends on malloc) but might waste some memory space
+		do{
+			nextTry:
+			newBlock.usedBlockBytes = preBlock.usedBlockBytes + perInitBytes;
+			newBlock.blockHead = preBlock.blockHead + perInitBytes;
+			if (newBlock.usedBlockBytes > blockSize){
+				uintptr_t raw = (uintptr_t)malloc(blockSize);
+				newBlock.usedBlockBytes = perInitBytes + std::alignment_of<std::max_align_t>::value;
+				newBlock.blockHead = raw + perInitBytes + std::alignment_of<std::max_align_t>::value;
+
+				uintptr_t usedBlockHead = usedBlocks;
+				*(uintptr_t *)raw = usedBlockHead;
+				if (!usedBlocks.compare_exchange_strong(usedBlockHead, raw)){
+					free((void *)raw);
+					preBlock = curBlock;
+					goto nextTry;
+				}
+			}
+		} while (!curBlock.compare_exchange_strong(preBlock, newBlock));
+
+		uintptr_t ret = newBlock.blockHead - perInitBytes;
+		uintptr_t iter = ret + size;
+		for (unsigned int i = 0; i < objectCount - 2; i++){
+			*(uintptr_t *)iter = iter + size;
+			iter += size;
+		}
+
+		*(uintptr_t *)iter = freeLists[index];//std::memory_order_relaxed
+		while (!freeLists[index].compare_exchange_weak(*(uintptr_t *)iter, ret + size));
+		//std::memory_order_release, std::memory_order_relaxed
+
+		return ret;
+	}
+
+	void ThreadSafeFreelist::Dealloc(void *p, size_t size){
+		if (size <= ODER_FREELIST_MAXBYTES){
+			unsigned int bytes = roundUp(size);
+			size_t index = getListIndex(bytes);
+			*(uintptr_t *)p = freeLists[index];//std::memory_order_relaxed
+			while (!freeLists[index].compare_exchange_weak(*(uintptr_t *)p, (uintptr_t)p));
+			//std::memory_order_release, std::memory_order_relaxed
+		}
+		else
+			free(p);
+	}
+
+	ThreadSafeFreelist::~ThreadSafeFreelist(){
+		uintptr_t p = usedBlocks;
+		while (p != 0){
+			uintptr_t freed = p;
+			p = *(uintptr_t *)p;
+			free((void *)freed);
+		}
+	}
+
+	ThreadUnsafeFreelist::ThreadUnsafeFreelist(unsigned int bs){
 		blockSize = bs;
 		curBlockPos = 0;
 		perInitBytes = std::min(512U, blockSize);
@@ -10,7 +106,7 @@ namespace ODER{
 		memset(freeLists, 0, sizeof(uint8_t *) * ODER_FREELIST_COUNT);
 	}
 
-	void *Freelist::Alloc(size_t size){
+	void *ThreadUnsafeFreelist::Alloc(size_t size){
 		if (size <= ODER_FREELIST_MAXBYTES){
 			unsigned int bytes = roundUp(size);
 			size_t index = getListIndex(bytes);
@@ -24,7 +120,7 @@ namespace ODER{
 			return malloc(size);
 	}
 
-	void Freelist::initList(uint8_t *&list, size_t index){
+	void ThreadUnsafeFreelist::initList(uint8_t *&list, size_t index){
 		unsigned int size = (index + 1) * ODER_FREELIST_ALIGN;
 		unsigned int objectCount = perInitBytes / size;
 
@@ -45,7 +141,7 @@ namespace ODER{
 		list = ret;
 	}
 
-	void Freelist::Dealloc(uint8_t *p, size_t size){
+	void ThreadUnsafeFreelist::Dealloc(uint8_t *p, size_t size){
 		if (size <= ODER_FREELIST_MAXBYTES){
 			unsigned int bytes = roundUp(size);
 			size_t index = getListIndex(bytes);
@@ -56,7 +152,7 @@ namespace ODER{
 			free(p);
 	}
 
-	Freelist::~Freelist(){
+	ThreadUnsafeFreelist::~ThreadUnsafeFreelist(){
 		free(curBlock);
 		unsigned int us = usedBlocks.size();
 		for (unsigned int i = 0; i < us; i++)

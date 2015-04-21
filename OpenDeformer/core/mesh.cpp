@@ -34,8 +34,8 @@ namespace ODER{
 	}
 
 	Mesh::~Mesh(){
-		if (surfaces) delete[] surfaces;
-		if (elements) delete[] elements;
-		if (vertices) delete[] vertices;
+		delete[] surfaces;
+		delete[] elements;
+		delete[] vertices;
 	}
 }

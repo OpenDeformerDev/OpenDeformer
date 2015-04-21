@@ -15,7 +15,7 @@ namespace ODER{
 		using adj_type = uint16_t;
 #endif
 		constexpr size_t offset = ODER_L1_CACHE_LINE_SIZE + sizeof(adj_type) - 1;
-		uintptr_t mem = reinterpret_cast<uintptr_t>(malloc(size + offset));
+		uintptr_t mem = reinterpret_cast<uintptr_t>(new int8_t[size + offset]);
 		ptrdiff_t adjustment = ODER_L1_CACHE_LINE_SIZE - (mem & (ODER_L1_CACHE_LINE_SIZE - 1));
 		uintptr_t alignedMem = mem + adjustment;
 		((adj_type *)alignedMem)[-1] = static_cast<adj_type>(adjustment);

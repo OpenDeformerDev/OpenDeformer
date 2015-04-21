@@ -51,7 +51,7 @@ namespace ODER{
 			intergrator->runOneTimeStep();
 	}
 	Simulator::~Simulator(){
-		if (intergrator) delete intergrator;
+		delete intergrator;
 		if (rawDisplacements) freeAligned(rawDisplacements);
 	}
 }

@@ -4,6 +4,7 @@
 #include "mesh.h"
 #include <unordered_map>
 #include <unordered_set>
+#include "allocator.h"
 
 namespace ODER{
 	void MeshGraphVertexNode::insertArc(int lable, MemoryPool<MeshGraphArcNode>& pool){
@@ -104,7 +105,7 @@ namespace ODER{
 		MeshGraphVertexNode *mem = allocAligned<MeshGraphVertexNode>(nodeCount);
 		for (int i = 0; i < nodeCount; i++){
 			MeshGraphVertexNode *pointer = mem + i;
-			new (pointer)MeshGraphVertexNode();
+			new (pointer) MeshGraphVertexNode();
 			graphVerts[i] = pointer;
 			graphVerts[i]->setOldLable(i);
 		}
@@ -115,14 +116,15 @@ namespace ODER{
 		MeshGraphVertexNode *mem = allocAligned<MeshGraphVertexNode>(nodeCount);
 		for (int i = 0; i < nodeCount; i++){
 			MeshGraphVertexNode *pointer = mem + i;
-			new (pointer)MeshGraphVertexNode();
+			new (pointer) MeshGraphVertexNode();
 			graphVerts[i] = pointer;
 			graphVerts[i]->setOldLable(i);
 		}
 	}
 
 	void MeshRelabeler::generateGraphFromElementIndices(int elementCount, int nodePerElementCount, int *elements){
-		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>>
+		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>, 
+			std::equal_to<MeshGraphEdge>, SingleThreadFreelistAllocator<MeshGraphEdge>>
 			edges(2 * elementCount,
 			[](const MeshGraphEdge& edge)->size_t{ return ((edge.tail * (edge.tail + 1)) >> 1) + edge.head; });
 		const int* element = elements;
@@ -141,7 +143,8 @@ namespace ODER{
 	}
 
 	void MeshRelabeler::generateGraphFromMesh(const Mesh& mesh){
-		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>> 
+		std::unordered_set<MeshGraphEdge, std::function<size_t(const MeshGraphEdge&)>,
+			std::equal_to<MeshGraphEdge>, SingleThreadFreelistAllocator<MeshGraphEdge>>
 			edges(2 * mesh.getElementCount(), 
 			[](const MeshGraphEdge& edge)->size_t{ return ((edge.tail * (edge.tail + 1)) >> 1) + edge.head; });
 		int elementCount = mesh.getElementCount();

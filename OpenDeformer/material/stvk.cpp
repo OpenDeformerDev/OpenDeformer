@@ -220,7 +220,7 @@ namespace ODER{
 
 	StVKMaterial::~StVKMaterial(){
 		if (intergration[0]) freeAligned(intergration[0]);
-		if (stressNonlinear) delete[] stressNonlinear;
+		delete[] stressNonlinear;
 	}
 }
 
