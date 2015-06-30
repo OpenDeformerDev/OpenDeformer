@@ -42,6 +42,7 @@ namespace ODER{
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler;
 	class Mesh;
 	struct Element;
+	struct GeometricElement;
 	struct Facet;
 	template<class FT> struct VectorBase;
 	using Vector = VectorBase<float>;

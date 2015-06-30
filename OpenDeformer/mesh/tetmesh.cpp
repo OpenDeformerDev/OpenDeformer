@@ -3,7 +3,7 @@
 #include "tetelement.h"
 
 namespace ODER{
-	Element* TetMesh::getElement() const{
+	GeometricElement* TetMesh::getGeometricElement() const{
 		return new TetElement((TetMesh *)this);
 	}
 

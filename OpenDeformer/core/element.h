@@ -13,8 +13,6 @@ namespace ODER{
 	struct Element{
 		Element(Mesh *m) :mesh(m), nodeIndexs(NULL){}
 
-		virtual void generateSubMassMatrix(double *result) const = 0;
-		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
 		void setNodeIndexs(int elementIndex){ nodeIndexs = mesh->getElementNodeReference(elementIndex); }
 		int getNodeIndex(int localIndex) const{ return nodeIndexs[localIndex]; }
 		virtual ~Element() = default;
@@ -36,32 +34,34 @@ namespace ODER{
 		Reference<Mesh> mesh;
 	};
 
-	struct LinearIsotropicElement : public virtual Element{
-		LinearIsotropicElement(Mesh *m, int entries);
-		virtual void setBMatrixs() = 0;
-		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
-		virtual ~LinearIsotropicElement();
-	protected:
-		double *BMatrixs;
+	struct GeometricElement : public Element{
+		GeometricElement(Mesh *m) : Element(m){}
+		virtual void generateSubMassMatrix(double *result) const = 0;
+		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
+		
+		virtual ~GeometricElement() = default;
 	};
 
-	struct ReducedIsotropicElement : public virtual Element{
-		ReducedIsotropicElement(Mesh *m, int entries);
+	struct LinearIsotropicElement : public Element{
+		LinearIsotropicElement(Mesh *m): Element(m){}
+		virtual void setBMatrixs() = 0;
+		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
+		virtual ~LinearIsotropicElement() = default;
+	};
+
+	struct ReducedIsotropicElement : public Element{
+		ReducedIsotropicElement(Mesh *m): Element(m){}
 		virtual void setBMatrixs() = 0;
 		virtual void Intergration(const double *C, double *nlpart, double *nnpart) const = 0;
 		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
-		virtual ~ReducedIsotropicElement();
-	protected:
-		double *BMatrixs;
+		virtual ~ReducedIsotropicElement() = default;
 	};
 
-	struct LinearAnisortropicElement : public virtual Element{
-		LinearAnisortropicElement(Mesh *m, int entries);
+	struct LinearAnisortropicElement : public Element{
+		LinearAnisortropicElement(Mesh *m): Element(m){}
 		virtual void setBMatrixs() = 0;
 		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
-		virtual ~LinearAnisortropicElement();
-	protected:
-		double *BMatrixs;
+		virtual ~LinearAnisortropicElement() = default;
 	};
 
 }

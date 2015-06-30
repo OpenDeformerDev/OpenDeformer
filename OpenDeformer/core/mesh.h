@@ -22,7 +22,7 @@ namespace ODER{
 		Mesh(Mesh&& m);
 		Mesh& operator=(Mesh&& m) = delete;
 
-		virtual Element* getElement() const = 0;
+		virtual GeometricElement* getGeometricElement() const = 0;
 		virtual Element* getMaterialElement(MarterialType type) const = 0;
 		virtual Facet* getFacet() const = 0;
 

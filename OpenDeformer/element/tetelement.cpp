@@ -2,35 +2,6 @@
 #include "tetelement.h"
 
 namespace ODER{
-	void TetElement::getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const{
-		Vector a = mesh->getVertex(nodeIndexs[0]);
-		Vector b = mesh->getVertex(nodeIndexs[1]);
-		Vector c = mesh->getVertex(nodeIndexs[2]);
-		Vector d = mesh->getVertex(nodeIndexs[3]);
-
-		Vector da = a - d;
-		Vector db = b - d;
-		Vector dc = c - d;
-		Vector ca = a - c;
-		Vector cb = b - c;
-
-		dndx[0] = -(db.y*dc.z - db.z*dc.y);
-		dndx[1] = (da.y*dc.z - da.z*dc.y);
-		dndx[2] = -(da.y*db.z - da.z*db.y);
-		dndx[3] = (ca.y*cb.z - ca.z*cb.y);
-
-		dndy[0] = (db.x*dc.z - db.z*dc.x);
-		dndy[1] = -(da.x*dc.z - da.z*dc.x);
-		dndy[2] = (da.x*db.z - da.z*db.x);
-		dndy[3] = -(ca.x*cb.z - ca.z*cb.x);
-
-		dndz[0] = -(db.x*dc.y - db.y*dc.x);
-		dndz[1] = (da.x*dc.y - da.y*dc.x);
-		dndz[2] = -(da.x*db.y - da.y*db.x);
-		dndz[3] = (ca.x*cb.y - ca.y*cb.x);
-	}
-
-
 	void TetElement::generateSubMassMatrix(double *result) const{
 		double volume = getVolume();
 		double offdiag = volume*0.05;
@@ -117,6 +88,47 @@ namespace ODER{
 		result[6] = (D[1] * Ba[2] * Bb[0] + D[2] * Ba[0] * Bb[2]) * factor;
 		result[7] = (D[1] * Ba[2] * Bb[1] + D[2] * Ba[1] * Bb[2]) * factor;
 		result[8] = (D[0] * Ba[2] * Bb[2] + D[2] * (Ba[0] * Bb[0] + Ba[1] * Bb[1])) * factor;
+	}
+
+	void LinearIsotropicTetElement::getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector da = a - d;
+		Vector db = b - d;
+		Vector dc = c - d;
+		Vector ca = a - c;
+		Vector cb = b - c;
+
+		dndx[0] = -(db.y*dc.z - db.z*dc.y);
+		dndx[1] = (da.y*dc.z - da.z*dc.y);
+		dndx[2] = -(da.y*db.z - da.z*db.y);
+		dndx[3] = (ca.y*cb.z - ca.z*cb.y);
+
+		dndy[0] = (db.x*dc.z - db.z*dc.x);
+		dndy[1] = -(da.x*dc.z - da.z*dc.x);
+		dndy[2] = (da.x*db.z - da.z*db.x);
+		dndy[3] = -(ca.x*cb.z - ca.z*cb.x);
+
+		dndz[0] = -(db.x*dc.y - db.y*dc.x);
+		dndz[1] = (da.x*dc.y - da.y*dc.x);
+		dndz[2] = -(da.x*db.y - da.y*db.x);
+		dndz[3] = (ca.x*cb.y - ca.y*cb.x);
+	}
+
+	float LinearIsotropicTetElement::getVolume() const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector ab = b - a;
+		Vector ac = c - a;
+		Vector ad = d - a;
+
+		return fabsf(ab*(ac%ad)) / 6.f;
 	}
 
 	void ReducedIsotropicTetElement::setBMatrixs(){
@@ -206,6 +218,47 @@ namespace ODER{
 		result[8] = (D[0] * Ba[2] * Bb[2] + D[2] * (Ba[0] * Bb[0] + Ba[1] * Bb[1])) * factor;
 	}
 
+	void ReducedIsotropicTetElement::getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector da = a - d;
+		Vector db = b - d;
+		Vector dc = c - d;
+		Vector ca = a - c;
+		Vector cb = b - c;
+
+		dndx[0] = -(db.y*dc.z - db.z*dc.y);
+		dndx[1] = (da.y*dc.z - da.z*dc.y);
+		dndx[2] = -(da.y*db.z - da.z*db.y);
+		dndx[3] = (ca.y*cb.z - ca.z*cb.y);
+
+		dndy[0] = (db.x*dc.z - db.z*dc.x);
+		dndy[1] = -(da.x*dc.z - da.z*dc.x);
+		dndy[2] = (da.x*db.z - da.z*db.x);
+		dndy[3] = -(ca.x*cb.z - ca.z*cb.x);
+
+		dndz[0] = -(db.x*dc.y - db.y*dc.x);
+		dndz[1] = (da.x*dc.y - da.y*dc.x);
+		dndz[2] = -(da.x*db.y - da.y*db.x);
+		dndz[3] = (ca.x*cb.y - ca.y*cb.x);
+	}
+
+	float ReducedIsotropicTetElement::getVolume() const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector ab = b - a;
+		Vector ac = c - a;
+		Vector ad = d - a;
+
+		return fabsf(ab*(ac%ad)) / 6.f;
+	}
+
 	void LinearAnisortropicTetElement::setBMatrixs(){
 		constexpr int numNodesPerElement = 4;
 		constexpr int entryCountPerB = 3;
@@ -259,5 +312,46 @@ namespace ODER{
 		result[6] = (Ba[2] * mr[2][0] + Ba[1] * mr[4][0] + Ba[0] * mr[5][0])*factor;
 		result[7] = (Ba[2] * mr[2][1] + Ba[1] * mr[4][1] + Ba[0] * mr[5][1])*factor;
 		result[8] = (Ba[2] * mr[2][2] + Ba[1] * mr[4][2] + Ba[0] * mr[5][2])*factor;
+	}
+
+	void LinearAnisortropicTetElement::getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector da = a - d;
+		Vector db = b - d;
+		Vector dc = c - d;
+		Vector ca = a - c;
+		Vector cb = b - c;
+
+		dndx[0] = -(db.y*dc.z - db.z*dc.y);
+		dndx[1] = (da.y*dc.z - da.z*dc.y);
+		dndx[2] = -(da.y*db.z - da.z*db.y);
+		dndx[3] = (ca.y*cb.z - ca.z*cb.y);
+
+		dndy[0] = (db.x*dc.z - db.z*dc.x);
+		dndy[1] = -(da.x*dc.z - da.z*dc.x);
+		dndy[2] = (da.x*db.z - da.z*db.x);
+		dndy[3] = -(ca.x*cb.z - ca.z*cb.x);
+
+		dndz[0] = -(db.x*dc.y - db.y*dc.x);
+		dndz[1] = (da.x*dc.y - da.y*dc.x);
+		dndz[2] = -(da.x*db.y - da.y*db.x);
+		dndz[3] = (ca.x*cb.y - ca.y*cb.x);
+	}
+
+	float LinearAnisortropicTetElement::getVolume() const{
+		Vector a = mesh->getVertex(nodeIndexs[0]);
+		Vector b = mesh->getVertex(nodeIndexs[1]);
+		Vector c = mesh->getVertex(nodeIndexs[2]);
+		Vector d = mesh->getVertex(nodeIndexs[3]);
+
+		Vector ab = b - a;
+		Vector ac = c - a;
+		Vector ad = d - a;
+
+		return fabsf(ab*(ac%ad)) / 6.f;
 	}
 }

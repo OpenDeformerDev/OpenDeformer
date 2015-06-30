@@ -4,7 +4,7 @@
 
 namespace ODER{
 	void Forcer::addBodyForce(const Reference<Mesh> &mesh, double bodyForce[3], const Reference<NodeIndexer> &indexer){
-		Element *element = mesh->getElement();
+		GeometricElement *element = mesh->getGeometricElement();
 		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double *result = new double[3 * numNodesPerElement];
 

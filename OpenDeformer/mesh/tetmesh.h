@@ -16,7 +16,7 @@ namespace ODER{
 		TetMesh(TetMesh&& mesh) : Mesh(std::move(mesh)){}
 		TetMesh& operator=(const TetMesh&) = delete;
 		TetMesh& operator=(TetMesh&& mesh) = delete;
-		Element* getElement() const;
+		GeometricElement* getGeometricElement() const;
 		Element* getMaterialElement(MarterialType type) const;
 		Facet* getFacet() const;
 		Element* getElement(int elementIndex, MarterialType type) const;

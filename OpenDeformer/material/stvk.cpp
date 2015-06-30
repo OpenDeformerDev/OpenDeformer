@@ -110,7 +110,7 @@ namespace ODER{
 		const int numNodes2 = numNodes*numNodes;
 		memset(forces, 0, totalDofs*sizeof(double));
 
-		Element *element = mesh->getElement();
+		GeometricElement *element = mesh->getGeometricElement();
 		int commonEntryNum = numNodesPerElement*numNodesPerElement*numNodesPerElement;
 		int nlEntries = commonEntryNum * 3;
 		int nnEntries = commonEntryNum * numNodesPerElement;
