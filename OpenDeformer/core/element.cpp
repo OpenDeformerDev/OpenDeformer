@@ -2,25 +2,28 @@
 #include "element.h"
 
 namespace ODER{
-	Element::Element(Mesh *m, int index, MarterialType t){
-		mesh = m;
-		type = t;
-		BMatrixs = NULL;
-		nodeIndexs = mesh->getElementNodeReference(index);
+	LinearIsotropicElement::LinearIsotropicElement(Mesh *m, int entries): Element(m){
+		BMatrixs = new double[entries];
 	}
 
-	Element::Element(Mesh *m, MarterialType t){
-		mesh = m;
-		type = t;
-		BMatrixs = NULL;
+	LinearIsotropicElement::~LinearIsotropicElement(){
+		delete[] BMatrixs;
 	}
 
-	Element::~Element(){
-		if (BMatrixs)
-			delete[] BMatrixs;
+	ReducedIsotropicElement::ReducedIsotropicElement(Mesh *m, int entries) : Element(m){
+		BMatrixs = new double[entries];
 	}
 
-	Facet::Facet(Mesh *m, int index) :mesh(m){
-		vertIndexs = mesh->getFacetVertReference(index);
+	ReducedIsotropicElement::~ReducedIsotropicElement(){
+		delete[] BMatrixs;
 	}
+
+	LinearAnisortropicElement::LinearAnisortropicElement(Mesh *m, int entries) : Element(m){
+		BMatrixs = new double[entries];
+	}
+
+	LinearAnisortropicElement::~LinearAnisortropicElement(){
+		delete[] BMatrixs;
+	}
+
 }

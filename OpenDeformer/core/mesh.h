@@ -22,10 +22,9 @@ namespace ODER{
 		Mesh(Mesh&& m);
 		Mesh& operator=(Mesh&& m) = delete;
 
-		virtual Element* getEmptyElement() const = 0;
-		virtual Element* getEmptyMaterialElement(MarterialType type) const = 0;
-		virtual Facet* getEmptyFacet() const = 0;
-		virtual Element* getElement(int elementIndex, MarterialType type) const = 0;
+		virtual Element* getElement() const = 0;
+		virtual Element* getMaterialElement(MarterialType type) const = 0;
+		virtual Facet* getFacet() const = 0;
 
 		virtual int getCloestNode(const Vector &v)  const { return -1; }
 		virtual int getCloestElement(const Vector &v) const { return -1; }

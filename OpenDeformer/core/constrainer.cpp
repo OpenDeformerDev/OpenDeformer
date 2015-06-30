@@ -55,7 +55,7 @@ namespace ODER{
 
 	void Constrainer::setConstrains(const Vector& origin, const Vector& normal, ConstrainType constrainType){
 		const float epsilon = 1e-4;
-		Facet *facet = mesh->getEmptyFacet();
+		Facet *facet = mesh->getFacet();
 
 		for (int i = 0; i < mesh->getFacetCount(); i++){
 			facet->setVertIndexs(i);

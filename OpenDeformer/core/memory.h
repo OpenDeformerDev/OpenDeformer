@@ -10,6 +10,10 @@
 #include <vector>
 #include <atomic>
 
+#if !defined(ODER_IS_APPLE) && !defined(ODER_IS_OPENBSD) && !defined(ODER_IS_WINDOWS)
+#include <malloc.h>
+#endif
+
 namespace ODER{
 	class ReferenceCounted{
 	public:
@@ -58,7 +62,7 @@ namespace ODER{
 		T* p;
 	};
 
-	template<class T, unsigned int Align = std::alignment_of<T>::value> class MemoryArena{
+	template<class T, size_t Align = std::alignment_of<T>::value> class MemoryArena{
 	public:
 		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryArena requires larger Align parameter");
 		static_assert((Align & (Align - 1)) == 0, "ODER::MemoryArena Align parameter should be power of 2");
@@ -117,7 +121,7 @@ namespace ODER{
 		std::vector<int8_t *> usedBlocks, avaBlocks;
 	};
 
-	template<class T, unsigned int Align = 8> class MemoryPool{
+	template<class T, size_t Align = 8> class MemoryPool{
 	public:
 		static_assert(std::alignment_of<T>::value <= Align, "ODER::MemoryPool requires larger Align parameter");
 		static_assert(sizeof(void *) <= Align, "ODER::MemoryPool requires Align parameter larger than the size of a pointer");
@@ -197,10 +201,30 @@ namespace ODER{
 
 
 
-	void *allocAligned(size_t size);
-	template <class T> T *allocAligned(size_t num = 1){
-		return (T *)allocAligned(num*sizeof(T));
+	template<size_t Align = ODER_L1_CACHE_LINE_SIZE> void *allocAligned(size_t size){
+		static_assert((Align & (Align - 1)) == 0, "ODER::allocAligned Align parameter should be power of 2");
+		static_assert(Align >= 1 && Align <= 128, "ODER::allocAligned Align parameter should be set between 1 and 128");
+
+#if defined(ODER_IS_WINDOWS)
+		return _aligned_malloc(size, Align);
+#elif defined(ODER_IS_APPLE) || defined(ODER_IS_OPENBSD)
+		uintptr_t mem = reinterpret_cast<uintptr_t>(new uint8_t[size + Align]);
+		ptrdiff_t adjustment = Align - (mem & (Align - 1));
+		uintptr_t alignedMem = mem + adjustment;
+		(reinterpret_cast<uint8_t *>(alignedMem))[-1] = static_cast<uint8_t>(adjustment);
+		return reinterpret_cast<void *>(alignedMem);
+#else
+		return memalign(Align, size);
+#endif
 	}
+
+	template <class T, size_t Align = ODER_L1_CACHE_LINE_SIZE> T *allocAligned(size_t num = 1){
+		static_assert((Align & (Align - 1)) == 0, "ODER::allocAligned Align parameter should be power of 2");
+		static_assert(Align >= 1 && Align <= 128, "ODER::allocAligned Align parameter should be set between 1 and 128");
+
+		return (T *)allocAligned<Align>(num * sizeof(T));
+	}
+
 	void freeAligned(void *);
 
 	template<class T, class... Args> inline void Initiation(T *vals, unsigned int size, Args&&... inits){

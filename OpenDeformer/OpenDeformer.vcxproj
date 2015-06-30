@@ -97,7 +97,6 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <MinimalRebuild>true</MinimalRebuild>
       <BufferSecurityCheck>true</BufferSecurityCheck>
-      <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <AdditionalOptions>/Qvec-report:1 %(AdditionalOptions)</AdditionalOptions>
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>

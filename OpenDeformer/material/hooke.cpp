@@ -19,7 +19,7 @@ namespace ODER{
 		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double subStiffness[3 * 3];
 
-		Element *element = mesh->getEmptyMaterialElement(type);
+		LinearIsotropicElement *element = dynamic_cast<LinearIsotropicElement *>(mesh->getMaterialElement(type));
 
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
 			element->setNodeIndexs(elementIndex);

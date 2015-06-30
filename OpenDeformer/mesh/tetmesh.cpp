@@ -3,21 +3,25 @@
 #include "tetelement.h"
 
 namespace ODER{
-	Element* TetMesh::getEmptyElement() const{
+	Element* TetMesh::getElement() const{
 		return new TetElement((TetMesh *)this);
 	}
 
-	Element* TetMesh::getEmptyMaterialElement(MarterialType type) const{
-		return new TetElement((TetMesh *)this, type);
+	Element* TetMesh::getMaterialElement(MarterialType type) const{
+		if (matchMaterialFlag(type, MarterialType(Marterial_Isotropic | Marterial_Linear)))
+			return new LinearIsotropicTetElement((TetMesh *)this);
+		else if (matchMaterialFlag(type, MarterialType(Marterial_Reduced | Marterial_Isotropic)))
+			return new ReducedIsotropicTetElement((TetMesh *)this);
+		else if (matchMaterialFlag(type, MarterialType(Marterial_Anisortropic | Marterial_Linear)))
+			return new LinearAnisortropicTetElement((TetMesh *)this);
+		else{
+			Severe("Unimplemented features in TetMesh::getMaterialElement");
+			return NULL;
+		}
 	}
 
 
-	Facet* TetMesh::getEmptyFacet() const{
+	Facet* TetMesh::getFacet() const{
 		return new TetFacet((TetMesh *)this);
-	}
-
-	Element* TetMesh::getElement(int elementIndex, MarterialType type) const{
-		TetElement* ret = new TetElement((TetMesh *)this, elementIndex, type);
-		return ret;
 	}
 }

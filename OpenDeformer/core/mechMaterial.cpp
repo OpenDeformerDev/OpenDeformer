@@ -6,7 +6,7 @@
 
 namespace ODER{
 	void MechMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& m) const{
-		Element *element = mesh->getEmptyElement();
+		Element *element = mesh->getElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
