@@ -143,7 +143,7 @@ namespace ODER{
 		~BlockedSymSparseMatrixAssembler(){ if (remainedEntryCount) delete[] remainedEntryCount; }
 
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(IndexSequence<index...>&& seqs){
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs){
 			return { diagIndicesGen(blockLength, index)... };
 		}
 
@@ -162,7 +162,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth> 
 	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrixAssembler::getDiagIndices(IndexSequenceGenerator<blockLength>());
+		= BlockedSymSparseMatrixAssembler::getDiagIndices(std::make_index_sequence<blockLength>());
 
 	template<class Vec> using spmv_vec_para_type = 
 		std::conditional_t<std::is_same<std::remove_const_t<Vec>, double *>::value,
@@ -390,7 +390,7 @@ namespace ODER{
 
 		int getNumColumns() const{ return numColumns; }
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(IndexSequence<index...>&& seqs){
+		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs){
 			return { diagIndicesGen(blockLength, index)... };
 		}
 
@@ -415,7 +415,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth>
 	const std::array<size_t, blockLength> BlockedSymSparseMatrix<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrix::getDiagIndices(IndexSequenceGenerator<blockLength>());
+		= BlockedSymSparseMatrix::getDiagIndices(std::make_index_sequence<blockLength>());
 }
 
 #endif

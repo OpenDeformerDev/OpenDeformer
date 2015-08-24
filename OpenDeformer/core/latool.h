@@ -461,12 +461,12 @@ namespace ODER{
 		RecycledList<IndexValPair> indices;
 	};
 
-	template<size_t N, size_t...index> struct IndexSequenceGenerator : public IndexSequenceGenerator <N - 1, N - 1, index... > {};
+	/*template<size_t N, size_t...index> struct IndexSequenceGenerator : public IndexSequenceGenerator <N - 1, N - 1, index... > {};
 	template<size_t... index> struct IndexSequenceGenerator<0, index...> {};
 	template<size_t...index> using IndexSequence = IndexSequenceGenerator<0, index...>;
 	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequence(FUN f, IndexSequence<index...> seqs){
 		return {  f(index)...  };
-	}
+	}*/
 
 	//can be further optimized with constexpr
 	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN f){
@@ -584,6 +584,15 @@ namespace ODER{
 
 		return dot;
 	}
+
+	constexpr float const_pow(float base, int exp) {
+		return exp < 0 ? 1.f / const_pow(base, -exp) : (exp == 0 ? 1.f : base * const_pow(base, exp - 1));
+	}
+
+	constexpr double const_pow(double base, int exp) {
+		return exp < 0 ? 1.0 / const_pow(base, -exp) : (exp == 0 ? 1.0 : base * const_pow(base, exp - 1));
+	}
+
 }
 
 #endif

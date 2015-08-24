@@ -47,7 +47,7 @@ namespace ODER{
 		std::atomic<uintptr_t> freeLists[ODER_FREELIST_COUNT];
 
 		struct MemBlock{
-			MemBlock() :usedBlockBytes(std::numeric_limits<unsigned int>::max()), blockHead(0){}
+			MemBlock() noexcept :usedBlockBytes(std::numeric_limits<unsigned int>::max()), blockHead(0){}
 			unsigned int usedBlockBytes;
 			uintptr_t blockHead;
 		};
