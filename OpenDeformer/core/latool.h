@@ -585,11 +585,11 @@ namespace ODER{
 		return dot;
 	}
 
-	constexpr float const_pow(float base, int exp) {
+	constexpr float const_pow(float base, int exp) noexcept{
 		return exp < 0 ? 1.f / const_pow(base, -exp) : (exp == 0 ? 1.f : base * const_pow(base, exp - 1));
 	}
 
-	constexpr double const_pow(double base, int exp) {
+	constexpr double const_pow(double base, int exp) noexcept{
 		return exp < 0 ? 1.0 / const_pow(base, -exp) : (exp == 0 ? 1.0 : base * const_pow(base, exp - 1));
 	}
 

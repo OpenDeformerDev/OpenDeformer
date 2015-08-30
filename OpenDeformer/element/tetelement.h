@@ -16,16 +16,12 @@ namespace ODER{
 		void generateSubMassMatrix(double *result) const;
 		void getBodyVirtualWorks(double bodyForce[3], double *result) const;
 		~TetElement() = default;
-	private:
-		float getVolume() const;
 	};
 
 	struct TetFacet : public Facet{
 		TetFacet(TetMesh *m) :Facet(m){}
 		void getSurfVirtualWorks(double surfForce[3], double *result) const;
 		~TetFacet() = default;
-	private:
-		float getArea() const;
 	};
 
 
@@ -35,9 +31,6 @@ namespace ODER{
 		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
 		~LinearIsotropicTetElement() = default;
 	private:
-		float getVolume() const;
-		void getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const;
-
 		double BMatrixs[12];
 	};
 
@@ -48,9 +41,6 @@ namespace ODER{
 		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
 		~ReducedIsotropicTetElement() = default;
 	private:
-		float getVolume() const;
-		void getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const;
-
 		double BMatrixs[12];
 	};
 
@@ -59,12 +49,23 @@ namespace ODER{
 		void setBMatrixs();
 		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
 	private:
-		float getVolume() const;
-		void getShapeFunctionDerivatives(double *dndx, double *dndy, double *dndz) const;
-
 		double BMatrixs[12];
 	};
 
+	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
+		double *dndx, double *dndy, double *dndz);
+
+	inline float getTetVolume(const Vector& a, const Vector& b, const Vector& c, const Vector& d) {
+		Vector ab = b - a;
+		Vector ac = c - a;
+		Vector ad = d - a;
+
+		return fabsf(ab*(ac%ad)) / 6.f;
+	}
+
+	inline float getTriArea(const Vector& a, const Vector& b, const Vector& c) {
+		return ((b - a) % (c - a)).length() * 0.5f;
+	}
 }
 
 #endif

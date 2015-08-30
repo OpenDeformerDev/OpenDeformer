@@ -182,6 +182,7 @@
     <ClInclude Include="core\preconditioner.h" />
     <ClInclude Include="core\simulator.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
+    <ClInclude Include="material\invertibleHyperelastic.h" />
     <ClInclude Include="material\reducedHyperelastic.h" />
     <ClInclude Include="material\stvk.h" />
     <ClInclude Include="mesher\aabb.h" />

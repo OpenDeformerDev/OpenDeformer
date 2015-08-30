@@ -162,6 +162,9 @@
     <ClInclude Include="core\allocator.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
+    <ClInclude Include="material\invertibleHyperelastic.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
