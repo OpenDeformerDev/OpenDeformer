@@ -64,6 +64,19 @@ namespace ODER{
 		virtual ~LinearAnisortropicElement() = default;
 	};
 
+	struct InvertibleHyperelasticElement : public Element {
+		InvertibleHyperelasticElement(Mesh *m) : Element(m) {}
+		virtual void getPrecomputes(double *drivates, double *deforamtionGradients, double *virtualWorks) const = 0;
+		virtual int getDirvateEntryCount() const = 0;
+		virtual int getNodalVirtualWorksPreEntryCount() const = 0;
+		virtual int getDeformGradientsPreEntryCount() const = 0;
+
+		virtual void generateDeformationGradient(const double *precompute, double *gradients) const = 0;
+		virtual void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *hassians, double *result) const = 0;
+		virtual void generateNodalVirtualWorks(const double *precompute, double *result) const = 0;
+		virtual ~InvertibleHyperelasticElement() = default;
+	};
+
 }
 
 #endif

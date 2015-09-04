@@ -52,6 +52,18 @@ namespace ODER{
 		double BMatrixs[12];
 	};
 
+	struct InvertibleHyperelasticTetElement : public InvertibleHyperelasticElement {
+		InvertibleHyperelasticTetElement(TetMesh *m): InvertibleHyperelasticElement(m){}
+		void getPrecomputes(double *drivates, double *deforamtionGradients, double *virtualWorks) const;
+		int getDirvateEntryCount() const { return 12;}
+		int getNodalVirtualWorksPreEntryCount() const { return 9; }
+		int getDeformGradientsPreEntryCount() const { return 12; }
+
+		void generateDeformationGradient(const double *precompute, double *gradients) const;
+		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *hassians, double *result) const;
+		void generateNodalVirtualWorks(const double *precompute, double *result) const;
+	};
+
 	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
 		double *dndx, double *dndy, double *dndz);
 

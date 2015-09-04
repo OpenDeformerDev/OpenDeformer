@@ -194,9 +194,6 @@
     <ClCompile Include="core\sparseMatrix.cpp">
       <Filter>源文件\core</Filter>
     </ClCompile>
-    <ClCompile Include="core\element.cpp">
-      <Filter>源文件\core</Filter>
-    </ClCompile>
     <ClCompile Include="element\tetelement.cpp">
       <Filter>源文件\element</Filter>
     </ClCompile>
@@ -238,6 +235,9 @@
     </ClCompile>
     <ClCompile Include="core\allocator.cpp">
       <Filter>源文件\core</Filter>
+    </ClCompile>
+    <ClCompile Include="material\invertibleHyperelastic.cpp">
+      <Filter>源文件\material</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

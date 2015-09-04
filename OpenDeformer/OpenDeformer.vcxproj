@@ -222,10 +222,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
+    <ClCompile Include="material\invertibleHyperelastic.cpp" />
     <ClCompile Include="material\stvk.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />
     <ClCompile Include="core\eigensolver.cpp" />
-    <ClCompile Include="core\element.cpp" />
     <ClCompile Include="core\forcer.cpp" />
     <ClCompile Include="material\hooke.cpp" />
     <ClCompile Include="intergrator\linearNewmark.cpp" />
