@@ -314,6 +314,11 @@ namespace ODER{
 			}
 		}
 
+		void addEntry(int row, int column, double data) {
+			Assert(row >= column);
+			//to be implemented;
+		}
+
 		void getDiagonal(double* diags) const{
 			int i = 0;
 			const double *vals = values;

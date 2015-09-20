@@ -15,7 +15,7 @@ namespace ODER{
 
 		void generateSubMassMatrix(double *result) const;
 		void getBodyVirtualWorks(double bodyForce[3], double *result) const;
-		~TetElement() = default;
+		~TetElement() = default; 
 	};
 
 	struct TetFacet : public Facet{
@@ -58,10 +58,13 @@ namespace ODER{
 		int getDirvateEntryCount() const { return 12;}
 		int getNodalVirtualWorksPreEntryCount() const { return 9; }
 		int getDeformGradientsPreEntryCount() const { return 12; }
+		int getQuadraturePointCount() const { return 1; }
 
-		void generateDeformationGradient(const double *precompute, double *gradients) const;
-		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *hassians, double *result) const;
-		void generateNodalVirtualWorks(const double *precompute, double *result) const;
+		void generateDeformationGradient(const double *precompute, const double *u, double *gradients) const;
+		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats, 
+			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const;
+		void generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const;
+
 	};
 
 	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,

@@ -70,10 +70,12 @@ namespace ODER{
 		virtual int getDirvateEntryCount() const = 0;
 		virtual int getNodalVirtualWorksPreEntryCount() const = 0;
 		virtual int getDeformGradientsPreEntryCount() const = 0;
+		virtual int getQuadraturePointCount() const = 0;
 
-		virtual void generateDeformationGradient(const double *precompute, double *gradients) const = 0;
-		virtual void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *hassians, double *result) const = 0;
-		virtual void generateNodalVirtualWorks(const double *precompute, double *result) const = 0;
+		virtual void generateDeformationGradient(const double *precompute, const double *u, double *gradients) const = 0;
+		virtual void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats,
+			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const = 0;
+		virtual void generateNodalVirtualWorks(const double *precompute, const double *stresses, double *result) const = 0;
 		virtual ~InvertibleHyperelasticElement() = default;
 	};
 
