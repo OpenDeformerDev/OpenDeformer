@@ -112,10 +112,24 @@ namespace ODER{
 			}
 
 		}
+	}
+
+	void InvertibleHyperelasticMaterial::modifiedDeformGradient(const double *gradient, double *diags, double *leftOrthoMat, double *rightOrthoMat) const {
 
 	}
 
+	void InvertibleHyperelasticMaterial::getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat,
+		const double *invariants, const double *eneryGradient, double *stress) const {
+		Initiation(stress, 9);
+		double diagEntries[3];
+		for (int i = 0; i < 3; i++)
+			diagEntries[i] = 2.0 * eneryGradient[0] * diags[i] + 4.0 * eneryGradient[1] * diags[i] * diags[i] * diags[i] +
+			    2.0 * eneryGradient[2] * invariants[2] / diags[i];
 
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				stress[i * 3 + j] = leftOrthoMat[i * 3 + j] * diagEntries[j] * rightOrthoMat[i * 3 + j];
+	}
 
 	InvertibleHyperelasticMaterial::~InvertibleHyperelasticMaterial() {
 		delete element;

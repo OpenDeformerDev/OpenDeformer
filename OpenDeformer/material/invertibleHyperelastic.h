@@ -30,9 +30,9 @@ namespace ODER {
 			invriants[1] = singularVal02 * singularVal02 + singularVal12 * singularVal12 + singularVal22 * singularVal22;
 			invriants[2] = singularVal02 * singularVal12 * singularVal22;
 		}
-		void modifiedDeformGradient(const double *gradient, double *diag, double *leftOrthoMat, double *rightOrthoMat) const;
-		void getPiolaKirchhoffStress(const double *diag, const double *leftOrthoMat, const double *rightOrthoMat, 
-			const double *invriants, const double *eneryGradient, double *stress) const;
+		void modifiedDeformGradient(const double *gradient, double *diags, double *leftOrthoMat, double *rightOrthoMat) const;
+		void getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat, 
+			const double *invariants, const double *eneryGradient, double *stress) const;
 		double *shapeFunctionDrivativesPrecomputed;
 		double *deformationGradientPrecomputed;
 		double *nodalVirtualWorkPrecomputed;

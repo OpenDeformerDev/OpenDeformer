@@ -178,7 +178,7 @@ namespace ODER{
 			blockPcol = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
 			blockColumnOris = allocAligned<int>(numBlockColumn + numRemainedColumn + 1);
 
-			constexpr int regularSize = blockLength*blockWidth;
+			constexpr int regularSize = blockLength * blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
 
 			blockPcol[0] = 0;
@@ -263,7 +263,7 @@ namespace ODER{
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
 
 			int blockIndex = column / blockLength;
-			int blockStartColumn = blockIndex*blockLength;
+			int blockStartColumn = blockIndex * blockLength;
 			if (blockIndex < numBlockColumn){
 				int offset = column - blockStartColumn;
 				int index = blockPcol[blockIndex], end = blockPcol[blockIndex + 1];
@@ -316,7 +316,36 @@ namespace ODER{
 
 		void addEntry(int row, int column, double data) {
 			Assert(row >= column);
-			//to be implemented;
+			constexpr int regularSize = blockLength * blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			int blockIndex = column / blockLength;
+			int subColumn = column - blockIndex * blockLength;
+			if (blockIndex < numBlockColumn) {
+				int blockStartRow = (row / blockWidth) * blockWidth;
+				int subRow = row - blockStartRow;
+				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[blockIndex]], &blockRows[blockPcol[blockIndex + 1]], blockStartRow);
+				Assert(*pRowIndex == blockStartRow);
+				if (pRowIndex != &blockRows[blockPcol[blockIndex]]) {
+					int preBlockCount = pRowIndex - &blockRows[blockPcol[blockIndex]] + 1;
+					int preEntryCount = (preBlockCount - 1) * regularSize + diagSize;
+					double *blockValueStart = values + blockColumnOris[blockIndex] + preEntryCount;
+					double *val = blockValueStart + subColumn * blockWidth + subRow;
+					*val += data;
+				}
+				else {
+					int index = subRow - subColumn + diagIndices[subColumn];
+					double *val = values + blockColumnOris[blockIndex];
+					*val += data;
+				}
+			}
+			else {
+				int columnIndex = blockIndex + subColumn;
+				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[columnIndex]], &blockRows[blockPcol[columnIndex + 1]], row);
+				Assert(*pRowIndex == row);
+				double *val = values + (pRowIndex - &blockColumnOris[columnIndex]);
+				*val += data;
+			}
 		}
 
 		void getDiagonal(double* diags) const{
