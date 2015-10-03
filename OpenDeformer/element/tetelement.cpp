@@ -219,6 +219,20 @@ namespace ODER{
 		result[8] = (Ba[2] * mr[2][2] + Ba[1] * mr[4][2] + Ba[0] * mr[5][2])*factor;
 	}
 
+	void InvertibleHyperelasticTetElement::getPrecomputes(double *drivates, double *deforamtionGradients, double *virtualWorks) const {
+
+	}
+
+	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, const double *u, double *gradients) const{
+	}
+
+	void InvertibleHyperelasticTetElement::generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats,
+		const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const{
+	}
+
+	void InvertibleHyperelasticTetElement::generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const{
+	}
+
 	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
 		double *dndx, double *dndy, double *dndz) {
 

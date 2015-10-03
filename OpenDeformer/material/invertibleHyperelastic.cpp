@@ -3,6 +3,7 @@
 #include "mesh.h"
 #include "element.h"
 #include "nodeIndexer.h"
+#include "numerMethod.h"
 
 namespace ODER{
 	InvertibleHyperelasticMaterial::InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh) :
@@ -115,7 +116,134 @@ namespace ODER{
 	}
 
 	void InvertibleHyperelasticMaterial::modifiedDeformGradient(const double *gradient, double *diags, double *leftOrthoMat, double *rightOrthoMat) const {
+		double triMat[6], eigenVals[3];
+		Tensor2<double> UT, VT;
+		constexpr double epsilon = 1e-8;
+		constexpr int diagIndices[3] = { 0, 3, 5 };
 
+		for (int i = 0; i < 3; i++)
+			for (int j = i; j < 3; j++)
+				triMat[diagIndices[i] + j - i] = gradient[j * 3 + 0] * gradient[i * 3 + 0] +
+				gradient[j * 3 + 1] * gradient[i * 3 + 1] + gradient[j * 3 + 2] * gradient[i * 3 + 2];
+
+		eigenSym3x3(triMat, eigenVals, &UT(0, 0));
+		if (UT.Determinant() < 0.0) {
+			for (int i = 0; i < 3; i++)
+				UT(0, i) = -UT(0, i);
+		}
+
+		for (int i = 0; i < 3; i++)
+			eigenVals[i] = eigenVals[i] > 0.0 ? sqrt(eigenVals[i]) : 0.0;
+
+		Tensor2<double> F(gradient);
+		VT = UT * F;
+		int condition = (eigenVals[0] < epsilon) + ((eigenVals[1] < epsilon) << 1) + ((eigenVals[1] < epsilon) << 2);
+		switch (condition){
+		case 0:
+		{
+			for (int i = 0; i < 3; i++) {
+				double inverse = 1.0 / eigenVals[i];
+				for (int j = 0; j < 3; j++)
+					VT(i, j) *= inverse;
+			}
+			break;
+		}
+		case 1:
+		{
+			double inverse1 = 1.0 / eigenVals[1];
+			double inverse2 = 1.0 / eigenVals[2];
+			for (int j = 0; j < 3; j++) {
+				VT(1, j) *= inverse1;
+				VT(2, j) *= inverse2;
+			}
+			VectorBase<double> another = VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2)) %
+				VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2));
+			memcpy(&VT(0, 0), &another[0], sizeof(double) * 3);
+			break;
+		}
+		case 2:
+		{
+			double inverse0 = 1.0 / eigenVals[0];
+			double inverse2 = 1.0 / eigenVals[2];
+			for (int j = 0; j < 3; j++) {
+				VT(0, j) *= inverse0;
+				VT(2, j) *= inverse2;
+			}
+			VectorBase<double> another = VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)) %
+				VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2));
+			memcpy(&VT(1, 0), &another[0], sizeof(double) * 3);
+			break;
+		}
+		case 3:
+		{
+			double inverse = 1.0 / eigenVals[2];
+			for (int i = 0; i < 3; i++)
+				VT(2, i) *= inverse;
+			VectorBase<double> v1, v2;
+			coordinateSystem(VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2)), v1, v2);
+			memcpy(&VT(0, 0), &v1[0], sizeof(double) * 3);
+			memcpy(&VT(1, 0), &v2[0], sizeof(double) * 3);
+			break;
+		}
+		case 4:
+		{
+			double inverse0 = 1.0 / eigenVals[0];
+			double inverse1 = 1.0 / eigenVals[1];
+			for (int j = 0; j < 3; j++) {
+				VT(0, j) *= inverse0;
+				VT(1, j) *= inverse1;
+			}
+			VectorBase<double> another = VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)) %
+				VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2));
+			memcpy(&VT(2, 0), &another[0], sizeof(double) * 3);
+			break;
+		}
+		case 5:
+		{
+			double inverse = 1.0 / eigenVals[1];
+			for (int i = 0; i < 3; i++)
+				VT(1, i) *= inverse;
+			VectorBase<double> v1, v2;
+			coordinateSystem(VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2)), v1, v2);
+			memcpy(&VT(0, 0), &v1[0], sizeof(double) * 3);
+			memcpy(&VT(2, 0), &v2[0], sizeof(double) * 3);
+			break;
+		}
+		case 6:
+		{
+			double inverse = 1.0 / eigenVals[0];
+			for (int i = 0; i < 3; i++)
+				VT(0, i) *= inverse;
+			VectorBase<double> v1, v2;
+			coordinateSystem(VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)), v1, v2);
+			memcpy(&VT(1, 0), &v1[0], sizeof(double) * 3);
+			memcpy(&VT(2, 0), &v2[0], sizeof(double) * 3);
+			break;
+		}
+		case 7:
+		{
+			memset(&VT(0, 0), 0, sizeof(double) * 9);
+			VT(0, 0) = VT(1, 1) = VT(2, 2) = 1.0;
+			break;
+		}
+		default:
+			Severe("Unexpected condition in InvertibleHyperelasticMaterial::modifiedDeformGradient");
+			break;
+		}
+
+		if (VT.Determinant() < 0) {
+			int smallestIndex = eigenVals[0] < eigenVals[1] ? (eigenVals[0] < eigenVals[2] ? 0 : 2) : (eigenVals[1] < eigenVals[2] ? 1 : 2);
+			for (int i = 0; i < 3; i++)
+				VT(smallestIndex, i) = -VT(smallestIndex, i);
+			eigenVals[smallestIndex] = -eigenVals[smallestIndex];
+		}
+
+		for (int i = 0; i < 3; i++)
+			diags[i] = std::max(eigenVals[i], trashold);
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				leftOrthoMat[i * 3 + j] = UT(j, i);
+		memcpy(rightOrthoMat, &VT(0, 0), sizeof(double) * 9);
 	}
 
 	void InvertibleHyperelasticMaterial::getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat,

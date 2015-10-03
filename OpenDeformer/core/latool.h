@@ -118,7 +118,7 @@ namespace ODER{
 			m[1][0] = m[1][1] = m[1][2] = 
 			m[2][0] = m[2][1] = m[2][2] = 0.0;
 		}
-		Tensor2(FT mat[3][3]){
+		Tensor2(const FT *mat) {
 			memcpy(m, mat, 9 * sizeof(FT));
 		}
 		Tensor2(FT m00, FT m01, FT m02,
@@ -489,16 +489,16 @@ namespace ODER{
 		return q / sqrtf(Dot(q, q));
 	}
 
-	inline void coordinateSystem(const Vector &v0, Vector *v1, Vector *v2){
+	template<class FT> inline void coordinateSystem(const VectorBase<FT> &v0, VectorBase<FT> &v1, VectorBase<FT> &v2){
 		if (fabs(v0.x) > fabs(v0.y)){
-			float invlen = 1.f / sqrtf(v0.x*v0.x + v0.z*v0.z);
-			*v1 = Vector(-v0.z*invlen, 0.f, v0.x*invlen);
+			FT invlen = 1.f / sqrt(v0.x*v0.x + v0.z*v0.z);
+			v1 = VectorBase<FT>(-v0.z*invlen, 0.f, v0.x*invlen);
 		}
 		else{
-			float invlen = 1.f / sqrtf(v0.y*v0.y + v0.z*v0.z);
-			*v1 = Vector(0.f, -v0.z*invlen, v0.y*invlen);
+			FT invlen = 1.f / sqrt(v0.y*v0.y + v0.z*v0.z);
+			v1 = VectorBase<FT>(0.f, -v0.z*invlen, v0.y*invlen);
 		}
-		*v2 = v0 % *v1;
+		v2 = v0 % v1;
 	}
 
 	template<class FT> inline Tensor2<FT> VectorBase<FT>::operator^(const VectorBase<FT>& v) const{
@@ -592,6 +592,7 @@ namespace ODER{
 	constexpr double const_pow(double base, int exp) noexcept{
 		return exp < 0 ? 1.0 / const_pow(base, -exp) : (exp == 0 ? 1.0 : base * const_pow(base, exp - 1));
 	}
+
 
 }
 

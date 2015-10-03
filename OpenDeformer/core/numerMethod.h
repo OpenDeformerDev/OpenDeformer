@@ -5,6 +5,7 @@
 #ifndef ODER_CORE_NUMERMETHOD_H
 #define ODER_CORE_NUMERMETHOD_H
 
+#include <math.h>
 #include "oder.h"
 #include "latool.h"
 #include "sparseMatrix.h"
@@ -360,6 +361,114 @@ namespace ODER{
 					dest.Add(rowIndex[i], vals[i] * entry);
 			}
 		}
+	}
+
+	template<class FT> void eigenSym3x3(const FT *triMat, FT *eigenvalues, FT *eigenvectors) {
+		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::eigenSym3x3 support IEEE 754-1985 floating point only");
+		constexpr FT pi = FT(3.141592653589793238462643383279502884197169399375105820974944592308);
+		const FT aveTrace = (triMat[0] + triMat[3] + triMat[5]) / FT(3.0);
+		const FT deviatoricDiag0 = triMat[0] - aveTrace;
+		const FT deviatoricDiag1 = triMat[3] - aveTrace;
+		const FT deviatoricDiag2 = triMat[5] - aveTrace;
+		const FT invariant = (deviatoricDiag0  * deviatoricDiag0 + deviatoricDiag1  * deviatoricDiag1 + deviatoricDiag2  * deviatoricDiag2) * FT(0.5) +
+			triMat[1] * triMat[1] + triMat[2] * triMat[2] + triMat[4] * triMat[4];
+		const FT det = deviatoricDiag0 * (deviatoricDiag1 *  deviatoricDiag2 - triMat[4] * triMat[4]) +
+			triMat[1] * (triMat[4] * triMat[2] - triMat[1] * deviatoricDiag2) +
+			triMat[2] * (triMat[1] * triMat[4] - deviatoricDiag1 * triMat[2]);
+
+		constexpr FT squareRoot3 = FT(1.7320508075688772935274463415058723669428052538103806280558069794519330169088);
+		const FT sqrtTerm = sqrt(invariant);
+		const FT angleCos = (FT(3) * FT(0.5) * squareRoot3) * ((det / invariant) / sqrtTerm);
+
+		if (isnan(angleCos)) {
+			eigenvalues[0] = eigenvalues[1] = eigenvalues[2] = aveTrace;
+			Initiation(eigenvectors, 9);
+			eigenvectors[0] = eigenvectors[4] = eigenvectors[8] = FT(1);
+			return;
+		}
+
+		FT angle = acos(Clamp(angleCos, FT(-1), FT(1))) / FT(3);
+		FT distinctEigenVal = (FT(2) / squareRoot3) * sqrtTerm * (angle < pi / FT(6) ? cos(angle) : cos(angle + (FT(2) / FT(3)) * pi));
+		eigenvalues[0] = distinctEigenVal + aveTrace;
+
+		const VectorBase<FT> r0(deviatoricDiag0 - distinctEigenVal, triMat[1], triMat[2]);
+		const VectorBase<FT> r1(triMat[1], deviatoricDiag1 - distinctEigenVal, triMat[4]);
+		const VectorBase<FT> r2(triMat[2], triMat[4], deviatoricDiag2 - distinctEigenVal);
+
+		const FT r0Len = r0.length();
+		const FT r1Len = r1.length();
+		const FT r2Len = r2.length();
+
+		VectorBase<FT> s0;
+		VectorBase<FT> t1, t2;
+
+		if (r0Len > r1Len) {
+			if (r0Len > r2Len) {
+				s0 = r0 / r0Len;
+				t1 = r1 - (s0 * r1) * s0;
+				t2 = r2 - (s0 * r2) * s0;
+			}
+			else {
+				s0 = r2 / r2Len;
+				t1 = r0 - (s0 * r0) * s0;
+				t2 = r1 - (s0 * r1) * s0;
+			}
+		}
+		else {
+			if (r1Len > r2Len) {
+				s0 = r1 / r1Len;
+				t1 = r0 - (s0 * r0) * s0;
+				t2 = r2 - (s0 * r2) * s0;
+			}
+			else {
+				s0 = r2 / r2Len;
+				t1 = r0 - (s0 * r0) * s0;
+				t2 = r1 - (s0 * r1) * s0;
+			}
+		}
+
+
+		const FT t1Len2 = t1.length2();
+		const FT t2Len2 = t2.length2();
+
+		const VectorBase<FT> s1 = t1Len2 > t2Len2 ? t1 / sqrt(t1Len2) : t2 / sqrt(t2Len2);
+		VectorBase<FT> eigenVector0 = s0 % s1;
+		memcpy(eigenvectors, &eigenVector0[0], sizeof(FT) * 3);
+
+		Tensor2<FT> mat(deviatoricDiag0, triMat[1], triMat[2],
+			triMat[1], deviatoricDiag1, triMat[4],
+			triMat[2], triMat[4], deviatoricDiag2);
+
+		const VectorBase<FT> trans = mat * s1;
+		const FT a11 = s0 * (mat * s0);
+		const FT a12 = s0 * trans;
+		const FT a22 = s1 * trans; 
+
+		const FT discriminant = sqrt((a11 - a22) * (a11 - a22) + FT(4) * a12 * a12);
+		const FT eigenVal1 = ((a11 + a22) - (a11 > a22 ? discriminant : -discriminant)) / FT(2);
+		const FT eigenVal2 = a11 + a22 - eigenVal1;
+		eigenvalues[1] = eigenVal1 + aveTrace;
+		eigenvalues[2] = eigenVal2 + aveTrace;
+
+		VectorBase<FT> eigenVector1;
+		if (eigenVal1 != eigenVal2) {
+			for (int i = 0; i < 3; i++)
+				mat(i, i) -= eigenVal1;
+
+			const VectorBase<FT> u0 = mat * s0;
+			const VectorBase<FT> u1 = mat * s1;
+
+			const FT u0Len2 = u0.length2();
+			const FT u1Len2 = u1.length2();
+
+			eigenVector1 = u0Len2 > u1Len2 ? (u0 / sqrt(u0Len2)) % eigenVector0 : (u1 / sqrt(u1Len2)) % eigenVector0;
+		}
+		else
+			eigenVector1 = s0;
+		memcpy(eigenvectors + 3, &eigenVector1[0], sizeof(FT) * 3);
+
+		VectorBase<FT> eigenVector2 = eigenVector0 % eigenVector1;
+		memcpy(eigenvectors + 6, &eigenVector2[0], sizeof(FT) * 3);
 	}
 }
 #endif

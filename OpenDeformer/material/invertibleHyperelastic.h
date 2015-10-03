@@ -33,6 +33,7 @@ namespace ODER {
 		void modifiedDeformGradient(const double *gradient, double *diags, double *leftOrthoMat, double *rightOrthoMat) const;
 		void getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat, 
 			const double *invariants, const double *eneryGradient, double *stress) const;
+
 		double *shapeFunctionDrivativesPrecomputed;
 		double *deformationGradientPrecomputed;
 		double *nodalVirtualWorkPrecomputed;
@@ -41,7 +42,7 @@ namespace ODER {
 
 		InvertibleHyperelasticElement *element;
 		double trashold;
-	};
+	}; 
 }
 
 #endif

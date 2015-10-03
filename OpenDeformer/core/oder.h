@@ -83,8 +83,8 @@ namespace ODER{
 	}
 
 	template<class FT> inline FT Clamp(FT val, FT low, FT high) {
-		if (val<low) return low;
-		else if (val>high) return high;
+		if (val < low) return low;
+		else if (val > high) return high;
 		else return val;
 	}
 }
