@@ -182,12 +182,12 @@ namespace ODER{
 				- m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
 				+ m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
 		}
-		friend Tensor2 Inverse(const Tensor2&){
+		friend Tensor2 Inverse(const Tensor2& tensor){
 			Tensor2 r;
 
 			FT det = tensor.Determinant();
 
-			Assert(fabsf(det) > 1e-7);
+			Assert(fabs(det) > 1e-7);
 
 			FT invDet = 1.f / det;
 			r.m[0][0] = (tensor.m[1][1] * tensor.m[2][2] - tensor.m[1][2] * tensor.m[2][1])*invDet;
@@ -202,7 +202,7 @@ namespace ODER{
 
 			return r;
 		}
-		friend Tensor2 Transpose(const Tensor2&){
+		friend Tensor2 Transpose(const Tensor2& m){
 			Tensor2 ret;
 			for (int i = 0; i < 3; i++){
 				for (int j = 0; j < 3; j++){
@@ -211,6 +211,7 @@ namespace ODER{
 			}
 			return ret;
 		}
+	private:
 		FT m[3][3];
 	};
 
@@ -466,12 +467,12 @@ namespace ODER{
 	template<size_t...index> using IndexSequence = IndexSequenceGenerator<0, index...>;
 	template<class T, class FUN, size_t... index> std::array<T, sizeof...(index)> generateSequence(FUN f, IndexSequence<index...> seqs){
 		return {  f(index)...  };
-	}*/
+	}
 
 	//can be further optimized with constexpr
 	template<class T, int N, class FUN> std::array<T, N> generateSequence(FUN f){
 		return generateSequence<T>(f, IndexSequenceGenerator<N>{});
-	}
+	}*/
 	
 
 	//inline funtion for vec
@@ -505,7 +506,7 @@ namespace ODER{
 		Tensor2<FT> ret;
 		for (int i = 0; i < 3; i++){
 			for (int j = 0; j < 3; j++){
-				ret.m[i][j] = (*this)[i] * v[j];
+				ret(i, j) = (*this)[i] * v[j];
 			}
 		}
 		return ret;

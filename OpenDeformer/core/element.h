@@ -66,7 +66,7 @@ namespace ODER{
 
 	struct InvertibleHyperelasticElement : public Element {
 		InvertibleHyperelasticElement(Mesh *m) : Element(m) {}
-		virtual void getPrecomputes(double *drivates, double *deforamtionGradients, double *virtualWorks) const = 0;
+		virtual void getPrecomputes(double *drivates, double *deforamtionGradients) const = 0;
 		virtual int getDirvateEntryCount() const = 0;
 		virtual int getNodalVirtualWorksPreEntryCount() const = 0;
 		virtual int getDeformGradientsPreEntryCount() const = 0;

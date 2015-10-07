@@ -54,9 +54,8 @@ namespace ODER{
 
 	struct InvertibleHyperelasticTetElement : public InvertibleHyperelasticElement {
 		InvertibleHyperelasticTetElement(TetMesh *m): InvertibleHyperelasticElement(m){}
-		void getPrecomputes(double *drivates, double *deforamtionGradients, double *virtualWorks) const;
+		void getPrecomputes(double *drivates, double *deforamtionGradients) const;
 		int getDirvateEntryCount() const { return 12;}
-		int getNodalVirtualWorksPreEntryCount() const { return 9; }
 		int getDeformGradientsPreEntryCount() const { return 12; }
 		int getQuadraturePointCount() const { return 1; }
 
@@ -64,11 +63,13 @@ namespace ODER{
 		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats, 
 			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const;
 		void generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const;
-
+	private:
+		void getdPdF(const double *diag, const double *leftOrthoMat,
+			const double *rightOrthoMat, const double *energyGradient, const double *energyHassian, double dPdF[81]) const;
 	};
 
 	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
-		double *dndx, double *dndy, double *dndz);
+		double *dn0, double *dn1, double *dn2, double *dn3);
 
 	inline float getTetVolume(const Vector& a, const Vector& b, const Vector& c, const Vector& d) {
 		Vector ab = b - a;

@@ -12,14 +12,12 @@ namespace ODER{
 		element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int drivativeEntry = element->getDirvateEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
-		const int nodalVirtualWorkEntry = element->getNodalVirtualWorksPreEntryCount();
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
 		const int quadratureCount = element->getQuadraturePointCount();
 
 		shapeFunctionDrivativesPrecomputed = new double[elementCount * drivativeEntry];
 		deformationGradientPrecomputed = new double[elementCount * deformGradientEntry];
-		nodalVirtualWorkPrecomputed = new double[elementCount * nodalVirtualWorkEntry];
 
 		const int workingEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2 +
 			6 * nodePerElementCount + (9 + 3 + 9 + 9 + 3 + 6 + 9) * quadratureCount;
@@ -28,7 +26,7 @@ namespace ODER{
 		for (int i = 0; i < elementCount; i++) {
 			element->setNodeIndexs(i);
 			element->getPrecomputes(shapeFunctionDrivativesPrecomputed + i * drivativeEntry,
-				deformationGradientPrecomputed + i * deformGradientEntry, nodalVirtualWorkPrecomputed + i * nodalVirtualWorkEntry);
+				deformationGradientPrecomputed + i * deformGradientEntry);
 		}
 	}
 
@@ -39,7 +37,6 @@ namespace ODER{
 		const int nodePerElementCount = mesh->getNodePerElementCount();
 		const int drivativeEntry = element->getDirvateEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
-		const int nodalVirtualWorkEntry = element->getNodalVirtualWorksPreEntryCount();
 		const int quadratureCount = element->getQuadraturePointCount();
 		const int subMatrixEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2;
 
@@ -62,7 +59,6 @@ namespace ODER{
 			indexer->getElementNodesGlobalIndices(*element, nodePerElementCount, elementNodeIndices);
 			const double *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
 			const double *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;
-			const double *virtualWorkPre = nodalVirtualWorkPrecomputed + elementIndex * nodalVirtualWorkEntry;
 
 			//copy node displacements
 			Initiation(nodeDisplacements, 3 * nodePerElementCount);
@@ -105,7 +101,7 @@ namespace ODER{
 			}
 
 			//generate virtual works
-			element->generateNodalVirtualWorks(virtualWorkPre, stresses, subVirtualWorks);
+			element->generateNodalVirtualWorks(drivatePre, stresses, subVirtualWorks);
 			for (int localIndex = 0; localIndex < nodePerElementCount * 3; localIndex++) {
 				int globalIndex = elementNodeIndices[localIndex];
 				if (globalIndex >= 0)
@@ -248,22 +244,28 @@ namespace ODER{
 
 	void InvertibleHyperelasticMaterial::getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat,
 		const double *invariants, const double *eneryGradient, double *stress) const {
-		Initiation(stress, 9);
+
 		double diagEntries[3];
 		for (int i = 0; i < 3; i++)
 			diagEntries[i] = 2.0 * eneryGradient[0] * diags[i] + 4.0 * eneryGradient[1] * diags[i] * diags[i] * diags[i] +
 			    2.0 * eneryGradient[2] * invariants[2] / diags[i];
 
+		double rightMat[9];
+		memcpy(rightMat, rightOrthoMat, sizeof(double) * 9);
 		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 3; j++)
-				stress[i * 3 + j] = leftOrthoMat[i * 3 + j] * diagEntries[j] * rightOrthoMat[i * 3 + j];
+				rightMat[i * 3 + j] *= diagEntries[i];
+
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+				stress[i * 3 + j] = leftOrthoMat[i * 3 + 0] * rightMat[0 * 3 + j] + 
+				    leftOrthoMat[i * 3 + 1] * rightMat[1 * 3 + j] + leftOrthoMat[i * 3 + 2] * rightMat[2 * 3 + j];
 	}
 
 	InvertibleHyperelasticMaterial::~InvertibleHyperelasticMaterial() {
 		delete element;
 		delete[] shapeFunctionDrivativesPrecomputed;
 		delete[] deformationGradientPrecomputed;
-		delete[] nodalVirtualWorkPrecomputed;
 		delete[] memory;
 	}
 }

@@ -36,7 +36,6 @@ namespace ODER {
 
 		double *shapeFunctionDrivativesPrecomputed;
 		double *deformationGradientPrecomputed;
-		double *nodalVirtualWorkPrecomputed;
 
 		double *memory;
 

@@ -165,6 +165,9 @@
     <ClInclude Include="material\invertibleHyperelastic.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
+    <ClInclude Include="intergrator\nonlinearImplicitBackwardEuler.h">
+      <Filter>头文件\intergrator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
