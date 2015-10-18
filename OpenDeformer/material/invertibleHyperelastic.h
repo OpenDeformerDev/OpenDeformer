@@ -5,16 +5,11 @@
 #ifndef ODER_MATERIAL_INVERTIBLEHYPERELASTIC_H
 #define ODER_MATERIAL_INVERTIBLEHYPERELASTIC_H
 
-#include "mechMaterial.h"
-#include "element.h"
+#include "fullOrderNonlinear.h"
 
 namespace ODER {
-	class InvertibleHyperelasticMaterial : public MechMaterial {
+	class InvertibleHyperelasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix>{
 		InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh);
-		void generateTagentStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-			const double *u, BlockedSymSpMatrix& matrix) const;
-		void generateInternalVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, double *vws) const;
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
 			const double *u, BlockedSymSpMatrix& matrix, double *vws) const;
 		virtual ~InvertibleHyperelasticMaterial();

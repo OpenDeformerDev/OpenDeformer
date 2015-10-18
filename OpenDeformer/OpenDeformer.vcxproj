@@ -183,6 +183,7 @@
     <ClInclude Include="core\simulator.h" />
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="intergrator\nonlinearImplicitBackwardEuler.h" />
+    <ClInclude Include="material\fullOrderNonlinear.h" />
     <ClInclude Include="material\invertibleHyperelastic.h" />
     <ClInclude Include="material\reducedHyperelastic.h" />
     <ClInclude Include="material\stvk.h" />

@@ -168,6 +168,9 @@
     <ClInclude Include="intergrator\nonlinearImplicitBackwardEuler.h">
       <Filter>头文件\intergrator</Filter>
     </ClInclude>
+    <ClInclude Include="material\fullOrderNonlinear.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">

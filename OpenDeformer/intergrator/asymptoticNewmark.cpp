@@ -6,7 +6,7 @@
 
 namespace ODER{
 	AsymptoticNewmark::AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-		const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater)
+		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
 		int orderCount = mater->getNonlinearAsymptoticOrder();
 		int entrys = orderCount*dofs;

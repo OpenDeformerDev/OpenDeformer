@@ -13,7 +13,7 @@ namespace ODER{
 	class AsymptoticNewmark : public Intergrator{
 	public:
 		AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
-			const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater);
+			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void getRawDisplacements(double *displacements) const;

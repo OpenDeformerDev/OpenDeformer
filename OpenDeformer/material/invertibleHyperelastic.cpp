@@ -7,7 +7,7 @@
 
 namespace ODER{
 	InvertibleHyperelasticMaterial::InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh) :
-		MechMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear | Marterial_Invertible)), trashold(inversionTrashold) {
+		FullOrderNonlinearMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Invertible)), trashold(inversionTrashold) {
 
 		element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int drivativeEntry = element->getDirvateEntryCount();

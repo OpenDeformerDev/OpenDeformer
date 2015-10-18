@@ -23,6 +23,7 @@ namespace ODER{
 	public:
 		MechMaterial(double rho, MarterialType t) :density(rho), type(t){}
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
+		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& matrix) const;
 
 		double getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }
