@@ -131,15 +131,10 @@ namespace ODER{
 		return 0.0;
 	}
 
-	template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
+	template<int blockLength, int blockWidth>
 	void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
-		const LhsVec& src, RhsVec& dest){
-		static_assert(std::is_same<std::remove_const_t<LhsVec>, double *>::value || 
-			std::is_same<std::decay_t<decltype(std::declval<LhsVec>().operator[](std::declval<int>()))>, double>::value,
-			"only type with operator[] return double or double pointer supported for ODER::SpMV src yet");
-		static_assert(std::is_same<RhsVec, double *>::value || 
-			std::is_same<std::decay_t<decltype(std::declval<RhsVec>().operator[](std::declval<int>()))>, double>::value,
-			"only type with operator[] return double or non-const double pointer supported for ODER::SpMV dest yet");
+		const double *src, double *dest){
+		Assert(src != dest);
 
 		const int blockColumnCount = mat.numBlockColumn;
 		const int columnCount = mat.numColumns;
@@ -469,6 +464,13 @@ namespace ODER{
 
 		VectorBase<FT> eigenVector2 = eigenVector0 % eigenVector1;
 		memcpy(eigenvectors + 6, &eigenVector2[0], sizeof(FT) * 3);
+	}
+
+	template<class FT> FT Dot(int width, const FT *x, const FT *y) {
+		FT result = FT(0);
+		for (int i = 0; i < width; i++)
+			result += x[i] * y[i];
+		return result;
 	}
 }
 #endif

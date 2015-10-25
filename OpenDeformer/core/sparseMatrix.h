@@ -63,6 +63,9 @@ namespace ODER{
 	};
 
 	constexpr size_t diagIndicesGen(size_t length, size_t index){ return index * length - (((index - 1)*index) >> 1); }
+	template<size_t... index> constexpr std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs) noexcept {
+		return { diagIndicesGen(sizeof...(index), index)... };
+	}
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler{
 	public:
@@ -143,9 +146,6 @@ namespace ODER{
 		~BlockedSymSparseMatrixAssembler(){ if (remainedEntryCount) delete[] remainedEntryCount; }
 
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs){
-			return { diagIndicesGen(blockLength, index)... };
-		}
 
 		int numColumn;
 		int numBlockColumn;
@@ -162,11 +162,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth> 
 	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrixAssembler::getDiagIndices(std::make_index_sequence<blockLength>());
-
-	template<class Vec> using spmv_vec_para_type = 
-		std::conditional_t<std::is_same<std::remove_const_t<Vec>, double *>::value,
-		double *, Vec&>;
+		= getDiagIndices(std::make_index_sequence<blockLength>());
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
@@ -191,9 +187,9 @@ namespace ODER{
 				blockPcol[i + 1] = blockPcol[i] + blockCount;
 				//counting datas
 				if (blockCount != 0){
-					int blockDataCount = blockCount*regularSize;
+					int blockDataCount = blockCount * regularSize;
 					auto start = assembler.blockEntries[i].cbegin();
-					if (start->first == i*blockLength)
+					if (start->first == i * blockLength)
 						blockDataCount -= (regularSize - diagSize);
 					auto last = --(assembler.blockEntries[i].cend());
 					if (last != start && numColumns - last->first < blockWidth)
@@ -258,6 +254,28 @@ namespace ODER{
 				pos++;
 			}
 		}
+
+
+		void setZeros() {
+			Initiation(values, blockColumnOris[numBlockColumn + numRemainedColumn]);
+		}
+
+		void Add(double alpha, const BlockedSymSparseMatrix& mat) {
+			Assert(numColumns == mat.numColumns);
+			Assert(numBlockColumn == mat.numBlockColumn);
+			Assert(blockColumnOris[numBlockColumn + numRemainedColumn] == mat.blockColumnOris[numBlockColumn + numRemainedColumn]);
+
+			int dataCount = blockColumnOris[numBlockColumn + numRemainedColumn];
+			for (int i = 0; i < dataCount; i++)
+				values[i] += alpha * mat.values[i];
+		}
+
+		void Scale(double alpha) {
+			int dataCount = blockColumnOris[numBlockColumn + numRemainedColumn];
+			for (int i = 0; i < dataCount; i++)
+				values[i] *= alpha;
+		}
+
 		void getColumn(int column, SparseVector& vector) const{
 			constexpr int regularSize = blockLength * blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
@@ -424,9 +442,6 @@ namespace ODER{
 
 		int getNumColumns() const{ return numColumns; }
 	private:
-		template<size_t... index> static inline std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs){
-			return { diagIndicesGen(blockLength, index)... };
-		}
 
 		int numColumns;
 		int numBlockColumn;
@@ -438,9 +453,9 @@ namespace ODER{
 
 		static const std::array<size_t, blockLength> diagIndices;
 
-		template<int blockLength, int blockWidth, class LhsVec, class RhsVec>
+		template<int blockLength, int blockWidth>
 		friend void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
-			const LhsVec& src, RhsVec& dest);
+			const double *src, double *dest);
 
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
@@ -449,7 +464,7 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth>
 	const std::array<size_t, blockLength> BlockedSymSparseMatrix<blockLength, blockWidth>::diagIndices
-		= BlockedSymSparseMatrix::getDiagIndices(std::make_index_sequence<blockLength>());
+		= getDiagIndices(std::make_index_sequence<blockLength>());
 }
 
 #endif

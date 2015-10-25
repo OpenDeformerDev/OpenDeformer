@@ -86,8 +86,7 @@ namespace ODER{
 		delete[] diags;
 	}
 
-	void InCholeskyPreconditioner::solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const{
-		int width = rhs.getWidth();
+	void InCholeskyPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{
 		Assert(width != 0);
 
 		int end = pcol[1];

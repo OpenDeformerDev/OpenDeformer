@@ -16,7 +16,7 @@ namespace ODER{
 		InLDLTPreconditioner& operator=(const InLDLTPreconditioner&&) = delete;
 
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
-		void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
+		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
 		~InLDLTPreconditioner(){ delete[] invDiagonal; }
 	private:
 		void incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat);

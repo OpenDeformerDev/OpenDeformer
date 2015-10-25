@@ -96,8 +96,7 @@ namespace ODER{
 
 
 
-	void InLDLTPreconditioner::solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const{
-		int width = rhs.getWidth();
+	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{
 		Assert(width != 0);
 
 		int end = pcol[1];

@@ -15,7 +15,7 @@ namespace ODER{
 		InCholeskyPreconditioner(const InCholeskyPreconditioner&&) = delete;
 		InCholeskyPreconditioner& operator=(const InCholeskyPreconditioner&&) = delete;
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
-		void solvePreconditionerSystem(const DenseVector& rhs, DenseVector& result) const;
+		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
 		~InCholeskyPreconditioner() = default;
 	private:
 		void incompleteCholeskyDecomposition(const BlockedSymSpMatrix& mat);

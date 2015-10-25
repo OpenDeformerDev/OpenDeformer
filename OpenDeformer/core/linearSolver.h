@@ -12,7 +12,7 @@ namespace ODER{
 	public:
 		LinearSolver(const SpMatrix* m = NULL) : mat(m){}
 		void resetLinerSystem(const SpMatrix* m){ mat = m; }
-		virtual void solveLinearSystem(const DenseVector& rhs, DenseVector& result) const = 0;
+		virtual void solveLinearSystem(const double *rhs, double *result) const = 0;
 		virtual ~LinearSolver() = default;
 	protected:
 		const SpMatrix *mat;

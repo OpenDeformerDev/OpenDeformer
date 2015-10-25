@@ -99,13 +99,4 @@ namespace ODER{
 		}
 	}
 
-	DenseVector::DenseVector(int w) : width(w){
-		values = allocAligned<double>(width);
-		Initiation(values, width);
-	}
-
-	DenseVector::~DenseVector(){
-		if (values) freeAligned(values);
-	}
-
 }

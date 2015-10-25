@@ -46,7 +46,6 @@ namespace ODER{
 	struct Facet;
 	template<class FT> struct VectorBase;
 	using Vector = VectorBase<float>;
-	class DenseVector;
 	class SparseVector;
 	template<class FT> struct Tensor2;
 	struct Quaternion;
