@@ -67,7 +67,6 @@ namespace ODER{
 		proccessSingleColumn(0, w, diags);
 
 		for (int i = 1; i < columnCount; i++){
-			w.Clear();
 			mat.getColumn(i, w);
 			w.begin()->second = diags[i];
 

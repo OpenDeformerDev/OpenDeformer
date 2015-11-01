@@ -189,10 +189,11 @@ namespace ODER{
 				if (blockCount != 0){
 					int blockDataCount = blockCount * regularSize;
 					auto start = assembler.blockEntries[i].cbegin();
-					if (start->first == i * blockLength)
+					bool hasDiag = start->first == i * blockLength;
+					if (hasDiag)
 						blockDataCount -= (regularSize - diagSize);
 					auto last = --(assembler.blockEntries[i].cend());
-					if (last != start && numColumns - last->first < blockWidth)
+					if ((!hasDiag || start != last) && numColumns - last->first < blockWidth)
 						blockDataCount -= (last->first + blockWidth - numColumns)*blockLength;
 					dataCount += blockDataCount;
 				}
@@ -277,6 +278,7 @@ namespace ODER{
 		}
 
 		void getColumn(int column, SparseVector& vector) const{
+			vector.Clear();
 			constexpr int regularSize = blockLength * blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
 
@@ -308,7 +310,7 @@ namespace ODER{
 				}
 
 				int row = blockRows[index];
-				int mayDegenWidth = numColumns - blockRows[index];
+				int mayDegenWidth = numColumns - row;
 				if (mayDegenWidth >= blockWidth){
 					int start = offset*blockWidth;
 					for (int i = 0; i < blockWidth; i++)
@@ -340,20 +342,22 @@ namespace ODER{
 			int blockIndex = column / blockLength;
 			int subColumn = column - blockIndex * blockLength;
 			if (blockIndex < numBlockColumn) {
+				bool hasDiag = blockIndex * blockLength == blockRows[blockPcol[blockIndex]];
 				int blockStartRow = (row / blockWidth) * blockWidth;
 				int subRow = row - blockStartRow;
 				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[blockIndex]], &blockRows[blockPcol[blockIndex + 1]], blockStartRow);
 				Assert(*pRowIndex == blockStartRow);
-				if (pRowIndex != &blockRows[blockPcol[blockIndex]]) {
-					int preBlockCount = pRowIndex - &blockRows[blockPcol[blockIndex]] + 1;
-					int preEntryCount = (preBlockCount - 1) * regularSize + diagSize;
+				int preBlockCount = pRowIndex - &blockRows[blockPcol[blockIndex]] + 1;
+				int preEntryCount = preBlockCount * regularSize;
+				if (hasDiag) preEntryCount -= (regularSize - diagSize);
+				if (pRowIndex != &blockRows[blockPcol[blockIndex]] || !hasDiag) {
 					double *blockValueStart = values + blockColumnOris[blockIndex] + preEntryCount;
 					double *val = blockValueStart + subColumn * blockWidth + subRow;
 					*val += data;
 				}
 				else {
 					int index = subRow - subColumn + diagIndices[subColumn];
-					double *val = values + blockColumnOris[blockIndex];
+					double *val = values + blockColumnOris[blockIndex] + index;
 					*val += data;
 				}
 			}

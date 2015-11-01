@@ -166,9 +166,9 @@ namespace ODER{
 					double x = src[actualRow];
 					double ret = values[diagIndex++] * x;
 					for (int k = j + 1; k < blockLength; k++){
-						double val = values[diagIndex++] * x;
-						dest[row + k] += val;
-						ret += val;
+						double val = values[diagIndex++];
+						dest[row + k] += val * x;
+						ret += val * src[row + k];
 					}
 					dest[actualRow] += ret;
 				}
