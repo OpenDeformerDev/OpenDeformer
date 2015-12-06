@@ -285,7 +285,10 @@ namespace ODER{
 			for (int i = 0, startColumn = 0; i < blockIndex; i++, startColumn += blockLength){
 				int start = blockPcol[i], end = blockPcol[i + 1];
 				if (start != end){
-					int blockRow = ((column - startColumn) / blockWidth) * blockWidth + startColumn + blockLength;
+					int blockRow = startColumn;
+					if (column >= startColumn + blockLength)
+						blockRow += blockLength + ((column - startColumn - blockLength) / blockWidth) * blockWidth;
+
 					int offset = column - blockRow;
 					const int *blockRowIndexStart = &blockRows[start], *blockRowIndexEnd = &blockRows[end];
 

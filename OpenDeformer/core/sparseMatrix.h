@@ -340,19 +340,24 @@ namespace ODER{
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
 
 			int blockIndex = column / blockLength;
-			int subColumn = column - blockIndex * blockLength;
+			int startColumn = blockIndex * blockLength;
+			int subColumn = column - startColumn;
 			if (blockIndex < numBlockColumn) {
 				bool hasDiag = blockIndex * blockLength == blockRows[blockPcol[blockIndex]];
-				int blockStartRow = (row / blockWidth) * blockWidth;
-				int subRow = row - blockStartRow;
-				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[blockIndex]], &blockRows[blockPcol[blockIndex + 1]], blockStartRow);
+				int blockStartRow = startColumn;
+				int *pRowIndex = &blockRows[blockPcol[blockIndex]];
+				if (row >= startColumn + blockLength) {
+					blockStartRow += blockLength + ((row - startColumn - blockLength) / blockWidth) * blockWidth;
+					pRowIndex = std::lower_bound(&blockRows[blockPcol[blockIndex]], &blockRows[blockPcol[blockIndex + 1]], blockStartRow);
+				}
 				Assert(*pRowIndex == blockStartRow);
-				int preBlockCount = pRowIndex - &blockRows[blockPcol[blockIndex]] + 1;
+				int subRow = row - blockStartRow;
+				int preBlockCount = pRowIndex - &blockRows[blockPcol[blockIndex]];
 				int preEntryCount = preBlockCount * regularSize;
 				if (hasDiag) preEntryCount -= (regularSize - diagSize);
 				if (pRowIndex != &blockRows[blockPcol[blockIndex]] || !hasDiag) {
 					double *blockValueStart = values + blockColumnOris[blockIndex] + preEntryCount;
-					double *val = blockValueStart + subColumn * blockWidth + subRow;
+					double *val = blockValueStart + subColumn * std::min(blockWidth, numColumns - blockStartRow) + subRow;
 					*val += data;
 				}
 				else {
@@ -365,7 +370,7 @@ namespace ODER{
 				int columnIndex = blockIndex + subColumn;
 				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[columnIndex]], &blockRows[blockPcol[columnIndex + 1]], row);
 				Assert(*pRowIndex == row);
-				double *val = values + (pRowIndex - &blockColumnOris[columnIndex]);
+				double *val = values + blockColumnOris[columnIndex] + (pRowIndex - &blockRows[blockPcol[columnIndex]]);
 				*val += data;
 			}
 		}

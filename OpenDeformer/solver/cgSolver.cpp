@@ -6,12 +6,12 @@
 
 namespace ODER{
 	void CGSolver::solveLinearSystem(const double *rhs, double *result) const{
-		const int width = mat->getNumColumns();
+		const int width = this->mat->getNumColumns();
 		double *memory = new double[3 * width];
 		Initiation(memory, 3 * width);
 		double *remainder = memory, *direction = memory + width, *temp = memory + 2 * width;
 		// remainder = rhs - mat * result
-		SpMDV(*mat, result, remainder);
+		SpMDV(*(this->mat), result, remainder);
 		for (int i = 0; i < width; i++)
 			remainder[i] = rhs[i] - remainder[i];
 		//M * d = r
@@ -23,7 +23,7 @@ namespace ODER{
 		while (delta > epsilon){
 			// q = mat * direction
 			Initiation(temp, width);
-			SpMDV(*mat, remainder, temp);
+			SpMDV(*(this->mat), remainder, temp);
 			double alpha = delta / Dot(width, direction, temp);
 			//result = result + alpha * direction
 			//remainder = remainder - alpha * q
