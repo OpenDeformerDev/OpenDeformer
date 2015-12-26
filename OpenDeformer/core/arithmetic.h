@@ -207,32 +207,32 @@ namespace ODER{
 		static const FT splitter;
 
 		private:
-			template<class FT> static constexpr FT getEpsilon(){
+			template<class FT> static constexpr FT getEpsilon() noexcept{
 				static_assert(false, "ODER::ExactArthmeticer support IEEE 754-1985 floating point only");
 				return 0;
 			}
-			template<> static constexpr float getEpsilon<float>(){
+			template<> static constexpr float getEpsilon<float>() noexcept{
 				return const_pow(2.f, -24); 
 				//uint32_t native = 0x33800000;
 				//return *(float *)&native;
 			}
-			template<> static constexpr double getEpsilon<double>(){
+			template<> static constexpr double getEpsilon<double>() noexcept{
 				return const_pow(2.0, -53); 
 				//uint64_t native = 0x3ca0000000000000;
 				//return *(double *)&native;
 			}
 
-			template<class FT> static constexpr FT getSplitter(){
+			template<class FT> static constexpr FT getSplitter() noexcept{
 				static_assert(false, "ODER::ExactArthmeticer support IEEE 754-1985 floating point only");
 				return 0;
 			}
-			template<> static constexpr float getSplitter<float>(){
-				//return pow(2.f, 12) + 1.f; 
-				return 4097.f;
+			template<> static constexpr float getSplitter<float>() noexcept{
+				return const_pow(2.f, 12) + 1.f;
+				//return 4097.f;
 			}
-			template<> static constexpr double getSplitter<double>(){
-				//return pow(2.0, 27) + 1.0;
-				return 134217729.0; 
+			template<> static constexpr double getSplitter<double>() noexcept{
+				return const_pow(2.0, 27) + 1.0;
+				//return 134217729.0; 
 			}
 	};
 

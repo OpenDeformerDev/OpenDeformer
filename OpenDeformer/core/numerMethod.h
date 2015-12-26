@@ -285,15 +285,14 @@ namespace ODER{
 			for (int i = 0, startColumn = 0; i < blockIndex; i++, startColumn += blockLength){
 				int start = blockPcol[i], end = blockPcol[i + 1];
 				if (start != end){
-					int blockRow = startColumn;
-					if (column >= startColumn + blockLength)
-						blockRow += blockLength + ((column - startColumn - blockLength) / blockWidth) * blockWidth;
+					int blockRow = startColumn + blockLength + 
+						((column - startColumn - blockLength) / blockWidth) * blockWidth;
 
 					int offset = column - blockRow;
 					const int *blockRowIndexStart = &blockRows[start], *blockRowIndexEnd = &blockRows[end];
 
 					auto iter = std::lower_bound(blockRowIndexStart, blockRowIndexEnd, blockRow);
-					if (*iter == blockRow){
+					if (iter != blockRowIndexEnd && *iter == blockRow){
 						const double* block = values + blockColumnOris[i];
 						block += diagSize + (iter - blockRowIndexStart - 1) * regularSize;
 						if (*blockRowIndexStart != startColumn)
@@ -301,8 +300,11 @@ namespace ODER{
 
 						int mayDegenWidth = columnCount - blockRow;
 						int gap = mayDegenWidth >= blockWidth ? blockWidth : mayDegenWidth;
-						for (int j = 0; j < blockLength; j++)
-							dest.Add(startColumn + j, block[j * gap + offset] * entry);
+						for (int j = 0; j < blockLength; j++){
+							double val = block[j * gap + offset] * entry;
+							if(val != 0.0)
+							  dest.Add(startColumn + j, val);
+						}
 					}
 				}
 			}
@@ -314,12 +316,18 @@ namespace ODER{
 					int offset = column - blockStartColumn;
 					const double* block = values + blockColumnOris[blockIndex];
 					if (*blockRowIndex == blockStartColumn){
-						for (int i = offset; i > 0; i--)
-							dest.Add(column - i, block[mat.diagIndices[offset - i] + i] * entry);
+						for (int i = offset; i > 0; i--){
+							double val = block[mat.diagIndices[offset - i] + i] * entry;
+							if(val != 0.0)
+							  dest.Add(column - i, val);
+						}
 
 						int entryCount = blockLength - offset;
-						for (int i = 0; i < entryCount; i++)
-							dest.Add(column + i, block[mat.diagIndices[offset] + i] * entry);
+						for (int i = 0; i < entryCount; i++){
+							double val = block[mat.diagIndices[offset] + i] * entry;
+							if(val != 0.0)
+							  dest.Add(column + i, val);
+						}
 						block += diagSize;
 						blockRowIndex++;
 					}
@@ -327,10 +335,13 @@ namespace ODER{
 					if (blockRowIndex == blockRowEnd) continue;
 
 					int adjust = offset * blockWidth;
-					while (blockRowIndex != blockRowEnd - 1){
+					while (blockRowIndex < blockRowEnd - 1){
 						int row = *blockRowIndex;
-						for (int i = 0; i < blockWidth; i++)
-							dest.Add(row + i, block[adjust + i] * entry);
+						for (int i = 0; i < blockWidth; i++){
+							double val = block[adjust + i] * entry;
+							if(val != 0.0)
+							  dest.Add(row + i, val);
+						}
 						block += regularSize;
 						blockRowIndex++;
 					}
@@ -338,13 +349,19 @@ namespace ODER{
 					int row = *blockRowIndex;
 					int mayDegenWidth = columnCount - row;
 					if (mayDegenWidth >= blockWidth){
-						for (int i = 0; i < blockWidth; i++)
-							dest.Add(row + i, block[adjust + i] * entry);
+						for (int i = 0; i < blockWidth; i++){
+							double val = block[adjust + i] * entry;
+							if (val != 0.0)
+							  dest.Add(row + i, val);
+						}
 					}
 					else{
 						adjust = offset * mayDegenWidth;
-						for (int i = 0; i < mayDegenWidth; i++)
-							dest.Add(row + i, block[adjust + i] * entry);
+						for (int i = 0; i < mayDegenWidth; i++) {
+							double val = block[adjust + i] * entry;
+							if (val != 0.0)
+								dest.Add(row + i, val);
+						}
 					}
 				}
 			}
@@ -355,8 +372,11 @@ namespace ODER{
 				const double *vals = values + blockColumnOris[index];
 				const int *rowIndex = &blockRows[start];
 
-				for (int i = 0; i < end - start; i++)
-					dest.Add(rowIndex[i], vals[i] * entry);
+				for (int i = 0; i < end - start; i++){
+					double val = vals[i] * entry;
+					if(val != 0.0)
+					  dest.Add(rowIndex[i], val);
+				}
 			}
 		}
 	}
