@@ -293,8 +293,10 @@ namespace ODER{
 				const double *vals = values + blockColumnOris[blockIndex];
 				if (blockRows[index] == blockStartColumn){
 					int start = diagIndices[offset];
-					for (int i = 0; i < blockLength - offset; i++)
-						vector.emplaceBack(column + i, vals[start + i]);
+					for (int i = 0; i < blockLength - offset; i++) {
+						if (vals[start + i] != 0.0)
+						    vector.emplaceBack(column + i, vals[start + i]);
+					}
 					index++;
 					vals += diagSize;
 				}
@@ -304,22 +306,28 @@ namespace ODER{
 				while (index < end - 1){
 					int row = blockRows[index++];
 					int start = offset*blockWidth;
-					for (int i = 0; i < blockWidth; i++)
-						vector.emplaceBack(row + i, vals[start + i]);
+					for (int i = 0; i < blockWidth; i++) {
+						if (vals[start + i] != 0.0)
+						    vector.emplaceBack(row + i, vals[start + i]);
+					}
 					vals += regularSize;
 				}
 
 				int row = blockRows[index];
 				int mayDegenWidth = numColumns - row;
 				if (mayDegenWidth >= blockWidth){
-					int start = offset*blockWidth;
-					for (int i = 0; i < blockWidth; i++)
-						vector.emplaceBack(row + i, vals[start + i]);
+					int start = offset * blockWidth;
+					for (int i = 0; i < blockWidth; i++) {
+						if (vals[start + i] != 0.0)
+						    vector.emplaceBack(row + i, vals[start + i]);
+					}
 				}
 				else{
-					int start = offset*mayDegenWidth;
-					for (int i = 0; i < mayDegenWidth; i++)
-						vector.emplaceBack(row + i, vals[start + i]);
+					int start = offset * mayDegenWidth;
+					for (int i = 0; i < mayDegenWidth; i++) {
+						if (vals[start + i] != 0.0)
+						    vector.emplaceBack(row + i, vals[start + i]);
+					}
 				}
 			}
 			else{
@@ -329,8 +337,10 @@ namespace ODER{
 
 				const int* row = blockRows + rowIndexStart;
 				const double* val = values + blockColumnOris[start];
-				for (int i = 0; i < entryCount; i++)
-					vector.emplaceBack(row[i], val[i]);
+				for (int i = 0; i < entryCount; i++) {
+					if (val[i] != 0.0)
+					    vector.emplaceBack(row[i], val[i]);
+				}
 			}
 		}
 

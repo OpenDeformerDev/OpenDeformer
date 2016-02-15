@@ -18,12 +18,12 @@ namespace ODER{
 		preconditioner->solvePreconditionerSystem(width, remainder, direction);
 		double delta = Dot(width, remainder, direction);
 
-		double epsilon = delta * tolerant;
+		double epsilon = delta * tolerant * tolerant;
 
 		while (delta > epsilon){
 			// q = mat * direction
 			Initiation(temp, width);
-			SpMDV(*(this->mat), remainder, temp);
+			SpMDV(*(this->mat), direction, temp);
 			double alpha = delta / Dot(width, direction, temp);
 			//result = result + alpha * direction
 			//remainder = remainder - alpha * q

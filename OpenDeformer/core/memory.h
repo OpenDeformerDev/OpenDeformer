@@ -17,7 +17,7 @@
 namespace ODER{
 	class ReferenceCounted{
 	public:
-		ReferenceCounted(){ nReference = 0; }
+		ReferenceCounted() : nReference(0){}
 		std::atomic<int> nReference;
 	};
 
@@ -25,34 +25,43 @@ namespace ODER{
 	public:
 		Reference(T *ptr = NULL) noexcept{
 			p = ptr;
-			if (p) p->nReference++;
+			if (p) p->nReference.fetch_add(1, std::memory_order_relaxed);
 		}
 		Reference(const Reference &r) noexcept{
 			p = r.p;
-			if (p) p->nReference++;
+			if (p) p->nReference.fetch_add(1, std::memory_order_relaxed);
 		}
 		Reference(Reference &&r) noexcept{
 			p = r.p;
 			r.p = NULL;
 		}
 		Reference &operator=(T *ptr) noexcept{
-			if (ptr) ptr->nReference++;
-			if (p && --p->nReference == 0) delete p;
+			if (ptr) ptr->nReference.fetch_add(1, std::memory_order_relaxed);
+			if (p && p->nReference.fetch_sub(1, std::memory_order_release) == 1) {
+				p->nReference.load(std::memory_order_acquire);
+				delete p;
+			}
 			p = ptr;
 			return *this;
 		}
 		Reference &operator=(const Reference &r) noexcept{
-			if (r.p) r.p->nReference++;
-			if (p && --p->nReference) delete p;
+			if (r.p) r.p->nReference.fetch_add(1, std::memory_order_relaxed);
+			if (p && p->nReference.fetch_sub(1, std::memory_order_release) == 1) {
+				p->nReference.load(std::memory_order_acquire);
+				delete p;
+			}
 			p = r.p;
-			return *this;
+			return *this;          
 		}
 		Reference &operator=(Reference &&r) noexcept{
 			std::swap(p, r.p);
 			return *this;
 		}
 		~Reference(){
-			if (p && --p->nReference == 0) delete p;
+			if (p && p->nReference.fetch_sub(1, std::memory_order_release) == 1) {
+				p->nReference.load(std::memory_order_acquire);
+				delete p;
+			}
 		}
 		T *operator->() { return p; }
 		const T *operator->() const{ return p; }

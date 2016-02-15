@@ -94,8 +94,6 @@ namespace ODER{
 		delete[] vecs;
 	}
 
-
-
 	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{
 		Assert(width != 0);
 
