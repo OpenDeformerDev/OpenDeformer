@@ -27,26 +27,28 @@ namespace ODER{
 	}
 
 	void InLDLTPreconditioner::incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat){
+		auto fullIndices = mat.getFullIndices();
 		int columnCount = mat.getNumColumns();
 		pcol.push_back(0);
 
 		double *factors = invDiagonal;
 		SparseVector *vecs = new SparseVector[columnCount];
-		SparseVector temp;
+		double *temp = new double[columnCount];
 
 		for (int i = 0; i < columnCount; i++)
 			vecs[i].emplaceBack(i, 1.0);
 
 		int count = 0;
 		for (int i = 0; i < columnCount - 1; i++){
-			SpMSV(mat, vecs[i], temp);
-			
-			double diag = temp * vecs[i];
+			Initiation(temp, columnCount);
+			SpMSV(mat, fullIndices, vecs[i], temp);
+
+			double diag = vecs[i] * temp;
 			double inv = 1.0 / diag;
 			invDiagonal[i] = inv;
 
 			for (int j = i + 1; j < columnCount; j++){
-				double entry = temp * vecs[j];
+				double entry = vecs[j] * temp;
 				double lower = entry * inv;
 				if (fabs(lower) > ldltEpsilon){
 					values.push_back(lower);
@@ -83,15 +85,15 @@ namespace ODER{
 					}
 				}
 			}
-			temp.Clear();
 		}
 
 		int lastColumn = columnCount - 1;
-		SpMSV(mat, vecs[lastColumn], temp);
-		invDiagonal[lastColumn] = 1.0 / (temp * vecs[lastColumn]);
-
+		Initiation(temp, columnCount);
+		SpMSV(mat, fullIndices, vecs[lastColumn], temp);
+		invDiagonal[lastColumn] = 1.0 / (vecs[lastColumn] * temp);
 
 		delete[] vecs;
+		delete[] temp;
 	}
 
 	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{

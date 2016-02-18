@@ -353,6 +353,7 @@ namespace ODER{
 		SparseVector(SparseVector&&) = default;
 		SparseVector& operator=(SparseVector&&) = default;
 		double operator*(const SparseVector& vec) const;
+		double operator*(const double *vec) const;
 		void Set(int index, double val){
 			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
 				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
@@ -489,6 +490,25 @@ namespace ODER{
 
 		return dot;
 	}
+
+	inline double SparseVector::operator*(const double* vec) const {
+		auto iter = cbegin();
+		auto end = cend();
+
+		double dot = 0.0;
+		while (iter != end) {
+			dot += vec[iter->first] * iter->second;
+			++iter;
+		}
+
+		return dot;
+	}
+
+	inline double operator*(const double *left, const SparseVector& right) {
+		return right * left;
+	}
+
+
 
 	constexpr float const_pow(float base, int exp) noexcept{
 		return exp < 0 ? 1.f / const_pow(base, -exp) : 

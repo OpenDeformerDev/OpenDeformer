@@ -426,6 +426,80 @@ namespace ODER{
 			}
 		}
 
+		std::vector<std::vector<std::pair<int, int>>> getFullIndices() const {
+			std::vector<std::vector<std::pair<int, int>>> entryPairs(numColumns);
+			const int* colPointer = blockPcol;
+
+			const int blockBoundary = numBlockColumn * blockLength;
+			int index = 0;
+			for (int column = 0; column < blockBoundary; column += blockLength) {
+				int blockIndex = *colPointer++;
+				int blockEnd = *colPointer;
+
+				if (blockIndex == blockEnd) continue;
+
+				//diag block
+				if (blockRows[blockIndex] == column) {
+					for (int i = 0; i < blockLength; i++) {
+						entryPairs[column + i].push_back(std::make_pair(column + i, index++));
+						for (int j = i + 1; j < blockLength; j++) {
+							entryPairs[column + i].push_back(std::make_pair(column + j, index));
+							entryPairs[column + j].push_back(std::make_pair(column + i, index));
+							index += 1;
+						}
+					}
+					blockIndex += 1;
+				}
+
+				if (blockIndex == blockEnd) continue;
+
+				while (blockIndex < blockEnd - 1) {
+					int row = blockRows[blockIndex++];
+					for (int i = 0; i < blockLength; i++) {
+						for (int j = 0; j < blockWidth; j++) {
+							entryPairs[column + i].push_back(std::make_pair(row + j, index));
+							entryPairs[row + j].push_back(std::make_pair(column + i, index));
+							index += 1;
+						}
+					}
+				}
+
+				//last block
+				int row = blockRows[blockIndex];
+				int lastWidth = numColumns - row;
+				if (lastWidth >= blockWidth) lastWidth = blockWidth;
+				for (int i = 0; i < blockLength; i++) {
+					for (int j = 0; j < lastWidth; j++) {
+						entryPairs[column + i].push_back(std::make_pair(row + j, index));
+						entryPairs[row + j].push_back(std::make_pair(column + i, index));
+						index += 1;
+					}
+				}
+			}
+
+			for (int column = blockBoundary; column < numColumns; column++) {
+				int iter = *colPointer++;
+				int end = *colPointer;
+
+				if (iter == end) continue;
+
+				int row = blockRows[iter];
+				if (row == column) {
+					entryPairs[column].push_back(std::make_pair(column, index++));
+					iter += 1;
+				}
+
+				while (iter < end) {
+					row = blockRows[iter++];
+					entryPairs[column].push_back(std::make_pair(row, index));
+					entryPairs[row].push_back(std::make_pair(column, index));
+					index += 1;
+				}
+			}
+
+			return entryPairs;
+		}
+
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;
 		BlockedSymSparseMatrix& operator=(const BlockedSymSparseMatrix&) = delete;
 		BlockedSymSparseMatrix(BlockedSymSparseMatrix&& mat) noexcept{
@@ -479,6 +553,10 @@ namespace ODER{
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 			const SparseVector& src, SparseVector& dest);
+		template<int blockLength, int blockWidth>
+		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
+			const SparseVector& src, double *dest);
 	};
 
 	template<int blockLength, int blockWidth>

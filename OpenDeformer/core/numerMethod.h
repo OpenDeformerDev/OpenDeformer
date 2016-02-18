@@ -275,7 +275,7 @@ namespace ODER{
 		const int *blockRows = mat.blockRows;
 		const int *blockColumnOris = mat.blockColumnOris;
 
-		auto end = src.cend();
+		const auto end = src.cend();
 		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter){
 			const int column = vecIter->first;
 			const double entry = vecIter->second;
@@ -378,6 +378,25 @@ namespace ODER{
 					  dest.Add(rowIndex[i], val);
 				}
 			}
+		}
+	}
+
+	template<int blockLength, int blockWidth>
+	void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+		const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
+		const SparseVector& src, double *dest){
+
+		const double *values = mat.values;
+
+		const auto end = src.cend();
+		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter) {
+			const int column = vecIter->first;
+			const double entry = vecIter->second;
+
+			const std::vector<std::pair<int, int>>& rowIndexPairs = fullIndices[column];
+
+			for (const auto& pair : rowIndexPairs)
+				dest[pair.first] += values[pair.second] * entry;
 		}
 	}
 

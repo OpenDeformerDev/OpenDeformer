@@ -18,9 +18,10 @@ namespace ODER{
 		preconditioner->solvePreconditionerSystem(width, remainder, direction);
 		double delta = Dot(width, remainder, direction);
 
-		double epsilon = delta * tolerant * tolerant;
+		double epsilon = Dot(width, rhs, rhs) * tolerant * tolerant;
+		double remainderNorm2 = Dot(width, remainder, remainder);
 
-		while (delta > epsilon){
+		while (remainderNorm2 > epsilon){
 			// q = mat * direction
 			Initiation(temp, width);
 			SpMDV(*(this->mat), direction, temp);
@@ -40,6 +41,8 @@ namespace ODER{
 			//direction = beta * direction + z
 			for (int i = 0; i < width; i++)
 				direction[i] = beta * direction[i] + temp[i];
+
+			remainderNorm2 = Dot(width, remainder, remainder);
 		}
 
 		delete[] memory;
