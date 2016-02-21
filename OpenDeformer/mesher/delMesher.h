@@ -348,7 +348,7 @@ namespace ODER{
 			delete nodePool;
 			delete edgeNodePool;
 		}
-		Reference<Mesh> generateMesh();
+		Reference<Mesh> generateMesh(int *vertexLableMap);
 
 	private:
 		bool Adjacent(const Segment &s, Vertex **w) const;
@@ -410,6 +410,7 @@ namespace ODER{
 
 		std::unordered_set<Segment, segment_hash> segments;
 		std::vector<Segment> oriSegments;
+		std::vector<int> oriVertexIndices;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
 

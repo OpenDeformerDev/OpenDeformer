@@ -11,7 +11,7 @@
 namespace ODER{
 	class Mesher{
 	public:
-		virtual Reference<Mesh> generateMesh() = 0;
+		virtual Reference<Mesh> generateMesh(int *vertexLableMap = NULL) = 0;
 		virtual ~Mesher() = default;
 	};
 }

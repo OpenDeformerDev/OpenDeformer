@@ -611,7 +611,8 @@ void DelMesher::Tetrahedron::sortVertices(){
 
 Predicator<REAL> DelMesher::predicator;
 
-DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL maxRa, REAL maxR){
+DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int numseg, int numpol, 
+	int *numsubpol, REAL maxRa, REAL maxR) : oriVertexIndices(numv){
 	maxRatio = maxRa;
 	maxRadius = maxR;
 	Tetrahedron::maxREration = maxRa;
@@ -629,6 +630,7 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 		verts[i] = Vertex(surfvs[i]);
 		verts[i].setLabel();
 		vertices.push_back(verts + i);
+		oriVertexIndices[i] = i;
 	}
 	//protect every vertex
 	Protect();
@@ -2409,7 +2411,7 @@ bool DelMesher::findTet(const Tetrahedron& t) const{
 }
 
 
-Reference<Mesh> DelMesher::generateMesh(){
+Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
 	tobeDeletedFaces.reserve(16);
 	newSegsOfFaces.reserve(32);
 	tobeDeletedTets.reserve(16);
@@ -2535,6 +2537,11 @@ start:
 		surfVertIndices[1] = vertIndices[vi[f.v[1]]];
 		surfVertIndices[2] = vertIndices[vi[f.v[2]]];
 		mesh->setFacet(i++, surfVertIndices);
+	}
+
+	if (vertexLableMap) {
+		for (int i = 0; i < oriVertexIndices.size(); i++)
+			vertexLableMap[oriVertexIndices[i]] = vertIndices[i];
 	}
 
 	freeAligned(vertIndices);

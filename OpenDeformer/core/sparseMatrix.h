@@ -10,6 +10,7 @@
 #include "latool.h"
 #include <map>
 #include <vector>
+#include <unordered_map>
 
 namespace ODER{
 	class SparseMatrixAssembler{
@@ -49,9 +50,25 @@ namespace ODER{
 			std::swap(rows, mat.rows);
 			std::swap(pcol, mat.pcol);
 		}
+		void setZeros() {
+			Initiation(value, pcol[numColumns]);
+		}
+		void Add(double alpha, const SparseMatrix& mat) {
+			Assert(numColumns == mat.numColumns);
+			Assert(pcol[numColumns] == mat.pcol[numColumns]);
+
+			int dataCount = pcol[numColumns];
+			for (int i = 0; i < dataCount; i++)
+				value[i] += alpha * mat.value[i];
+		}
+		void Scale(double alpha) {
+			int dataCount = pcol[numColumns];
+			for (int i = 0; i < dataCount; i++)
+				value[i] *= alpha;
+		}
+		int getNumColumns() const { return numColumns; }
+		std::vector<std::unordered_map<int, int>> getIndices() const;
 		~SparseMatrix();
-		int getNumColumns() const;
-		void Print() const;
 	private:
 		int numColumns;
 		//CSC format
@@ -385,6 +402,13 @@ namespace ODER{
 			}
 		}
 
+		void addEntry(int row, int column, double data, 
+			const std::vector<std::unordered_map<int, int>>& indices) {
+			auto pair = indices[column].find(row);
+			Assert(pair != indices[column].cend());
+			values[pair->second] += data;
+		}
+
 		void getDiagonal(double* diags) const{
 			int i = 0;
 			const double *vals = values;
@@ -498,6 +522,59 @@ namespace ODER{
 			}
 
 			return entryPairs;
+		}
+
+		std::vector<std::unordered_map<int, int>> getIndices() const {
+			std::vector<std::unordered_map<int, int>> indices(numColumns);
+
+			const int* colPointer = blockPcol;
+
+			const int blockBoundary = numBlockColumn * blockLength;
+			int index = 0;
+			for (int column = 0; column < blockBoundary; column += blockLength) {
+				int blockIndex = *colPointer++;
+				int blockEnd = *colPointer;
+
+				if (blockIndex == blockEnd) continue;
+
+				//diag block
+				if (blockRows[blockIndex] == column) {
+					for (int i = 0; i < blockLength; i++) {
+						for (int j = i; j < blockLength; j++)
+							indices[column + i].emplace(column + j, index++);
+					}
+					blockIndex += 1;
+				}
+
+				if (blockIndex == blockEnd) continue;
+
+				while (blockIndex < blockEnd - 1) {
+					int row = blockRows[blockIndex++];
+					for (int i = 0; i < blockLength; i++) {
+						for (int j = 0; j < blockWidth; j++)
+							indices[column + i].emplace(row + j, index++);
+					}
+				}
+
+				//last block
+				int row = blockRows[blockIndex];
+				int lastWidth = numColumns - row;
+				if (lastWidth >= blockWidth) lastWidth = blockWidth;
+				for (int i = 0; i < blockLength; i++) {
+					for (int j = 0; j < lastWidth; j++)
+						indices[column + i].emplace(row + j, index++);
+				}
+			}
+
+			for (int column = blockBoundary; column < numColumns; column++) {
+				int iter = *colPointer++;
+				int end = *colPointer;
+
+				while (iter < end) 
+					indices[column].emplace(blockRows[iter++], index++);
+			}
+
+			return indices;
 		}
 
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;

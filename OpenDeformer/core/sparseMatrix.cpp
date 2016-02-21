@@ -74,8 +74,18 @@ namespace ODER{
 		}
 	}
 
-	int SparseMatrix::getNumColumns() const{
-		return numColumns;
+	std::vector<std::unordered_map<int, int>> SparseMatrix::getIndices() const {
+		std::vector<std::unordered_map<int, int>> indices(numColumns);
+
+		for (int i = 0; i < numColumns; i++) {
+			int index = pcol[i];
+			int end = pcol[i + 1];
+
+			while (index < end)
+				indices[i].emplace(rows[index], index++);
+		}
+
+		return indices;
 	}
 
 	SparseMatrix::~SparseMatrix(){
@@ -84,11 +94,4 @@ namespace ODER{
 		freeAligned(pcol);
 	}
 
-	void SparseMatrix::Print() const{
-		for (int i = 0; i < numColumns; i++){
-			for (int j = pcol[i]; j < pcol[i + 1]; j++)
-				printf("%d,%.3f ", rows[j], value[j]);
-			printf("\n");
-		}
-	}
 }

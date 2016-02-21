@@ -31,7 +31,8 @@ namespace ODER{
 	}
 
 	void InvertibleHyperelasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-		const double *u, BlockedSymSpMatrix& matrix, double *vws) const {
+		const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices, 
+		BlockedSymSpMatrix& matrix, double *vws) const {
 
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
@@ -93,7 +94,7 @@ namespace ODER{
 						int globalColumn = elementNodeIndices[subColumn];
 						double matEntry = subMatrix[entryIndex++];
 						if (globalColumn >= 0 && matEntry != 0.0)
-							matrix.addEntry(globalRow, globalColumn, matEntry);					
+							matrix.addEntry(globalRow, globalColumn, matEntry, matrixIndices);
 					}
 				}
 				else

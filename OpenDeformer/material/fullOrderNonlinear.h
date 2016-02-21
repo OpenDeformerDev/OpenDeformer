@@ -15,7 +15,8 @@ namespace ODER {
 	public:
 		FullOrderNonlinearMaterial(double rho, MarterialType t) : MechMaterial(rho, MarterialType(t | Marterial_NonLinear)) {}
 		virtual void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, SpMatrix& matrix, double *vws) const = 0;
+			const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices,
+			SpMatrix& matrix, double *vws) const = 0;
 		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& assmbler) const;
 		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& assmbler) const;
 	};
