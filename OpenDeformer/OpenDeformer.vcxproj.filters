@@ -117,9 +117,6 @@
     <ClInclude Include="core\oder.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
-    <ClInclude Include="material\stvk.h">
-      <Filter>头文件\material</Filter>
-    </ClInclude>
     <ClInclude Include="core\simulator.h">
       <Filter>头文件\core</Filter>
     </ClInclude>
@@ -174,6 +171,12 @@
     <ClInclude Include="solver\stubPreconditioner.h">
       <Filter>头文件\solver</Filter>
     </ClInclude>
+    <ClInclude Include="material\invertibleStVK.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
+    <ClInclude Include="material\stvk.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -208,9 +211,6 @@
     </ClCompile>
     <ClCompile Include="core\nodeIndexer.cpp">
       <Filter>源文件\core</Filter>
-    </ClCompile>
-    <ClCompile Include="material\stvk.cpp">
-      <Filter>源文件\material</Filter>
     </ClCompile>
     <ClCompile Include="core\simulator.cpp">
       <Filter>源文件\core</Filter>
@@ -250,6 +250,12 @@
     </ClCompile>
     <ClCompile Include="solver\stubPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
+    </ClCompile>
+    <ClCompile Include="material\invertibleStVK.cpp">
+      <Filter>源文件\material</Filter>
+    </ClCompile>
+    <ClCompile Include="material\stvk.cpp">
+      <Filter>源文件\material</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

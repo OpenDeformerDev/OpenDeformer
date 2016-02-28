@@ -8,13 +8,13 @@
 #include "reducedHyperelastic.h"
 
 namespace ODER{
-	class StVKMaterial :public ReducedHyperelasticMaterial{
+	class ReducedStVKMaterial :public ReducedHyperelasticMaterial{
 	public:
-		StVKMaterial(double rho, double lameFirst, double lameSecond, int orders);
+		ReducedStVKMaterial(double rho, double lameFirst, double lameSecond, int orders);
 		void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer);
 		void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces);
-		~StVKMaterial();
+		~ReducedStVKMaterial();
 	private:
 		void getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const;
 		double lambda, mu;

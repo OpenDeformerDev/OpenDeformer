@@ -5,7 +5,7 @@
 #include "element.h"
 
 namespace ODER{
-	StVKMaterial::StVKMaterial(double rho, double lameFirst, double lameSecond, int orderNum)
+	ReducedStVKMaterial::ReducedStVKMaterial(double rho, double lameFirst, double lameSecond, int orderNum)
 		:ReducedHyperelasticMaterial(rho, orderNum),
 		lambda(lameFirst), mu(lameSecond){
 
@@ -19,7 +19,7 @@ namespace ODER{
 
 	}
 
-	void StVKMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
+	void ReducedStVKMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
 		const int numNodesPerElement = mesh->getNodePerElementCount();
 		double subStiffness[3 * 3];
 
@@ -65,7 +65,7 @@ namespace ODER{
 		delete element;
 	}
 
-	void StVKMaterial::preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer){
+	void ReducedStVKMaterial::preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer){
 		const int numNodes = mesh->getNodeCount();
 		const int numNodePerElement = mesh->getNodePerElementCount();
 		const int numElements = mesh->getElementCount();
@@ -103,7 +103,7 @@ namespace ODER{
 		freeAligned(nnpart);
 	}
 
-	void StVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces){
+	void ReducedStVKMaterial::getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces){
 		const int numElements = mesh->getElementCount();
 		const int numNodesPerElement = mesh->getNodePerElementCount();
 		const int numNodes = mesh->getNodeCount();
@@ -211,14 +211,14 @@ namespace ODER{
 		delete element;
 	}
 
-	void StVKMaterial::getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const{
+	void ReducedStVKMaterial::getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const{
 		for (int axis = 0; axis < 3; axis++){
 			int index = nodeIndices[axis];
 			d[axis] = index >= 0 ? ds[index] : 0.0;
 		}
 	}
 
-	StVKMaterial::~StVKMaterial(){
+	ReducedStVKMaterial::~ReducedStVKMaterial(){
 		if (intergration[0]) freeAligned(intergration[0]);
 		delete[] stressNonlinear;
 	}

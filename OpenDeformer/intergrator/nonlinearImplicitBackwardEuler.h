@@ -61,7 +61,7 @@ namespace ODER {
 
 		tagentMatrix = new SpMatrix(structureAssembler);
 		massMatrix = new SpMatrix(massAssembler);
-		linearSolver->resetLinerSystem(tagentMatrix);
+		linearSolver->resetLinearSystem(tagentMatrix);
 		matrixIndices = tagentMatrix->getIndices();
 	}
 

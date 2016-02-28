@@ -11,6 +11,8 @@
 namespace ODER{
 	class InLDLTPreconditioner : public Preconditioner{
 	public:
+		InLDLTPreconditioner(double sainvEpsilon, double ldltEpsilon)
+			:sainvEpsilon(sainvEpsilon), ldltEpsilon(ldltEpsilon) {}
 		InLDLTPreconditioner(const BlockedSymSpMatrix& mat, double sainvEpsilon, double ldltEpsilon);
 		InLDLTPreconditioner(const InLDLTPreconditioner&) = delete;
 		InLDLTPreconditioner& operator=(const InLDLTPreconditioner&&) = delete;

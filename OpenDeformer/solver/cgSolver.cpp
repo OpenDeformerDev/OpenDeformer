@@ -5,6 +5,12 @@
 #include "preconditioner.h"
 
 namespace ODER{
+	void CGSolver::resetLinearSystem(const BlockedSymSpMatrix* m) {
+		this->mat = m;
+		if (preconditioner)
+			preconditioner->resetPreconditionerSystem(*(this->mat));
+	}
+
 	void CGSolver::solveLinearSystem(const double *rhs, double *result) const{
 		const int width = this->mat->getNumColumns();
 		double *memory = new double[3 * width];

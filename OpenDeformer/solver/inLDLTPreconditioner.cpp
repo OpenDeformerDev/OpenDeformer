@@ -23,6 +23,11 @@ namespace ODER{
 		rows.clear();
 		pcol.clear();
 
+		int columnCount = mat.getNumColumns();
+		values.reserve(columnCount);
+		rows.reserve(columnCount);
+		pcol.reserve(columnCount);
+
 		incompleteLDLTDecomposition(mat);
 	}
 

@@ -11,6 +11,7 @@
 namespace ODER{
 	class InCholeskyPreconditioner : public Preconditioner{
 	public:
+		InCholeskyPreconditioner(double epsilon) : epsilon(epsilon) {}
 		InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double epsilon);
 		InCholeskyPreconditioner(const InCholeskyPreconditioner&&) = delete;
 		InCholeskyPreconditioner& operator=(const InCholeskyPreconditioner&&) = delete;

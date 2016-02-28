@@ -9,6 +9,7 @@
 
 namespace ODER {
 	class InvertibleHyperelasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix>{
+	public:
 		InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh);
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
 			const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices, 

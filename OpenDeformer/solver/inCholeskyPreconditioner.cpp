@@ -52,6 +52,12 @@ namespace ODER{
 		values.clear();
 		rows.clear();
 		pcol.clear();
+
+		int columnCount = mat.getNumColumns();
+		pcol.reserve(columnCount + 1);
+		values.reserve(columnCount);
+		rows.reserve(columnCount);
+
 		incompleteCholeskyDecomposition(mat);
 	}
 

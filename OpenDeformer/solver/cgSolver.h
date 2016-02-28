@@ -12,17 +12,18 @@
 namespace ODER{
 	class CGSolver : public LinearSolver<BlockedSymSpMatrix>{
 	public:
-		CGSolver(const BlockedSymSpMatrix* m, double tol, const Preconditioner* precondition)
+		CGSolver(double tol, Preconditioner* precondition = NULL, const BlockedSymSpMatrix* m = NULL)
 			:LinearSolver(m), tolerant(tol), preconditioner(precondition){}
 		CGSolver(const CGSolver&) = delete;
 		CGSolver& operator=(const CGSolver&) = delete;
 		CGSolver(CGSolver&&) = default;
 		CGSolver& operator=(CGSolver&&) = default;
+		void resetLinearSystem(const BlockedSymSpMatrix* m);
 		void solveLinearSystem(const double *rhs, double *result) const;
 		~CGSolver() = default;
 	private:
 		double tolerant;
-		const Preconditioner* preconditioner;
+		Preconditioner* preconditioner;
 	};
 }
 #endif
