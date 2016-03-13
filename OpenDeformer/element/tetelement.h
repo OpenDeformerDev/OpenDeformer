@@ -56,7 +56,7 @@ namespace ODER{
 		InvertibleHyperelasticTetElement(TetMesh *m): InvertibleHyperelasticElement(m){}
 		void getPrecomputes(double *drivates, double *deforamtionGradients) const;
 		int getDirvateEntryCount() const { return 12;}
-		int getDeformGradientsPreEntryCount() const { return 12; }
+		int getDeformGradientsPreEntryCount() const { return 9; }
 		int getQuadraturePointCount() const { return 1; }
 
 		void generateDeformationGradient(const double *precompute, const double *u, double *gradients) const;

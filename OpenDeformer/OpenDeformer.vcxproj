@@ -187,6 +187,7 @@
     <ClInclude Include="material\invertibleHyperelastic.h" />
     <ClInclude Include="material\invertibleStVK.h" />
     <ClInclude Include="material\reducedHyperelastic.h" />
+    <ClInclude Include="material\reducedStVK.h" />
     <ClInclude Include="mesher\aabb.h" />
     <ClInclude Include="core\arithmetic.h" />
     <ClInclude Include="core\element.h" />
@@ -227,6 +228,7 @@
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\invertibleHyperelastic.cpp" />
     <ClCompile Include="material\invertibleStVK.cpp" />
+    <ClCompile Include="material\reducedStVK.cpp" />
     <ClCompile Include="mesher\delMesher.cpp" />
     <ClCompile Include="core\eigensolver.cpp" />
     <ClCompile Include="core\forcer.cpp" />

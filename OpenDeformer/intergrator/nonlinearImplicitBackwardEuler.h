@@ -55,14 +55,13 @@ namespace ODER {
 		rhs = memory + 6 * dofs;
 
 		using AssemblerType = std::conditional_t<std::is_same<SpMatrix, BlockedSymSpMatrix>::value, BlockedSymSpMatrixAssembler, SparseMatrixAssembler>;
-		AssemblerType structureAssembler(dofs), massAssembler(dofs);
-		material->generateMassMatrix(mesh, indexer, massAssembler);
+		AssemblerType structureAssembler(dofs);
 		material->getMatrixStructure(mesh, indexer, structureAssembler);
 
 		tagentMatrix = new SpMatrix(structureAssembler);
-		massMatrix = new SpMatrix(massAssembler);
-		linearSolver->resetLinearSystem(tagentMatrix);
+		massMatrix = new SpMatrix(structureAssembler);
 		matrixIndices = tagentMatrix->getIndices();
+		material->generateMassMatrix(mesh, indexer, matrixIndices, *massMatrix);
 	}
 
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::~NonlinearImplicitBackwardEuler() {
@@ -76,6 +75,7 @@ namespace ODER {
 		memcpy(pre_v, v, sizeof(double) * dofs);
 
 		tagentMatrix->setZeros();
+		Initiation(internalVirtualWork, dofs);
 		material->generateMatrixAndVirtualWorks(mesh, indexer, d, matrixIndices, *tagentMatrix, internalVirtualWork);
 		tagentMatrix->Scale(timeStep + stiffnessDamping);
 		tagentMatrix->Add(massDamping, *massMatrix);
@@ -86,6 +86,7 @@ namespace ODER {
 		tagentMatrix->Scale(timeStep);
 		tagentMatrix->Add(1.0, *massMatrix);
 
+		solver->resetLinearSystem(tagentMatrix);
 		solver->solveLinearSystem(rhs, v);
 		for (int i = 0; i < dofs; i++) {
 			v[i] += pre_v[i];

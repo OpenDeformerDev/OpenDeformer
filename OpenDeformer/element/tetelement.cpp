@@ -211,19 +211,20 @@ namespace ODER{
 
 		Tensor2<double> D(ab.x, ac.x, ad.x,
 			ab.y, ac.y, ad.y,
-			ab.z, ad.z, ad.z);
+			ab.z, ac.z, ad.z);
 
 		memcpy(deforamtionGradients, &(Inverse(D)(0, 0)), sizeof(double) * 9);
 	}
 
 	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, const double *u, double *gradients) const{
 		Initiation(gradients, 9);
+		
 		for (int i = 1; i < 4; i++) {
 			Vector ax = mesh->getVertex(nodeIndexs[i]) - mesh->getVertex(nodeIndexs[0]);
 			for (int j = 0; j < 3; j++) {
 				double d = ax[j] + (u[i * 3 + j] - u[j]);
 				for (int k = 0; k < 3; k++)
-					gradients[(i - 1) * 3 + k] += d * precompute[(i - 1) * 3 + k];
+					gradients[j * 3 + k] += d * precompute[(i - 1) * 3 + k];
 			}
 		}
 	}

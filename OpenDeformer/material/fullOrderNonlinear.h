@@ -25,19 +25,19 @@ namespace ODER {
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
-		int entrys = ((1 + numNodesPerElement) * numNodesPerElement) >> 1;
+		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement * sizeof(int));
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndexs(elementIndex);
+			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
-			int k = 0;
-			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
-					for (int offset = 0; offset < 3; offset++) {
-						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
-						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);
-						if (i_index >= 0 && j_index >= 0) {
-							int rowIndex = std::max(i_index, j_index);
-							int columnIndex = std::min(i_index, j_index);
+			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
+				int globalRow = elementNodeIndices[subRow];
+				if (globalRow >= 0) {
+					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
+						int globalColumn = elementNodeIndices[subColumn];
+						if (globalColumn >= 0) {
+							int rowIndex = std::max(globalRow, globalColumn);
+							int columnIndex = std::min(globalRow, globalColumn);
 							assmbler.addEntry(rowIndex, columnIndex, 0.0);
 						}
 					}
@@ -51,19 +51,19 @@ namespace ODER {
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
-		int entrys = ((1 + numNodesPerElement) * numNodesPerElement) >> 1;
+		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement * sizeof(int));
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndexs(elementIndex);
+			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
-			int k = 0;
-			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
-					for (int offset = 0; offset < 3; offset++) {
-						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
-						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);
-						if (i_index >= 0 && j_index >= 0) {
-							int rowIndex = std::max(i_index, j_index);
-							int columnIndex = std::min(i_index, j_index);
+			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
+				int globalRow = elementNodeIndices[subRow];
+				if (globalRow >= 0) {
+					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
+						int globalColumn = elementNodeIndices[subColumn];
+						if (globalColumn >= 0) {
+							int rowIndex = std::max(globalRow, globalColumn);
+							int columnIndex = std::min(globalRow, globalColumn);
 							assmbler.addEntry(rowIndex, columnIndex, 0.0);
 						}
 					}

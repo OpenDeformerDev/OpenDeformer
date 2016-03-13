@@ -174,6 +174,9 @@
     <ClInclude Include="material\invertibleStVK.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
+    <ClInclude Include="material\reducedStVK.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -249,6 +252,9 @@
       <Filter>源文件\solver</Filter>
     </ClCompile>
     <ClCompile Include="material\invertibleStVK.cpp">
+      <Filter>源文件\material</Filter>
+    </ClCompile>
+    <ClCompile Include="material\reducedStVK.cpp">
       <Filter>源文件\material</Filter>
     </ClCompile>
   </ItemGroup>

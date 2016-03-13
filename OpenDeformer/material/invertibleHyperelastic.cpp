@@ -41,7 +41,6 @@ namespace ODER{
 		const int quadratureCount = element->getQuadraturePointCount();
 		const int subMatrixEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2;
 
-		Initiation(vws, 3 * elementCount);
 		double *subMatrix = memory;
 		double *subVirtualWorks = subMatrix + subMatrixEntryCount;
 		double *nodeDisplacements = subVirtualWorks + 3 * nodePerElementCount;
@@ -55,7 +54,7 @@ namespace ODER{
 
 		int *elementNodeIndices = (int *)alloca(3 * nodePerElementCount * sizeof(int));
 
-		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
+		for (int elementIndex = 0; elementIndex < elementCount; elementIndex++) {
 			element->setNodeIndexs(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, nodePerElementCount, elementNodeIndices);
 			const double *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
@@ -93,8 +92,11 @@ namespace ODER{
 					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
 						int globalColumn = elementNodeIndices[subColumn];
 						double matEntry = subMatrix[entryIndex++];
-						if (globalColumn >= 0 && matEntry != 0.0)
-							matrix.addEntry(globalRow, globalColumn, matEntry, matrixIndices);
+						if (globalColumn >= 0 && matEntry != 0.0) {
+							int row = std::max(globalColumn, globalRow);
+							int column = std::min(globalColumn, globalRow);
+							matrix.addEntry(row, column, matEntry, matrixIndices);
+						}
 					}
 				}
 				else

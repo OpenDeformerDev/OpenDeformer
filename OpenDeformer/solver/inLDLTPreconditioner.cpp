@@ -12,8 +12,7 @@ namespace ODER{
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
 		pcol.reserve(columnCount);
-
-		invDiagonal = new double[columnCount];
+		invDiagonal.resize(columnCount);
 
 		incompleteLDLTDecomposition(mat);
 	}
@@ -27,6 +26,7 @@ namespace ODER{
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
 		pcol.reserve(columnCount);
+		invDiagonal.resize(columnCount);
 
 		incompleteLDLTDecomposition(mat);
 	}
@@ -36,7 +36,7 @@ namespace ODER{
 		int columnCount = mat.getNumColumns();
 		pcol.push_back(0);
 
-		double *factors = invDiagonal;
+		double *factors = &invDiagonal[0];
 		SparseVector *vecs = new SparseVector[columnCount];
 		double *temp = new double[columnCount];
 
