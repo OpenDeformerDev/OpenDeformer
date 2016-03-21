@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "tetelement.h"
+#include "numerMethod.h"
 
 namespace ODER{
 	void TetElement::generateSubMassMatrix(double *result) const{
@@ -218,7 +219,7 @@ namespace ODER{
 
 	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, const double *u, double *gradients) const{
 		Initiation(gradients, 9);
-		
+
 		for (int i = 1; i < 4; i++) {
 			Vector ax = mesh->getVertex(nodeIndexs[i]) - mesh->getVertex(nodeIndexs[0]);
 			for (int j = 0; j < 3; j++) {
@@ -232,38 +233,61 @@ namespace ODER{
 	void InvertibleHyperelasticTetElement::generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats,
 		const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const{
 		constexpr int diagIndices[12] = { 0, 12, 23, 33, 42, 50, 57, 63, 68, 72, 75, 77 };
+		constexpr int indices[9] = { 0, 3, 5, 4, 1, 7, 6, 8, 2 };
 		constexpr int nodePerElementCount = 4;
 		double dPdF[81];
-		getdPdF(diags, leftOrthoMats, rightOrthoMats, energyGradients, energyHassians, dPdF);
+		Initiation(dPdF, 81);
+		getdPdF(diags, energyGradients, energyHassians, dPdF);
 
 		double volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
 			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
 		double factor = 1.0 / (36.0 * volume);
 
+		const Tensor2<double> VT(rightOrthoMats);
+		VectorBase<double> dN[4];
+		for (int i = 0; i < nodePerElementCount; i++) {
+			for (int j = 0; j < 3; j++)
+				dN[i][j] = drivates[i * 3 + j];
+			dN[i] = VT * dN[i];
+		}
+	
+		const Tensor2<double> U(leftOrthoMats);
+		const Tensor2<double> UT = Transpose(U);
+		Tensor2<double> subMat;
 		for (int aNodeIndex = 0; aNodeIndex < nodePerElementCount; aNodeIndex++) {
-			const double *dNa = drivates + aNodeIndex * 3;
+			const VectorBase<double> dNa = dN[aNodeIndex];
 			//generate diag subMat
 			for (int i = 0; i < 3; i++) {
-				for (int j = 0; j < 3 - i; j++) {
+				for (int j = 0; j < 3; j++) {
 					double entry = 0.0;
 					for (int k = 0; k < 3; k++)
 						for (int l = 0; l < 3; l++)
-							entry += dPdF[(i * 3 + k) * 9 + ((j + i) * 3 + l)] * dNa[k] * dNa[l];
-					result[diagIndices[aNodeIndex * 3 + i] + j] = entry * factor;
+							entry += dPdF[(i * 3 + k) * 9 + (j * 3 + l)] * dNa[k] * dNa[l];
+					subMat(i, j) = entry;
 				}
+			}
+			subMat = U * subMat * UT;
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3 - i; j++)
+					result[diagIndices[aNodeIndex * 3 + i] + j] = subMat(i, i + j) * factor;
 			}
 			
 			//generate offdiag subMat
 			for (int bNodeIndex = aNodeIndex + 1; bNodeIndex < nodePerElementCount; bNodeIndex++) {
-				const double *dNb = drivates + 3 * bNodeIndex;
+				const VectorBase<double> dNb = dN[bNodeIndex];
 				for (int i = 0; i < 3; i++) {
 					for (int j = 0; j < 3; j++) {
 						double entry = 0.0;
 						for (int k = 0; k < 3; k++)
 							for (int l = 0; l < 3; l++)
 								entry += dPdF[(i * 3 + k) * 9 + (j * 3 + l)] * dNa[k] * dNb[l];
-						result[diagIndices[aNodeIndex * 3 + i] + ((bNodeIndex - aNodeIndex) * 3 - i) + j] = entry * factor;
+						subMat(i, j) = entry;
 					}
+				}
+				subMat = U * subMat * UT;
+				for (int i = 0; i < 3; i++) {
+					for (int j = 0; j < 3 - i; j++)
+						result[diagIndices[aNodeIndex * 3 + i] + ((bNodeIndex - aNodeIndex) * 3 - i) + j] = subMat(i, j) * factor;
 				}
 			}
 		}
@@ -282,12 +306,8 @@ namespace ODER{
 			result[9 + i] = -(result[0 + i] + result[3 + i] + result[6 + i]);
 	}
 
-	void InvertibleHyperelasticTetElement::getdPdF(const double *diag, const double *leftOrthoMat,
-		const double *rightOrthoMat, const double *energyGradient, const double *energyHassian, double dPdF[81]) const {
-		constexpr int indices[9] = { 0, 3, 5, 4, 1, 7, 6, 8, 2 };
-		constexpr int invertIndices[9] = { 0, 4, 8, 1, 3, 2, 6, 5, 7 };
-		double dPdFD[81];
-		Initiation(dPdFD, 81);
+	void InvertibleHyperelasticTetElement::getdPdF(const double *diag, const double *energyGradient, 
+		const double *energyHassian, double dPdF[81]) const {
 
 		const double diagSquare[3] = { diag[0] * diag[0],  diag[1] * diag[1],  diag[2] * diag[2] };
 		const double invariant = diagSquare[0] * diagSquare[1] * diagSquare[2];
@@ -318,9 +338,9 @@ namespace ODER{
 			                          energyHassian[1], energyHassian[3], energyHassian[4],
 			                          energyHassian[2], energyHassian[4], energyHassian[5]);
 
-		const VectorBase<double> vec0(2.0 * diag[0], 4.0 * diag[0] * diagSquare[0], invariant / diag[0]);
-		const VectorBase<double> vec1(2.0 * diag[1], 4.0 * diag[1] * diagSquare[1], invariant / diag[1]);
-		const VectorBase<double> vec2(2.0 * diag[2], 4.0 * diag[2] * diagSquare[2], invariant / diag[2]);
+		const VectorBase<double> vec0(2.0 * diag[0], 4.0 * diag[0] * diagSquare[0], 2.0 * invariant / diag[0]);
+		const VectorBase<double> vec1(2.0 * diag[1], 4.0 * diag[1] * diagSquare[1], 2.0 * invariant / diag[1]);
+		const VectorBase<double> vec2(2.0 * diag[2], 4.0 * diag[2] * diagSquare[2], 2.0 * invariant / diag[2]);
 
 		double gamma00 = vec0 * (hassian * vec0) + 4.0 * delta00;
 		double gamma01 = vec1 * (hassian * vec0) + 4.0 * delta01;
@@ -329,50 +349,104 @@ namespace ODER{
 		double gamma12 = vec2 * (hassian * vec1) + 4.0 * delta12;
 		double gamma22 = vec2 * (hassian * vec2) + 4.0 * delta22;
 
-		dPdFD[0] = alpha00 + beta00 + gamma00;
-		dPdFD[1] = gamma01;
-		dPdFD[2] = gamma02;
-		dPdFD[9 * 1 + 0] = gamma01;
-		dPdFD[9 * 1 + 1] = alpha11 + beta11 + gamma11;
-		dPdFD[9 * 1 + 2] = gamma12;
-		dPdFD[9 * 2 + 0] = gamma02;
-		dPdFD[9 * 2 + 1] = gamma12;
-		dPdFD[9 * 2 + 2] = alpha22 + beta22 + gamma22;
-		dPdFD[9 * 3 + 3] = alpha01;
-		dPdFD[9 * 3 + 4] = beta01;
-		dPdFD[9 * 4 + 3] = beta01;
-		dPdFD[9 * 4 + 4] = alpha01;
-		dPdFD[9 * 5 + 5] = alpha02;
-		dPdFD[9 * 5 + 6] = beta02;
-		dPdFD[9 * 6 + 5] = beta02;
-		dPdFD[9 * 6 + 6] = alpha02;
-		dPdFD[9 * 7 + 7] = alpha12;
-		dPdFD[9 * 7 + 8] = beta12;
-		dPdFD[9 * 8 + 7] = beta12;
-		dPdFD[9 * 8 + 8] = alpha12;
+		//ensure (semi-)definiteness
+	    double trimat[6];
+		trimat[0] = alpha00 + beta00 + gamma00;
+		trimat[1] = gamma01;
+		trimat[2] = gamma02;
+		trimat[3] = alpha11 + beta11 + gamma11;
+		trimat[4] = gamma12;
+		trimat[5] = alpha22 + beta22 + gamma22;
+		forceSemidefinite3x3(trimat);
+		forceSemidefinite2x2(alpha01, beta01);
+		forceSemidefinite2x2(alpha02, beta02);
+		forceSemidefinite2x2(alpha12, beta12);
 
-		const Tensor2<double> U(leftOrthoMat);
-		const Tensor2<double> VT(rightOrthoMat);
-		double contract[9];
-		double dPdFij[9];
+		dPdF[tensorIndex(0, 0, 0, 0)] = trimat[0];
+		dPdF[tensorIndex(0, 0, 1, 1)] = trimat[1];
+		dPdF[tensorIndex(0, 0, 2, 2)] = trimat[2];
+		dPdF[tensorIndex(1, 1, 0, 0)] = trimat[1];
+		dPdF[tensorIndex(1, 1, 1, 1)] = trimat[3];
+		dPdF[tensorIndex(1, 1, 2, 2)] = trimat[4];
+		dPdF[tensorIndex(2, 2, 0, 0)] = trimat[2];
+		dPdF[tensorIndex(2, 2, 1, 1)] = trimat[4];
+		dPdF[tensorIndex(2, 2, 2, 2)] = trimat[5];
+
+		dPdF[tensorIndex(0, 1, 0, 1)] = alpha01;
+		dPdF[tensorIndex(0, 1, 1, 0)] = beta01;
+		dPdF[tensorIndex(1, 0, 0, 1)] = beta01;
+		dPdF[tensorIndex(1, 0, 1, 0)] = alpha01;
+
+		dPdF[tensorIndex(0, 2, 0, 2)] = alpha02;
+		dPdF[tensorIndex(0, 2, 2, 0)] = beta02;
+		dPdF[tensorIndex(2, 0, 0, 2)] = beta02;
+		dPdF[tensorIndex(2, 0, 2, 0)] = alpha02;
+
+		dPdF[tensorIndex(1, 2, 1, 2)] = alpha12;
+		dPdF[tensorIndex(1, 2, 2, 1)] = beta12;
+		dPdF[tensorIndex(2, 1, 1, 2)] = beta12;
+		dPdF[tensorIndex(2, 1, 2, 1)] = alpha12;
+	}
+
+	void InvertibleHyperelasticTetElement::forceSemidefinite3x3(double mat[6]) const {
+		Tensor2<double> QT;
+		double eigenVals[3];
+		eigenSym3x3(mat, eigenVals, &(QT(0, 0)));
+		bool negative = false;
 		for (int i = 0; i < 3; i++) {
-			double seleted[3] = { leftOrthoMat[i * 3 + 0], leftOrthoMat[i * 3 + 1], leftOrthoMat[i * 3 + 2] };
-			for (int j = 0; j < 3; j++) {
-				Initiation(dPdFij, 9);
-				for (int row = 0; row < 3; row++)
-					for (int col = 0; col < 3; col++)
-						contract[indices[row * 3 + col]] = seleted[row] * rightOrthoMat[col * 3 + j];
-
-				for (int row = 9; row < 9; row++)
-					for (int col = 0; col < 9; col++)
-						dPdFij[invertIndices[row]] += dPdFD[row * 9 + col] * contract[col];
-
-				Tensor2<double> dPdFijTensor = U * Tensor2<double>(dPdFij) * VT;
-				
-				for (int row = 0; row < 3; row++)
-					for (int col = 0; col < 3; col++)
-						dPdF[(i * 3 + j) * 9 + (row * 3 + col)] = dPdFijTensor(row, col);
+			if (eigenVals[i] < 0) {
+				negative = true;
+				eigenVals[i] = 0.0;
 			}
+		}
+
+		if(negative) {
+			const Tensor2<double> Q = Transpose(QT);
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++)
+					QT(i, j) *= eigenVals[i];
+			}
+			const Tensor2<double> A = Q * QT;
+			mat[0] = A(0, 0);
+			mat[1] = A(0, 1);
+			mat[2] = A(0, 2);
+			mat[3] = A(1, 1);
+			mat[4] = A(1, 2);
+			mat[5] = A(2, 2);
+		}
+	}
+
+	void InvertibleHyperelasticTetElement::forceSemidefinite2x2(double& diag, double& offdiag) const {
+		double eigenVal0 = diag + offdiag;
+		double eigenVal1 = diag - offdiag;
+
+		int condtion = (eigenVal0 < 0) + ((eigenVal1 < 0) << 1);
+		switch (condtion) {
+		case 0:
+			break;
+		case 1:
+		{
+			eigenVal1 *= 0.5;
+			diag = eigenVal1;
+			offdiag = -eigenVal1;
+			break;
+		}
+		case 2:
+		{
+			eigenVal0 *= 0.5;
+			diag = eigenVal0;
+			offdiag = eigenVal0;
+			break;
+		}
+		case 3:
+		{
+			diag = 0.0;
+			offdiag = 0.0;
+			break;
+		}
+		default:
+			Severe("Unexpected condition in InvertibleHyperelasticTetElement::forceSemidefinite2x2");
+			break;
 		}
 	}
 

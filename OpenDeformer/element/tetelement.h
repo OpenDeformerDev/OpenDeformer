@@ -64,8 +64,10 @@ namespace ODER{
 			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const;
 		void generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const;
 	private:
-		void getdPdF(const double *diag, const double *leftOrthoMat,
-			const double *rightOrthoMat, const double *energyGradient, const double *energyHassian, double dPdF[81]) const;
+		void getdPdF(const double *diag, const double *energyGradient, const double *energyHassian, double dPdF[81]) const;
+		void forceSemidefinite3x3(double mat[6]) const;
+		void forceSemidefinite2x2(double& diag, double& offdiag) const;
+		int tensorIndex(int i, int j, int k, int l) const { return i * 27 + j * 9 + k * 3 + l; }
 	};
 
 	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,

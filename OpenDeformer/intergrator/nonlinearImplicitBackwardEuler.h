@@ -25,7 +25,6 @@ namespace ODER {
 	private:
 		double *d;
 		double *v;
-		double *pre_d;
 		double *pre_v;
 		double *internalVirtualWork;
 		double *externalVirtualWork;
@@ -44,15 +43,14 @@ namespace ODER {
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, double massDamp, double stiffDamp, double ts,
 		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> *mater, LinearSolver<SpMatrix> *linearSolver) 
 		: Intergrator(DOFS, massDamp, stiffDamp, ts), mesh(m), indexer(nodeIndexer), material(mater), solver(linearSolver){
-		memory = new double[7 * dofs];
-		Initiation(memory, 7 * dofs);
+		memory = new double[6 * dofs];
+		Initiation(memory, 6 * dofs);
 		d = memory;
 		v = memory + dofs;
-		pre_d = memory + 2 * dofs;
-		pre_v = memory + 3 * dofs;
-		internalVirtualWork = memory + 4 * dofs;
-		externalVirtualWork = memory + 5 * dofs;
-		rhs = memory + 6 * dofs;
+		pre_v = memory + 2 * dofs;
+		internalVirtualWork = memory + 3 * dofs;
+		externalVirtualWork = memory + 4 * dofs;
+		rhs = memory + 5 * dofs;
 
 		using AssemblerType = std::conditional_t<std::is_same<SpMatrix, BlockedSymSpMatrix>::value, BlockedSymSpMatrixAssembler, SparseMatrixAssembler>;
 		AssemblerType structureAssembler(dofs);
@@ -71,7 +69,6 @@ namespace ODER {
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::runOneTimeStep() {
-		memcpy(pre_d, d, sizeof(double) * dofs);
 		memcpy(pre_v, v, sizeof(double) * dofs);
 
 		tagentMatrix->setZeros();

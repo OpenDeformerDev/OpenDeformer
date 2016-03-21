@@ -60,13 +60,16 @@ namespace ODER{
 			const double *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
 			const double *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;
 
+			if (elementIndex == 6) {
+				float x = 1.f;
+			}
 			//copy node displacements
 			Initiation(nodeDisplacements, 3 * nodePerElementCount);
 			for (int nodeIndex = 0; nodeIndex < nodePerElementCount; nodeIndex++) {
 				if(elementNodeIndices[nodeIndex] >= 0)
 				  memcpy(nodeDisplacements + 3 * nodeIndex, u + 3 * elementNodeIndices[nodeIndex], sizeof(double) * 3);
 			}
-			
+
 			element->generateDeformationGradient(gradientPre, nodeDisplacements, gradients);
 			for (int quadrature = 0; quadrature < quadratureCount; quadrature++) {
 				modifiedDeformGradient(gradients + quadrature * 9, diags + quadrature * 3,
@@ -89,18 +92,21 @@ namespace ODER{
 			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
 				int globalRow = elementNodeIndices[subRow];
 				if (globalRow >= 0) {
-					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
+					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {
 						int globalColumn = elementNodeIndices[subColumn];
 						double matEntry = subMatrix[entryIndex++];
 						if (globalColumn >= 0 && matEntry != 0.0) {
 							int row = std::max(globalColumn, globalRow);
 							int column = std::min(globalColumn, globalRow);
 							matrix.addEntry(row, column, matEntry, matrixIndices);
+							if (row == column) {
+								Assert(matEntry >= 0.0);
+							}
 						}
 					}
 				}
 				else
-					entryIndex += subRow + 1;
+					entryIndex += nodePerElementCount * 3 - subRow;
 			}
 
 			//generate virtual works
@@ -136,7 +142,7 @@ namespace ODER{
 
 		Tensor2<double> F(gradient);
 		VT = UT * F;
-		int condition = (eigenVals[0] < epsilon) + ((eigenVals[1] < epsilon) << 1) + ((eigenVals[1] < epsilon) << 2);
+		int condition = (eigenVals[0] < epsilon) + ((eigenVals[1] < epsilon) << 1) + ((eigenVals[2] < epsilon) << 2);
 		switch (condition){
 		case 0:
 		{
