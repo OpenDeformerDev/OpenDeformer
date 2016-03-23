@@ -4,6 +4,7 @@
 #include "element.h"
 #include "nodeIndexer.h"
 #include "numerMethod.h"
+#include "tetelement.h"
 
 namespace ODER{
 	InvertibleHyperelasticMaterial::InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh) :
@@ -60,14 +61,13 @@ namespace ODER{
 			const double *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
 			const double *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;
 
-			if (elementIndex == 6) {
-				float x = 1.f;
-			}
+		
 			//copy node displacements
 			Initiation(nodeDisplacements, 3 * nodePerElementCount);
-			for (int nodeIndex = 0; nodeIndex < nodePerElementCount; nodeIndex++) {
-				if(elementNodeIndices[nodeIndex] >= 0)
-				  memcpy(nodeDisplacements + 3 * nodeIndex, u + 3 * elementNodeIndices[nodeIndex], sizeof(double) * 3);
+			for (int localIndex = 0; localIndex < nodePerElementCount * 3; localIndex++) {
+				int globalIndex = elementNodeIndices[localIndex];
+				if (globalIndex >= 0)
+					nodeDisplacements[localIndex] = u[globalIndex];
 			}
 
 			element->generateDeformationGradient(gradientPre, nodeDisplacements, gradients);
@@ -80,7 +80,7 @@ namespace ODER{
 				getEnergyGradient(invarients, energyGradient + 3 * quadrature);
 				getEnergyHassian(invarients, energyHassian + 6 * quadrature);
 				getPiolaKirchhoffStress(diags + quadrature * 3, leftOrthoMats + quadrature * 3, rightOrthoMats + quadrature * 3,
-					invarients, energyGradient + 3 * quadrature, stresses + 9 * quadrature);
+					invarients, energyGradient + 3 * quadrature, stresses + 9 * quadrature);				
 			}
 
 			//generate stifness matrix
@@ -98,10 +98,7 @@ namespace ODER{
 						if (globalColumn >= 0 && matEntry != 0.0) {
 							int row = std::max(globalColumn, globalRow);
 							int column = std::min(globalColumn, globalRow);
-							matrix.addEntry(row, column, matEntry, matrixIndices);
-							if (row == column) {
-								Assert(matEntry >= 0.0);
-							}
+							matrix.addEntry(row, column, matEntry);
 						}
 					}
 				}
@@ -132,6 +129,7 @@ namespace ODER{
 				gradient[j * 3 + 1] * gradient[i * 3 + 1] + gradient[j * 3 + 2] * gradient[i * 3 + 2];
 
 		eigenSym3x3(triMat, eigenVals, &UT(0, 0));
+		
 		if (UT.Determinant() < 0.0) {
 			for (int i = 0; i < 3; i++)
 				UT(0, i) = -UT(0, i);

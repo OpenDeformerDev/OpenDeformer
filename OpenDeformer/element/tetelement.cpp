@@ -233,7 +233,6 @@ namespace ODER{
 	void InvertibleHyperelasticTetElement::generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats,
 		const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const{
 		constexpr int diagIndices[12] = { 0, 12, 23, 33, 42, 50, 57, 63, 68, 72, 75, 77 };
-		constexpr int indices[9] = { 0, 3, 5, 4, 1, 7, 6, 8, 2 };
 		constexpr int nodePerElementCount = 4;
 		double dPdF[81];
 		Initiation(dPdF, 81);
@@ -286,7 +285,7 @@ namespace ODER{
 				}
 				subMat = U * subMat * UT;
 				for (int i = 0; i < 3; i++) {
-					for (int j = 0; j < 3 - i; j++)
+					for (int j = 0; j < 3; j++)
 						result[diagIndices[aNodeIndex * 3 + i] + ((bNodeIndex - aNodeIndex) * 3 - i) + j] = subMat(i, j) * factor;
 				}
 			}
@@ -459,20 +458,27 @@ namespace ODER{
 		Vector ca = a - c;
 		Vector cb = b - c;
 
-		dn0[0] = -(db.y*dc.z - db.z*dc.y);
-		dn0[1] = (db.x*dc.z - db.z*dc.x);
-		dn0[2] = -(db.x*dc.y - db.y*dc.x);
+		Vector dNa, dNb, dNc, dNd;
 
-		dn1[0] = (da.y*dc.z - da.z*dc.y);
-		dn1[1] = -(da.x*dc.z - da.z*dc.x);
-		dn1[2] = (da.x*dc.y - da.y*dc.x);
+		Vector dTest = da % dc + db % da + dc % db;
+		if (da * (db % dc) > 0.0) {
+			dNa = db % dc;
+			dNb = dc % da;
+			dNc = da % db;
+			dNd = cb % ca;
+		}
+		else {
+			dNa = dc % db;
+			dNb = da % dc;
+			dNc = db % da;
+			dNd = ca % cb;
+		}
 
-		dn2[0] = -(da.y*db.z - da.z*db.y);
-		dn2[1] = (da.x*db.z - da.z*db.x);
-		dn2[2] = -(da.x*db.y - da.y*db.x);
-
-		dn3[0] = (ca.y*cb.z - ca.z*cb.y);
-		dn3[1] = -(ca.x*cb.z - ca.z*cb.x);
-		dn3[2] = (ca.x*cb.y - ca.y*cb.x);
+		for (int i = 0; i < 3; i++) {
+			dn0[i] = dNa[i];
+			dn1[i] = dNb[i];
+			dn2[i] = dNc[i];
+			dn3[i] = dNd[i];
+		}
 	}
 }

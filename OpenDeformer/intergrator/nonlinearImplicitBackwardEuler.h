@@ -73,6 +73,7 @@ namespace ODER {
 
 		tagentMatrix->setZeros();
 		Initiation(internalVirtualWork, dofs);
+		Initiation(rhs, dofs);
 		material->generateMatrixAndVirtualWorks(mesh, indexer, d, matrixIndices, *tagentMatrix, internalVirtualWork);
 		tagentMatrix->Scale(timeStep + stiffnessDamping);
 		tagentMatrix->Add(massDamping, *massMatrix);
@@ -85,6 +86,7 @@ namespace ODER {
 
 		solver->resetLinearSystem(tagentMatrix);
 		solver->solveLinearSystem(rhs, v);
+
 		for (int i = 0; i < dofs; i++) {
 			v[i] += pre_v[i];
 			d[i] += v[i] * timeStep;
