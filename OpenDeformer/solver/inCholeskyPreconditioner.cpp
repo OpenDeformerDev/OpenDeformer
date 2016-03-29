@@ -49,15 +49,16 @@ namespace ODER{
 	}
 
 	void InCholeskyPreconditioner::resetPreconditionerSystem(const BlockedSymSpMatrix& mat){
-		values.clear();
-		rows.clear();
-		pcol.clear();
-
 		int columnCount = mat.getNumColumns();
 		pcol.reserve(columnCount + 1);
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
+	}
 
+	void InCholeskyPreconditioner::Preprocess(const BlockedSymSpMatrix& mat) {
+		values.clear();
+		rows.clear();
+		pcol.clear();
 		incompleteCholeskyDecomposition(mat);
 	}
 

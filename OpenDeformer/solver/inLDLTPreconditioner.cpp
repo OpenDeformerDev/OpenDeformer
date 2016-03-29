@@ -5,34 +5,33 @@
 #include "numerMethod.h"
 
 namespace ODER{
-	InLDLTPreconditioner::InLDLTPreconditioner(const BlockedSymSpMatrix& mat, double sainvEps, double ldltEps){
-		sainvEpsilon = sainvEps; ldltEpsilon = ldltEps;
+	InLDLTPreconditioner::InLDLTPreconditioner(const BlockedSymSpMatrix& mat, double sainvEps, double ldltEps)
+	: sainvEpsilon(sainvEpsilon), ldltEpsilon(ldltEpsilon), matFullIndices(mat.getFullIndices()) {
 
 		int columnCount = mat.getNumColumns();
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
 		pcol.reserve(columnCount);
 		invDiagonal.resize(columnCount);
-
-		incompleteLDLTDecomposition(mat);
 	}
 
 	void InLDLTPreconditioner::resetPreconditionerSystem(const BlockedSymSpMatrix& mat){
-		values.clear();
-		rows.clear();
-		pcol.clear();
-
 		int columnCount = mat.getNumColumns();
 		values.reserve(columnCount);
 		rows.reserve(columnCount);
 		pcol.reserve(columnCount);
 		invDiagonal.resize(columnCount);
+		matFullIndices = mat.getFullIndices();
+	}
 
+	void InLDLTPreconditioner::Preprocess(const BlockedSymSpMatrix& mat) {
+		values.clear();
+		rows.clear();
+		pcol.clear();
 		incompleteLDLTDecomposition(mat);
 	}
 
 	void InLDLTPreconditioner::incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat){
-		auto fullIndices = mat.getFullIndices();
 		int columnCount = mat.getNumColumns();
 		pcol.push_back(0);
 
@@ -46,7 +45,7 @@ namespace ODER{
 		int count = 0;
 		for (int i = 0; i < columnCount - 1; i++){
 			Initiation(temp, columnCount);
-			SpMSV(mat, fullIndices, vecs[i], temp);
+			SpMSV(mat, matFullIndices, vecs[i], temp);
 
 			double diag = vecs[i] * temp;
 			double inv = 1.0 / diag;
@@ -94,7 +93,7 @@ namespace ODER{
 
 		int lastColumn = columnCount - 1;
 		Initiation(temp, columnCount);
-		SpMSV(mat, fullIndices, vecs[lastColumn], temp);
+		SpMSV(mat, matFullIndices, vecs[lastColumn], temp);
 		invDiagonal[lastColumn] = 1.0 / (vecs[lastColumn] * temp);
 
 		delete[] vecs;

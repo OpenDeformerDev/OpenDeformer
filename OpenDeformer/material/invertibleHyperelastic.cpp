@@ -98,7 +98,7 @@ namespace ODER{
 						if (globalColumn >= 0 && matEntry != 0.0) {
 							int row = std::max(globalColumn, globalRow);
 							int column = std::min(globalColumn, globalRow);
-							matrix.addEntry(row, column, matEntry);
+							matrix.addEntry(row, column, matEntry, matrixIndices);
 						}
 					}
 				}
@@ -149,6 +149,12 @@ namespace ODER{
 				for (int j = 0; j < 3; j++)
 					VT(i, j) *= inverse;
 			}
+			if (VT.Determinant() < 0) {
+				int smallestIndex = eigenVals[0] < eigenVals[1] ? (eigenVals[0] < eigenVals[2] ? 0 : 2) : (eigenVals[1] < eigenVals[2] ? 1 : 2);
+				for (int i = 0; i < 3; i++)
+					VT(smallestIndex, i) = -VT(smallestIndex, i);
+				eigenVals[smallestIndex] = -eigenVals[smallestIndex];
+			}
 			break;
 		}
 		case 1:
@@ -172,8 +178,8 @@ namespace ODER{
 				VT(0, j) *= inverse0;
 				VT(2, j) *= inverse2;
 			}
-			VectorBase<double> another = VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)) %
-				VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2));
+			VectorBase<double> another = VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2)) %
+				VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2));
 			memcpy(&VT(1, 0), &another[0], sizeof(double) * 3);
 			break;
 		}
@@ -208,8 +214,8 @@ namespace ODER{
 				VT(1, i) *= inverse;
 			VectorBase<double> v1, v2;
 			coordinateSystem(VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2)), v1, v2);
-			memcpy(&VT(0, 0), &v1[0], sizeof(double) * 3);
-			memcpy(&VT(2, 0), &v2[0], sizeof(double) * 3);
+			memcpy(&VT(2, 0), &v1[0], sizeof(double) * 3);
+			memcpy(&VT(0, 0), &v2[0], sizeof(double) * 3);
 			break;
 		}
 		case 6:
@@ -232,13 +238,6 @@ namespace ODER{
 		default:
 			Severe("Unexpected condition in InvertibleHyperelasticMaterial::modifiedDeformGradient");
 			break;
-		}
-
-		if (VT.Determinant() < 0) {
-			int smallestIndex = eigenVals[0] < eigenVals[1] ? (eigenVals[0] < eigenVals[2] ? 0 : 2) : (eigenVals[1] < eigenVals[2] ? 1 : 2);
-			for (int i = 0; i < 3; i++)
-				VT(smallestIndex, i) = -VT(smallestIndex, i);
-			eigenVals[smallestIndex] = -eigenVals[smallestIndex];
 		}
 
 		for (int i = 0; i < 3; i++)

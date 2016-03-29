@@ -261,7 +261,7 @@ namespace ODER{
 					double entry = 0.0;
 					for (int k = 0; k < 3; k++)
 						for (int l = 0; l < 3; l++)
-							entry += dPdF[(i * 3 + k) * 9 + (j * 3 + l)] * dNa[k] * dNa[l];
+							entry += dPdF[tensorIndex(i, k, j, l)] * dNa[k] * dNa[l];
 					subMat(i, j) = entry;
 				}
 			}
@@ -279,7 +279,7 @@ namespace ODER{
 						double entry = 0.0;
 						for (int k = 0; k < 3; k++)
 							for (int l = 0; l < 3; l++)
-								entry += dPdF[(i * 3 + k) * 9 + (j * 3 + l)] * dNa[k] * dNb[l];
+								entry += dPdF[tensorIndex(i, k, j, l)] * dNa[k] * dNb[l];
 						subMat(i, j) = entry;
 					}
 				}

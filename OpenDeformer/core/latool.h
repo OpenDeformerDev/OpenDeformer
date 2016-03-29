@@ -420,12 +420,12 @@ namespace ODER{
 
 	template<class FT> inline void coordinateSystem(const VectorBase<FT> &v0, VectorBase<FT> &v1, VectorBase<FT> &v2){
 		if (fabs(v0.x) > fabs(v0.y)){
-			FT invlen = 1.f / sqrt(v0.x*v0.x + v0.z*v0.z);
-			v1 = VectorBase<FT>(-v0.z*invlen, 0.f, v0.x*invlen);
+			FT invlen = FT(1.0) / sqrt(v0.x * v0.x + v0.z * v0.z);
+			v1 = VectorBase<FT>(-v0.z * invlen, FT(0.0), v0.x * invlen);
 		}
 		else{
-			FT invlen = 1.f / sqrt(v0.y*v0.y + v0.z*v0.z);
-			v1 = VectorBase<FT>(0.f, -v0.z*invlen, v0.y*invlen);
+			FT invlen = 1.f / sqrt(v0.y * v0.y + v0.z * v0.z);
+			v1 = VectorBase<FT>(FT(0.0), -v0.z * invlen, v0.y * invlen);
 		}
 		v2 = v0 % v1;
 	}

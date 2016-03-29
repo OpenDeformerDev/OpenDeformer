@@ -58,6 +58,7 @@ namespace ODER {
 
 		tagentMatrix = new SpMatrix(structureAssembler);
 		massMatrix = new SpMatrix(structureAssembler);
+		solver->resetLinearSystem(tagentMatrix);
 		matrixIndices = tagentMatrix->getIndices();
 		material->generateMassMatrix(mesh, indexer, matrixIndices, *massMatrix);
 	}
@@ -84,7 +85,6 @@ namespace ODER {
 		tagentMatrix->Scale(timeStep);
 		tagentMatrix->Add(1.0, *massMatrix);
 
-		solver->resetLinearSystem(tagentMatrix);
 		solver->solveLinearSystem(rhs, v);
 
 		for (int i = 0; i < dofs; i++) {

@@ -17,6 +17,12 @@ namespace ODER{
 		virtual void resetPreconditionerSystem(const SparseMatrix& mat){
 			Severe("unimplemented Preconditioner::resetPreconditionerSystem called");
 		}
+		virtual void Preprocess(const BlockedSymSpMatrix& mat) {
+			Severe("unimplemented Preconditioner::Preprocess called");
+		}
+		virtual void Preprocess(const SparseMatrix& mat) {
+			Severe("unimplemented Preconditioner::Preprocess called");
+		}
 		virtual ~Preconditioner() = default;
 	};
 }

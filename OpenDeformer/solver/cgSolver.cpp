@@ -8,7 +8,7 @@ namespace ODER{
 	void CGSolver::resetLinearSystem(const BlockedSymSpMatrix* m) {
 		this->mat = m;
 		if (preconditioner)
-			preconditioner->resetPreconditionerSystem(*(this->mat));
+			preconditioner->resetPreconditionerSystem(*this->mat);
 	}
 
 	void CGSolver::solveLinearSystem(const double *rhs, double *result) const{
@@ -20,6 +20,8 @@ namespace ODER{
 		SpMDV(*(this->mat), result, remainder);
 		for (int i = 0; i < width; i++)
 			remainder[i] = rhs[i] - remainder[i];
+
+		preconditioner->Preprocess(*this->mat);
 		//M * d = r
 		preconditioner->solvePreconditionerSystem(width, remainder, direction);
 		double delta = Dot(width, remainder, direction);

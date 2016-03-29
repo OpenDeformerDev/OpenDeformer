@@ -13,6 +13,8 @@ namespace ODER {
 		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat) {}
 		void resetPreconditionerSystem(const SparseMatrix& mat) {}
+		void Preprocess(const BlockedSymSpMatrix& mat) {}
+		void Preprocess(const SparseMatrix& mat) {}
 		~StubPreconditioner() = default;
 	};
 }

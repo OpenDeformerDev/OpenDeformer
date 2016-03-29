@@ -19,6 +19,7 @@ namespace ODER{
 
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
 		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
+		void Preprocess(const BlockedSymSpMatrix& mat);
 
 	private:
 		void incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat);
@@ -27,7 +28,8 @@ namespace ODER{
 		std::vector<int> rows;
 		std::vector<int> pcol;
 		std::vector<double> invDiagonal;
-
+		
+		std::vector<std::vector<std::pair<int, int>>> matFullIndices;
 		double sainvEpsilon;
 		double ldltEpsilon;
 	};
