@@ -65,8 +65,8 @@ namespace ODER{
 	template<class T, unsigned int Align> class MemoryArena;
 	template<class T, unsigned int Align> class MemoryPool;
 
-	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 2, 4 >;
-	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 2, 4 > ;
+	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 3, 3 >;
+	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 3, 3 > ;
 
 	inline unsigned int Randomnation(unsigned int choices){
 		randomSeed = (randomSeed * 1366l + 150889l) % 714025l;

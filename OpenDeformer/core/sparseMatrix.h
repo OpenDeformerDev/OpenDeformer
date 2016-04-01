@@ -148,7 +148,7 @@ namespace ODER{
 				}
 			}
 			else{
-				int subRow = numColumn - row;
+				int subRow = row - columnStart;
 				int index = subColumn*numRemainedColumn + subRow;
 				auto found = remainedEntries.find(index);
 				if (found != remainedEntries.end())
@@ -577,6 +577,15 @@ namespace ODER{
 			return indices;
 		}
 
+		double getNonzeroRatio() const {
+			int dataCount = blockColumnOris[numBlockColumn + numRemainedColumn];
+			int nonzeroCount = 0;
+			for (int i = 0; i < dataCount; i++)
+				if (values[i] != 0.0) nonzeroCount += 1;
+
+			return (double)nonzeroCount / (double)dataCount;
+		}
+
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;
 		BlockedSymSparseMatrix& operator=(const BlockedSymSparseMatrix&) = delete;
 		BlockedSymSparseMatrix(BlockedSymSparseMatrix&& mat) noexcept{
@@ -626,10 +635,6 @@ namespace ODER{
 		template<int blockLength, int blockWidth>
 		friend void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
 			const double *src, double *dest);
-
-		template<int blockLength, int blockWidth>
-		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
-			const SparseVector& src, SparseVector& dest);
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
