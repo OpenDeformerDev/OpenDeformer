@@ -192,6 +192,7 @@
     <ClInclude Include="core\arithmetic.h" />
     <ClInclude Include="core\element.h" />
     <ClInclude Include="core\nodeIndexer.h" />
+    <ClInclude Include="mesher\delPrimitive.h" />
     <ClInclude Include="mesher\predicate.h" />
     <ClInclude Include="core\constrainer.h" />
     <ClInclude Include="core\datastructure.h" />
@@ -241,6 +242,7 @@
     <ClCompile Include="core\nodeIndexer.cpp" />
     <ClCompile Include="core\sparseMatrix.cpp" />
     <ClCompile Include="element\tetelement.cpp" />
+    <ClCompile Include="mesher\delPrimitive.cpp" />
     <ClCompile Include="mesh\tetmesh.cpp" />
     <ClCompile Include="solver\cgSolver.cpp" />
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp" />

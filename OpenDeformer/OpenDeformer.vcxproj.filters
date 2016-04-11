@@ -180,6 +180,9 @@
     <ClInclude Include="solver\jacobiPreconditioner.h">
       <Filter>头文件\solver</Filter>
     </ClInclude>
+    <ClInclude Include="mesher\delPrimitive.h">
+      <Filter>头文件\mesher</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -262,6 +265,9 @@
     </ClCompile>
     <ClCompile Include="solver\jacobiPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
+    </ClCompile>
+    <ClCompile Include="mesher\delPrimitive.cpp">
+      <Filter>源文件\mesher</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

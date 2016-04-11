@@ -31,7 +31,7 @@ public:
 
 	FT orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const;
 
-	FT orient2d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& n) const;
+	FT orient2d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const;
 
 	FT orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const;
 
@@ -41,10 +41,10 @@ public:
 	FT inSphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
 
 	FT inOrthoCircle(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
-		                const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &n) const;
+		                const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const;
 
 	FT inOrthoCirclePerturbed(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
-		                        const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &n) const;
+		                        const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const;
 
 	FT inOrthoSphere(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 		                const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight) const;
@@ -79,7 +79,7 @@ public:
 
 	bool inHalfSpace3D(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT>& b, const VectorBase<FT> &c) const;
 
-	bool inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& n) const;
+	bool inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& above) const;
 
 	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const;
 private:
@@ -205,8 +205,8 @@ template<class FT> FT Predicator<FT>::orient2dAdaptive(FT ax, FT ay, FT bx, FT b
 	return fin[finLength - 1];
 }
 
-template<class FT> FT Predicator<FT>::orient2d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& n) const{
-	return orient3d(a + n, a, b, c);
+template<class FT> FT Predicator<FT>::orient2d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const{
+	return orient3d(above, a, b, c);
 }
 
 
@@ -215,8 +215,8 @@ template<class FT> FT Predicator<FT>::inCircle(const VectorBase<FT>& a, const Ve
 }
 
 template<class FT> FT Predicator<FT>::inOrthoCircle(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
-	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &n) const{
-	return inOrthoSphere(a + n, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
+	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
+	return inOrthoSphere(above, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
 }
 
 template<class FT> FT Predicator<FT>::orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const{
@@ -1572,11 +1572,9 @@ template<class FT> FT Predicator<FT>::inOrthoSphereExact(const VectorBase<FT> &a
 }
 
 template<class FT> FT Predicator<FT>::inOrthoCirclePerturbed(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
-	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &n) const{
-	VectorBase<FT> lift = a + n;
-	FT test = inOrthoSphere(a + n, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
+	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
+	FT test = inOrthoSphere(above, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
 
-	Assert(n.length2() != 0.0);
 	if (test != 0.0)
 		return test;
 
@@ -1597,7 +1595,7 @@ template<class FT> FT Predicator<FT>::inOrthoCirclePerturbed(const VectorBase<FT
 		swaps += count;
 	} while (count > 0);
 
-	FT ori = orient3d(v[1], v[2], v[3], lift);
+	FT ori = orient3d(v[1], v[2], v[3], above);
 	if ((swaps % 2) != 0) ori = -ori;
 	return ori;
 }
@@ -1812,8 +1810,8 @@ template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> 
 	}
 }
 
-template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& n) const{
-	FT orient = orient2d(u, b, c, n);
+template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const{
+	FT orient = orient2d(u, b, c, above);
 	if (orient > 0.0)
 		return true;
 	else if (orient == 0.0){
