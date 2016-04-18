@@ -1773,7 +1773,7 @@ template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> 
 			return true;
 		else if (orient == 0.0){
 			VectorBase<FT> n = Normalize((a - c) % (b - c));
-			return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, n) > 0.0;
+			return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + n) > 0.0;
 		}
 		else
 			return false;
@@ -1795,7 +1795,7 @@ template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> 
 		FT ny = cazcbx - caxcbz;
 		FT nz = caxcby - caycbx;
 
-		if (inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, Normalize(VectorBase<FT>(nx, ny, nz))) < 0.0)
+		if (inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + Normalize(VectorBase<FT>(nx, ny, nz))) < 0.0)
 			return false;
 
 		VectorBase<FT> cu = u - c;

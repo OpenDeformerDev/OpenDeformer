@@ -33,6 +33,10 @@
 #define ODER_IS_OPENBSD
 #endif
 
+#if defined(_MSC_VER)
+#define _ENABLE_ATOMIC_ALIGNMENT_FIX
+#endif
+
 namespace ODER{
 	static unsigned int randomSeed = 23;
 

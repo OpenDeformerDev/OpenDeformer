@@ -26,16 +26,25 @@ namespace ODER{
 		DelTriangulator(){
 			ghost = allocAligned<Vertex>();
 			ghost->setGhost();
+			invertion = false;
 		}
 		~DelTriangulator(){
 			freeAligned(ghost);
 		}
-		void generateSubPolygons(std::vector<Vertex *> &vertices);
+		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount);
 		void outPut(DelMesher *mesher);
 	private:
-		void calculateAbovePoint(std::vector<Vertex *> &vertices);
+		void calculateAbovePoint(int vertexCount, Vertex** vertices);
+		void insertSegment(const Segment& s);
+		void triangulateHalfHole(const std::vector<Vertex *> vertices);
+		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
+		void insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, std::vector<Vertex *>& marked, bool mark, int depth);
+		void insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, int depth);
+		void triangulateConvexPoly(Vertex *u, const std::vector<Vertex *>& convexPoly);
 		Face findPosition(Vertex *u, const Face &f) const;
 		void digCavity(Vertex *u, const Segment &s, Face *rf = NULL);
+		void cleanRigion();
+		void propagateClean(const Segment& s, int depth);
 		inline int findGhost(const Face &f){
 			for (int i = 0; i < 3; i++){
 				if (f.v[i] == ghost)
@@ -54,6 +63,11 @@ namespace ODER{
 		static Predicator<REAL> predicator;
 		TriMeshDataStructure meshRep;
 		Vertex *ghost;
+		bool invertion;
+
+		std::unordered_set<Segment, segment_hash> segments;
+
+		TriMeshDataStructure cavityRep;
 	};
 
 	class DelMesher :public Mesher{
