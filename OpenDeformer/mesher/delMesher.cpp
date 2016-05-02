@@ -96,6 +96,8 @@ void DelTriangulator::propagateClean(const Segment& s, int depth) {
 
 	Vertex *u = s.v[0], *v = s.v[1];
 
+	meshRep.deleteTriangle(w, u, v);
+
 	Segment uw(u, w), wv(w, v);
 	if (segments.find(uw) != segments.end()) propagateClean(uw, depth + 1);
 	if (segments.find(wv) != segments.end()) propagateClean(wv, depth + 1);
@@ -125,6 +127,7 @@ Face DelTriangulator::findPosition(Vertex *u, const Face &f) const{
 
 	Assert(a != ghost);
 	//normal triangle
+
 	while (maxIter--){
 		//caution:because NULL->ghost,can't use NULL,
 		//so it's might case memory corrupt above

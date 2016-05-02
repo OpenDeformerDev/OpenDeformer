@@ -250,7 +250,7 @@ namespace ODER {
 		size_t operator()(const Segment &s) const {
 			int smallerLable = s.v[0]->getLabel();
 			int biggerLable = s.v[1]->getLabel();
-			return ((biggerLable * (biggerLable + 1)) >> 1) + smallerLable;
+			return std::hash<int>()(((biggerLable * (biggerLable + 1)) >> 1) + smallerLable);
 		}
 	};
 

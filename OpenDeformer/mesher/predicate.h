@@ -82,6 +82,8 @@ public:
 	bool inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& above) const;
 
 	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const;
+
+	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
 private:
 
 	FT orient2dAdaptive(FT ax, FT ay, FT bx, FT by, FT cx, FT cy, FT norm) const;
@@ -95,6 +97,9 @@ private:
 
 	FT inSphereExact(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
 
+	FT inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, 
+		const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const;
+
 	static const ExactArthmeticer<FT> arthemetricer;
 	static const FT epsilon;
 	static const FT commonBound;
@@ -107,6 +112,10 @@ private:
 	static const FT inSpeErrorBoundA;
 	static const FT inSpeErrorBoundB;
 	static const FT inSpeErrorBoundC;
+	static const FT inSegRangeErrorBoundA;
+	static const FT inSegRangeErrorBoundB;
+	static const FT inSegRangeErrorBoundC;
+
 };
 
 template<class FT> const ExactArthmeticer<FT> Predicator<FT>::arthemetricer;
@@ -121,6 +130,9 @@ template<class FT> const FT Predicator<FT>::o3dErrorBoundC = (FT(26.0) + FT(288.
 template<class FT> const FT Predicator<FT>::inSpeErrorBoundA = (FT(16.0) + FT(224.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::inSpeErrorBoundB = (FT(5.0) + FT(72.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::inSpeErrorBoundC = (FT(71.0) + FT(1408.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundA = (FT(5.0) + FT(24.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundB = (FT(2.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundC = (FT(11.0) + FT(80.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 
 template<class FT> FT Predicator<FT>::orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const{
 	FT detLeft = (ax - cx)*(by - cy);
@@ -167,7 +179,7 @@ template<class FT> FT Predicator<FT>::orient2dAdaptive(FT ax, FT ay, FT bx, FT b
 
 	det = arthemetricer.Estimate(detEsti, 4);
 	errorBound = o2dErrorBoundB*norm;
-	if (fabs(det) > errorBound)
+	if (fabs(det) >= errorBound)
 		return det;
 
 	FT caxError = arthemetricer.twoDiffError(ax, cx, cax);
@@ -178,8 +190,8 @@ template<class FT> FT Predicator<FT>::orient2dAdaptive(FT ax, FT ay, FT bx, FT b
 	if (caxError == 0.0 && cayError == 0.0 && cbxError == 0.0 && cbyError == 0.0)
 		return det;
 
-	det += ((cax*cbyError + cby*caxError) - (cbx*cayError + cay*cbxError));
 	errorBound = o2dErrorBoundC*norm + commonBound*fabs(det);
+	det += ((cax*cbyError + cby*caxError) - (cbx*cayError + cay*cbxError));
 	if (fabs(det) >= errorBound)
 		return det;
 
@@ -240,7 +252,7 @@ template<class FT> FT Predicator<FT>::orient3d(const VectorBase<FT>& a, const Ve
 		+ (fabs(dcxday) + fabs(dcycax)) * fabs(db.z);
 
 	FT errorBound = o3dErrorBoundA*norm;
-	if (fabs(det) > errorBound)
+	if (fabs(det) >= errorBound)
 		return det;
 
 	return orient3dAdaptive(a, b, c, d, norm);
@@ -320,7 +332,7 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 
 	det += (adetEstimate + bdetEstimate + cdetEstimate);
 
-	if (fabs(det) > errorBound)
+	if (fabs(det) >= errorBound)
 		return det;
 
 	//Exact Arithmetic
@@ -650,7 +662,7 @@ template<class FT> FT Predicator<FT>::inSphere(const VectorBase<FT>& a, const Ve
 
 	FT norm = aLift*bcd + bLift*cda + cLift*dab + dLift*abc;
 	FT errorBound = inSpeErrorBoundA*norm;
-	if (fabs(det) > errorBound)
+	if (fabs(det) >= errorBound)
 		return det;
 
 	return inSphereAdaptive(a, b, c, d, e, norm);
@@ -1126,7 +1138,7 @@ template<class FT> FT Predicator<FT>::inOrthoSphere(const VectorBase<FT> &a, FT 
 
 	FT norm = fabs(aLift)*bcd + fabs(bLift)*cda + fabs(cLift)*dab + fabs(dLift)*abc;
 	FT errorBound = inSpeErrorBoundA*norm;
-	if (fabs(det) > errorBound)
+	if (fabs(det) >= errorBound)
 		return det;
 
 	return inOrthoSphereAdaptive(a, aWeight, b, bWeight, c, cWeight, d, dWeight, e, eWeight, norm);
@@ -1571,6 +1583,98 @@ template<class FT> FT Predicator<FT>::inOrthoSphereExact(const VectorBase<FT> &a
 	return fin[finLength - 1];
 }
 
+template<class FT> bool Predicator<FT>::inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const {
+	VectorBase<FT> ab = b - a;
+	VectorBase<FT> au = u - a;
+
+	FT uabx = au.x * ab.x; FT uaby = au.y * ab.y; FT uabz = au.z * ab.z;
+	FT uabLen = uabx + uaby + uabz;
+	FT uabNorm = fabs(uabx) + fabs(uaby) + fabs(uabz);
+	if (fabs(uabLen) >= inSegRangeErrorBoundA * uabNorm) {
+		if (uabLen < FT(0))
+			return false;
+	}
+	else {
+		if (inSegmentRangeHalfAdaptive(u, a, b, ab, au, uabNorm) < FT(0))
+			return false;
+	}
+
+	VectorBase<FT> ba = -ab;
+	VectorBase<FT> bu = u - b;
+	FT ubax = bu.x * ba.x; FT ubay = bu.y * ba.y; FT ubaz = bu.z * ba.z;
+	FT ubaLen = ubax + ubay + ubaz;
+	FT ubaNorm = fabs(ubax) + fabs(ubay) + fabs(ubaz);
+	if (fabs(ubaLen) >= inSegRangeErrorBoundA * ubaNorm) {
+		if (ubaLen < FT(0))
+			return false;
+	}
+	else {
+		if (inSegmentRangeHalfAdaptive(u, b, a, ba, bu, ubaNorm) < FT(0))
+			return false;
+	}
+
+	return true;
+}
+
+template<class FT> FT Predicator<FT>::inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b,
+	const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const {
+	FT x, y, z, xErr, yErr, zErr;
+	arthemetricer.twoProduct(ab.x, au.x, x, xErr);
+	arthemetricer.twoProduct(ab.y, au.y, y, yErr);
+	arthemetricer.twoProduct(ab.z, au.z, z, zErr);
+
+	FT retEsti[6];
+	arthemetricer.twoTwoTwoSum(x, xErr, y, yErr, z, zErr, retEsti[5], retEsti[4], retEsti[3], retEsti[2], retEsti[1], retEsti[0]);
+
+	FT ret = arthemetricer.Estimate(retEsti, 6);
+
+	if (fabs(ret) >= inSegRangeErrorBoundB * norm)
+		return ret;
+
+	FT auxErr = arthemetricer.twoDiffError(u.x, a.x, au.x);
+	FT auyErr = arthemetricer.twoDiffError(u.y, a.y, au.y);
+	FT auzErr = arthemetricer.twoDiffError(u.z, a.z, au.z);
+	FT abxErr = arthemetricer.twoDiffError(b.x, a.x, ab.x);
+	FT abyErr = arthemetricer.twoDiffError(b.y, a.y, ab.y);
+	FT abzErr = arthemetricer.twoDiffError(b.z, a.z, ab.z);
+
+	if (auxErr == FT(0) && auyErr == FT(0) && auzErr == FT(0) &&
+		abxErr == FT(0) && abyErr == FT(0) && abzErr == FT(0))
+		return ret;
+
+	FT errorBound = commonBound * fabs(ret) + inSegRangeErrorBoundC * norm;
+	ret += ((auxErr * ab.x + au.x * abxErr) + (auyErr * ab.y + au.y * abyErr) + (auzErr * ab.z + au.z * abzErr));
+
+	if (fabs(ret) >= errorBound)
+		return ret;
+	
+	//Exact
+	FT s1, s0, t1, t0, u1, u0;
+	FT v[4], w[6], c0[10], c1[14], c2[18], fin[24];
+	arthemetricer.twoProduct(au.x, abxErr, s1, s0);
+	arthemetricer.twoProduct(auxErr, ab.x, t1, t0);
+	arthemetricer.twoTwoSum(s1, s0, t1, t0, v[3], v[2], v[1], v[0]);
+	int c0Len = arthemetricer.fastExpansionSum(retEsti, v, c0, 6, 4);
+
+	arthemetricer.twoProduct(au.y, abyErr, s1, s0);
+	arthemetricer.twoProduct(auyErr, ab.y, t1, t0);
+	arthemetricer.twoTwoSum(s1, s0, t1, t0, v[3], v[2], v[1], v[0]);
+	int c1Len = arthemetricer.fastExpansionSum(c0, v, c1, c0Len, 4);
+
+	arthemetricer.twoProduct(au.z, abzErr, s1, s0);
+	arthemetricer.twoProduct(auzErr, ab.z, t1, t0);
+	arthemetricer.twoTwoSum(s1, s0, t1, t0, v[3], v[2], v[1], v[0]);
+	int c2Len = arthemetricer.fastExpansionSum(c1, v, c2, c1Len, 4);
+
+	arthemetricer.twoProduct(auxErr, abxErr, s1, s0);
+	arthemetricer.twoProduct(auyErr, abyErr, t1, t0);
+	arthemetricer.twoProduct(auzErr, abzErr, u1, u0);
+	arthemetricer.twoTwoTwoSum(s1, s0, t1, t0, u1, u0, w[5], w[4], w[3], w[2], w[1], w[0]);
+	int finLen = arthemetricer.fastExpansionSum(c2, w, fin, c2Len, 6);
+
+	return fin[finLen - 1];
+}
+
 template<class FT> FT Predicator<FT>::inOrthoCirclePerturbed(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
 	FT test = inOrthoSphere(above, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
@@ -1815,9 +1919,7 @@ template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, c
 	if (orient > 0.0)
 		return true;
 	else if (orient == 0.0){
-		VectorBase<FT> bc = c - b;
-		FT len = (u - b)*bc;
-		return len >= 0.0 && len <= bc.length2();
+		return inSegmentRange(u, b, c);
 	}
 	else
 		return false;

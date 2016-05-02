@@ -21,15 +21,26 @@ namespace ODER{
 			return ret;
 		}
 
+		//|a| >= |b| must be confirmed
 		void fastTwoSum(FT a, FT b, FT &esti, FT& err) const {
-			//|a| >= |b| must be confirmed
 			esti = a + b;
 			err = b - (esti - a);
 		}
 
+		//|a| >= |b| must be confirmed
 		FT fastTwoSumError(FT a, FT b, FT esti) const{
-			//|a| >= |b| must be confirmed
 			return b - (esti - a);
+		}
+
+		//|a| >= |b| must be confirmed
+		void fastTwoDiff(FT a, FT b, FT& esti, FT& err) const {
+			esti = a - b;
+			err = (a - esti) - b;
+		}
+
+		//|a| >= |b| must be confirmed
+		void fastTwoDiffError(FT a, FT b, FT esti) const {
+			return (a - esti) - b;
 		}
 
 		void twoSum(FT a, FT b, FT &esti, FT& err) const {
@@ -87,6 +98,39 @@ namespace ODER{
 			err = (aLow*bLow) - e2;
 		}
 
+		void twoOneSum(FT a1, FT a0, FT b, FT& x2, FT& x1, FT& x0) const {
+			FT iq;
+			//a1 + a0 + b
+			twoSum(a0, b, iq, x0);
+			twoSum(a1, iq, x2, x1);
+		}
+
+		void twoTwoSum(FT a1, FT a0, FT b1, FT b0, FT& x3, FT& x2, FT& x1, FT& x0) const {
+			FT i, j;
+			twoOneSum(a1, a0, b0, i, j, x0);
+			twoOneSum(i, j, b1, x3, x2, x1);
+		}
+
+		void fourOneSum(FT a3, FT a2, FT a1, FT a0, FT b, FT& x4, FT& x3, FT& x2, FT& x1, FT& x0) const {
+			FT iq;
+			twoOneSum(a1, a0, b, iq, x1, x0);
+			twoOneSum(a3, a2, iq, x4, x3, x2);
+		}
+
+		void fourTwoSum(FT a3, FT a2, FT a1, FT a0, FT b1, FT b0,
+			FT& x5, FT& x4, FT& x3, FT& x2, FT& x1, FT& x0) const {
+			FT i, j, k, l;
+			fourOneSum(a3, a2, a1, a0, b0, i, j, k, l, x0);
+			fourOneSum(i, j, k, l, b1, x5, x4, x3, x2, x1);
+		}
+
+		void twoTwoTwoSum(FT a1, FT a0, FT b1, FT b0, FT c1, FT c0,
+			FT& x5, FT& x4, FT& x3, FT& x2, FT& x1, FT& x0) const {
+			FT i, j, k, l;
+			twoTwoSum(a1, a0, b1, b0, i, j, k, l);
+			fourTwoSum(i, j, k, l, c1, c0, x5, x4, x3, x2, x1, x0);
+		}
+
 		void twoOneDiff(FT a1, FT a0, FT b, FT& x2, FT& x1, FT& x0) const{
 			FT iq;
 			//a1 + a0 - b
@@ -108,6 +152,7 @@ namespace ODER{
 			twoSum(i, k, l, x1);
 			fastTwoSum(j, l, x3, x2);
 		}
+
 		int growExpansion(FT *e, FT b, FT *h, int n) const{
 			FT q, qnext;
 			q = b;
@@ -142,7 +187,7 @@ namespace ODER{
 					fnext = f[++fIndex];
 				}
 				q = qnext;
-				if (hh != 0.f)
+				if (hh != FT(0))
 					h[hIndex++] = hh;
 
 				while ((eIndex < em) && (fIndex < fn)){
@@ -155,7 +200,7 @@ namespace ODER{
 						fnext = f[++fIndex];
 					}
 					q = qnext;
-					if (hh != 0.f)
+					if (hh != FT(0))
 						h[hIndex++] = hh;
 				}
 			}
@@ -163,17 +208,17 @@ namespace ODER{
 				twoSum(enext, q, qnext, hh);
 				enext = e[++eIndex];
 				q = qnext;
-				if (hh != 0.f)
+				if (hh != FT(0))
 					h[hIndex++] = hh;
 			}
 			while (fIndex < fn){
 				twoSum(fnext, q, qnext, hh);
 				fnext = f[++fIndex];
 				q = qnext;
-				if (hh != 0.f)
+				if (hh != FT(0))
 					h[hIndex++] = hh;
 			}
-			if ((q != 0.f) || (hIndex == 0)){
+			if ((q != FT(0)) || (hIndex == 0)){
 				h[hIndex++] = q;
 			}
 			return hIndex;
