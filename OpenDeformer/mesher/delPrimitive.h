@@ -292,6 +292,9 @@ namespace ODER {
 		void deleteTriangle(Vertex *a, Vertex *b, Vertex *c);
 		bool Adjacent(const Segment &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Face *f) const;
+		bool Contain(const Segment &s) const;
+		bool Contain(const Face &f) const;
+		bool findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const;
 		void Clear();
 		std::set<Face, face_compare> getTriangles(const Vertex *ghost) const;
 		~TriMeshDataStructure();
@@ -326,6 +329,19 @@ namespace ODER {
 
 	inline bool parityCheck(const Vertex *x, const Vertex *y) {
 		return (std::hash<int>()(x->getLabel()) & ODD_MAKE) == (std::hash<int>()(y->getLabel()) & ODD_MAKE);
+	}
+
+	inline bool TriMeshDataStructure::Contain(const Segment &s) const {
+		Vertex *w;
+		return Adjacent(s, &w);
+	}
+
+	inline bool TriMeshDataStructure::Contain(const Face &f) const {
+		Vertex *w;
+		bool find = Adjacent(Segment(f.v[0], f.v[1]), &w);
+		if (find) return w == f.v[2];
+
+		return false;
 	}
 }
 

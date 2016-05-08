@@ -1,7 +1,7 @@
 #include "stdafx.h"
+#include "predicate.h"
 #include "delPrimitive.h"
 #include "memory.h"
-#include "predicate.h"
 
 namespace ODER {
 	Labeler Vertex::labeler;
@@ -131,6 +131,37 @@ namespace ODER {
 			node = nextNode;
 		}
 		return found;
+	}
+
+	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const {
+		auto entry = topology.find(a);
+		Assert(entry != topology.end());
+
+		DelVector aa = a->vert;
+		const Predicator<REAL> predicator;
+		VertexListNode *parent = entry->second;
+		VertexListNode *child = parent->getNextNode();
+		Vertex *c = parent->getVertex();
+		Vertex *d = child->getVertex();
+		REAL ori0 = predicator.orient2d(aa, bb, c->vert, above);
+		REAL ori1 = predicator.orient2d(aa, bb, d->vert, above);
+		Assert(ori0 != 0);
+		Assert(ori1 != 0);
+		while (child != NULL && (ori0 > 0) == (ori1 > 0)) {
+			parent = child;
+			child = parent->getNextNode();
+			c = d;
+			d = child->getVertex();
+			ori0 = ori1;
+			ori1 = predicator.orient2d(aa, bb, d->vert, above);
+			Assert(ori1 != 0);
+		}
+
+		if (child == NULL) return false;
+
+		*f = Face(a, c, d);
+
+		return true;
 	}
 
 	std::set<Face, face_compare> TriMeshDataStructure::getTriangles(const Vertex *ghost) const {

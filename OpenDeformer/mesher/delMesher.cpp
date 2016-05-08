@@ -47,7 +47,7 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 	//insert segments
 	for (auto s : this->segments) {
 		Vertex *x = NULL;
-		if (!meshRep.Adjacent(s, &x))
+		if (!meshRep.Contain(s))
 			insertSegment(s);
 	}
 
@@ -59,12 +59,12 @@ void DelTriangulator::cleanRigion() {
 	Face f;
 	meshRep.adjacent2Vertex(ghost, &f);
 	Vertex *b = f.v[1], *c = f.v[2];
-	bool flip = false;
 	bool done = false;
 	do {
-		if (segments.find(Segment(b, c)) != segments.end()) done = true;
-		else if (segments.find(Segment(c, b)) != segments.end()) {
-			flip = true;
+		if (segments.find(Segment(c, b)) != segments.end()) done = true;
+		else if (segments.find(Segment(b, c)) != segments.end()) {
+			//detect invertion
+			invertion = true;
 			done = true;
 		}
 		else {
@@ -74,20 +74,14 @@ void DelTriangulator::cleanRigion() {
 	} while (!done && (b != f.v[1]));
 	Assert(done);
 
-	if (flip) std::swap(b, c);
+	meshRep.deleteTriangle(ghost, b, c);
 	propagateClean(Segment(b, ghost), 0);
 	propagateClean(Segment(ghost, c), 0);
 
 	for (auto s : segments) {
-		if (flip) std::swap(s.v[0], s.v[1]);
-		Vertex *x = NULL;
-		if (meshRep.Adjacent(s, &x)) {
-			propagateClean(Segment(s.v[0], x), 0);
-			propagateClean(Segment(x, s.v[1]), 0);
-		}
+		if (!invertion) std::swap(s.v[0], s.v[1]);
+		propagateClean(s, 0);
 	}
-
-	invertion = flip;
 }
 
 void DelTriangulator::propagateClean(const Segment& s, int depth) {
@@ -99,8 +93,13 @@ void DelTriangulator::propagateClean(const Segment& s, int depth) {
 	meshRep.deleteTriangle(w, u, v);
 
 	Segment uw(u, w), wv(w, v);
-	if (segments.find(uw) != segments.end()) propagateClean(uw, depth + 1);
-	if (segments.find(wv) != segments.end()) propagateClean(wv, depth + 1);
+	Segment s0 = uw, s1 = wv;
+	if (invertion) {
+		s0.v[0] = w; s0.v[1] = u;
+		s1.v[0] = v; s1.v[1] = w;
+	}
+	if (segments.find(s0) == segments.end()) propagateClean(uw, depth + 1);
+	if (segments.find(s1) == segments.end()) propagateClean(wv, depth + 1);
 }
 
 void DelTriangulator::outPut(DelMesher *mesher){
@@ -191,46 +190,26 @@ void DelTriangulator::insertSegment(const Segment& s) {
 
 void DelTriangulator::findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive) {
 	Vertex *a = s.v[0], *b = s.v[1];
+	if (Randomnation(2)) std::swap(a, b);
+	DelVector aa = a->vert, bb = b->vert, above = ghost->vert;
 	Face f;
-
-	meshRep.adjacent2Vertex(a, &f);
-
-	Vertex *c = f.v[1], *d = f.v[2];
-	Assert(b != c && b != d);
 
 	positive.push_back(a);
 	negtive.push_back(a);
-	//loop to find the triangle intersect sengment
-	bool ori0 = predicator.orient2d(a->vert, b->vert, c->vert, ghost->vert) > 0;
-	bool ori1 = predicator.orient2d(a->vert, b->vert, d->vert, ghost->vert) > 0;
-	while (ori0 == ori1) {
-		if (ori0) {
-			meshRep.Adjacent(Segment(a, d), &c);
-			std::swap(c, d);
-			ori1 = predicator.orient2d(a->vert, b->vert, d->vert, ghost->vert) > 0;
-		}
-		else {
-			meshRep.Adjacent(Segment(c, a), &d);
-			std::swap(c, d);
-			ori0 = predicator.orient2d(a->vert, b->vert, c->vert, ghost->vert) > 0;
-		}
-	}
 
-	if (ori0) {
-		positive.push_back(c);
-		negtive.push_back(d);
-	}
-	else {
-		positive.push_back(d);
-		negtive.push_back(c);
-	}
+	bool find = meshRep.findIntersectedFace(a, bb, above, &f);
+	Assert(find);
+
+	Vertex *c = f.v[1], *d = f.v[2];
 	meshRep.deleteTriangle(a, c, d);
+	negtive.push_back(c);
+	positive.push_back(d);
 
 	//transverse the intersected triangle
 	Vertex *opposite = NULL;
 	meshRep.Adjacent(Segment(d, c), &opposite);
 	while (opposite != b) {
-		REAL ori = predicator.orient2d(a->vert, b->vert, opposite->vert, ghost->vert);
+		REAL ori = predicator.orient2d(aa, bb, opposite->vert, above);
 		Assert(ori != 0);
 		if (ori > 0) {
 			positive.push_back(opposite);
@@ -245,10 +224,10 @@ void DelTriangulator::findCavity(const Segment& s, std::vector<Vertex *>& positi
 
 	positive.push_back(b);
 	negtive.push_back(b);
-	std::reverse(negtive.begin(), negtive.end());
+	std::reverse(positive.begin(), positive.end());
 }
 
-void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *> vertices){
+void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *>& vertices){
 	int size = vertices.size();
 	int *prev = new int[size];
 	int *next = new int[size];
@@ -291,7 +270,7 @@ void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *> vertices){
 
 
 	std::vector<Vertex *> convexPoly;
-	for (int i = 0; i < size - 2; i++) {
+	for (int i = 1; i < size - 2; i++) {
 		int trueIndex = indices[i];
 		insertVertexToCavity(vertices[trueIndex], vertices[next[trueIndex]], vertices[prev[trueIndex]],
 			convexPoly, false, 0);
@@ -316,19 +295,19 @@ void DelTriangulator::insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w,
 	std::vector<Vertex *>& marked, bool mark, int depth) {
 	Vertex *x = NULL;
 	bool exited = cavityRep.Adjacent(Segment(w, v), &x);
-	bool inCircle = false;
+	bool outCircle = false;
 	bool deleted = false;
 	if (exited) {
-		inCircle = predicator.inOrthoCirclePerturbed(u->vert, u->weight, v->vert, v->weight, w->vert, w->weight,
+		outCircle = predicator.inOrthoCirclePerturbed(u->vert, u->weight, v->vert, v->weight, w->vert, w->weight,
 			x->vert, x->weight, ghost->vert) > 0;
 
-		deleted = inCircle | (predicator.orient2d(u->vert, v->vert, w->vert, ghost->vert) <= 0);
+		deleted = outCircle | (predicator.orient2d(u->vert, v->vert, w->vert, ghost->vert) <= 0);
 	}
 
 	if (deleted) {
 		cavityRep.deleteTriangle(x, w, v);
 		bool nextMark = false;
-		if (!inCircle)
+		if (!outCircle)
 			nextMark = true;
 		insertVertexToCavity(u, v, x, marked, nextMark, depth + 1);
 		insertVertexToCavity(u, x, w, marked, nextMark, depth + 1);
@@ -450,7 +429,7 @@ void DelTriangulator::calculateAbovePoint(int vertexCount, Vertex** vertices) {
 	DelVector vec = b->vert - a->vert;
 	REAL largest = 0;
 	for (int i = 2; i < vertexCount; i++) {
-		REAL area = ((vertices[i]->vert - a->vert) % vec).length2();
+		REAL area = (vec % (vertices[i]->vert - a->vert)).length2();
 		if (area > largest) {
 			c = vertices[i];
 			cIndex = i;
@@ -459,7 +438,7 @@ void DelTriangulator::calculateAbovePoint(int vertexCount, Vertex** vertices) {
 	}
 	std::swap(vertices[2], vertices[cIndex]);
 
-	DelVector n = Normalize((c->vert - a->vert) % vec);
+	DelVector n = Normalize(vec % (c->vert - a->vert));
 	ghost->vert = a->vert + (longest * REAL(0.5)) * n;
 }
 

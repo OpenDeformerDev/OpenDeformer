@@ -10,6 +10,11 @@
 
 #define ABOSOLUTE_GREATER(x, y) ((x)>(y)) == ((x)>(-y)) //returns ture if |x| > |y|
 
+#if defined(_MSC_VER)
+#pragma float_control(precise, on, push)
+#pragma fp_contract(off)
+#endif
+
 namespace ODER{
 	template<class FT> class ExactArthmeticer{
 	public:
@@ -286,5 +291,10 @@ namespace ODER{
 	template<class FT> const FT ExactArthmeticer<FT>::splitter = ExactArthmeticer<FT>::getSplitter<FT>();
 
 }
+
+#if defined(_MSC_VER)
+#pragma float_control(pop)
+#pragma fp_contract(on)
+#endif
 
 #endif

@@ -20,8 +20,14 @@
 #define ODER_MESHER_PREDICATE_H
 
 #include "oder.h"
-#include "latool.h"
 #include "arithmetic.h"
+
+#if defined(_MSC_VER)
+#pragma float_control(precise, on, push)
+#pragma fp_contract(off)
+#endif
+
+#include "latool.h"
 #include "numerMethod.h"
 
 namespace ODER{
@@ -83,7 +89,6 @@ public:
 
 	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const;
 
-	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
 private:
 
 	FT orient2dAdaptive(FT ax, FT ay, FT bx, FT by, FT cx, FT cy, FT norm) const;
@@ -96,6 +101,8 @@ private:
 	FT inSphereAdaptive(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e, FT norm) const;
 
 	FT inSphereExact(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
+
+	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
 
 	FT inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, 
 		const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const;
@@ -1925,5 +1932,10 @@ template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, c
 		return false;
 }
 }
+
+#if defined(_MSC_VER)
+#pragma float_control(pop)
+#pragma fp_contract(on)
+#endif
 
 #endif

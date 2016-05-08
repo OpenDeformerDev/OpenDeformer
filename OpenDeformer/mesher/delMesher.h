@@ -5,8 +5,8 @@
 #ifndef ODER_MESHER_DELMESHER_H
 #define ODER_MESHER_DELMESHER_H
 
-#include "delPrimitive.h"
 #include "predicate.h"
+#include "delPrimitive.h"
 #include "memory.h"
 #include "mesher.h"
 #include "tetmesh.h"
@@ -36,7 +36,7 @@ namespace ODER{
 	private:
 		void calculateAbovePoint(int vertexCount, Vertex** vertices);
 		void insertSegment(const Segment& s);
-		void triangulateHalfHole(const std::vector<Vertex *> vertices);
+		void triangulateHalfHole(const std::vector<Vertex *>& vertices);
 		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
 		void insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, std::vector<Vertex *>& marked, bool mark, int depth);
 		void insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, int depth);
