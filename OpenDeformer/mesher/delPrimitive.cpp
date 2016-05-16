@@ -139,10 +139,26 @@ namespace ODER {
 
 		DelVector aa = a->vert;
 		const Predicator<REAL> predicator;
+
 		VertexListNode *parent = entry->second;
-		VertexListNode *child = parent->getNextNode();
+		if (parent == NULL) return false;
 		Vertex *c = parent->getVertex();
+
+		VertexListNode *child = parent->getNextNode();
+		if (child == NULL) return false;
 		Vertex *d = child->getVertex();
+
+		if(c->isGhost() || d->isGhost()) {
+			parent = child->getNextNode();
+			if (parent == NULL) return false;
+
+			child = parent->getNextNode();
+			if (child == NULL) return false;
+
+			c = parent->getVertex();
+			d = child->getVertex();
+		}
+
 		REAL ori0 = predicator.orient2d(aa, bb, c->vert, above);
 		REAL ori1 = predicator.orient2d(aa, bb, d->vert, above);
 		Assert(ori0 != 0);
@@ -152,8 +168,23 @@ namespace ODER {
 			child = parent->getNextNode();
 			c = d;
 			d = child->getVertex();
-			ori0 = ori1;
-			ori1 = predicator.orient2d(aa, bb, d->vert, above);
+			if (!d->isGhost()) {
+				ori0 = ori1;
+				ori1 = predicator.orient2d(aa, bb, d->vert, above);
+			}
+			else {
+				parent = child->getNextNode();
+				if (parent == NULL) return false;
+
+				child = parent->getNextNode();
+				if (child == NULL) return false;
+
+				c = parent->getVertex();
+				d = child->getVertex();
+				ori0 = predicator.orient2d(aa, bb, c->vert, above);
+				ori1 = predicator.orient2d(aa, bb, d->vert, above);
+				Assert(ori0 != 0);
+			}
 			Assert(ori1 != 0);
 		}
 
@@ -164,14 +195,14 @@ namespace ODER {
 		return true;
 	}
 
-	std::set<Face, face_compare> TriMeshDataStructure::getTriangles(const Vertex *ghost) const {
+	std::set<Face, face_compare> TriMeshDataStructure::getTriangleSet(bool ghost) const {
 		std::set<Face, face_compare> output;
 		VertexListNode *parent = NULL;
 		VertexListNode *child = NULL;
 
 		for (auto entry : topology) {
 			Vertex *center = entry.first;
-			if ((ghost == NULL || center != ghost) && entry.second) {
+			if ((ghost || !center->isGhost()) && entry.second) {
 				parent = entry.second;
 				child = parent->getNextNode();
 				while (child != NULL) {
@@ -179,7 +210,7 @@ namespace ODER {
 					Vertex *c = child->getVertex();
 					if (!child->isPreFaceDeleted()) {
 						Face f(center, b, c, true);
-						if (ghost == NULL || f.v[0] != ghost)
+						if (ghost || !f.v[0]->isGhost())
 							output.insert(f);
 					}
 					parent = child;
@@ -189,11 +220,45 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = entry.second->getVertex();
 					Face f(center, b, c, true);
-					if (ghost == NULL || f.v[0] != ghost)
+					if (ghost || !f.v[0]->isGhost())
 						output.insert(f);
 				}
 			}
 		}
+		return output;
+	}
+
+	std::vector<Face> TriMeshDataStructure::getTriangleVector(bool ghost) const {
+		std::vector<Face> output;
+		VertexListNode *parent = NULL;
+		VertexListNode *child = NULL;
+
+		for (auto entry : topology) {
+			Vertex *center = entry.first;
+			if ((ghost || !center->isGhost()) && entry.second) {
+				parent = entry.second;
+				child = parent->getNextNode();
+				while (child != NULL) {
+					Vertex *b = parent->getVertex();
+					Vertex *c = child->getVertex();
+					if (!child->isPreFaceDeleted()) {
+						Face f(center, b, c, true);
+						if (ghost || !f.v[0]->isGhost())
+							output.push_back(f);
+					}
+					parent = child;
+					child = child->getNextNode();
+				}
+				if (!entry.second->isPreFaceDeleted()) {
+					Vertex *b = parent->getVertex();
+					Vertex *c = entry.second->getVertex();
+					Face f(center, b, c, true);
+					if (ghost || !f.v[0]->isGhost())
+						output.push_back(f);
+				}
+			}
+		}
+
 		return output;
 	}
 
@@ -737,7 +802,7 @@ namespace ODER {
 		return found;
 	}
 
-	std::set<Tetrahedron, tet_compare> TetMeshDataStructure::getTetraherons(const Vertex *ghost) const {
+	std::set<Tetrahedron, tet_compare> TetMeshDataStructure::getTetraheronSet(bool ghost) const {
 		std::set<Tetrahedron, tet_compare> tets;
 		for (auto vert : vertices) {
 			if (vert->hasList()) {
@@ -750,7 +815,7 @@ namespace ODER {
 					while (node) {
 						if (!node->isPreFaceDeleted()) {
 							Tetrahedron t(vert, endVert, parentNode->getVertex(), node->getVertex(), true);
-							if (ghost == NULL || t.v[0] != ghost)
+							if (ghost || !t.v[0]->isGhost())
 								tets.insert(t);
 						}
 						parentNode = node;
@@ -758,8 +823,40 @@ namespace ODER {
 					}
 					if (!head->isPreFaceDeleted()) {
 						Tetrahedron t(vert, endVert, parentNode->getVertex(), head->getVertex(), true);
-						if (ghost == NULL || t.v[0] != ghost)
+						if (ghost || !t.v[0]->isGhost())
 							tets.insert(t);
+					}
+					linkHead = linkHead->getNextNode();
+				}
+			}
+		}
+
+		return tets;
+	}
+
+	std::vector<Tetrahedron> TetMeshDataStructure::getTetraheronVector(bool ghost) const {
+		std::vector<Tetrahedron> tets;
+		for (auto vert : vertices) {
+			if (vert->hasList()) {
+				EdgeListNode *linkHead = vert->getListHead();
+				while (linkHead) {
+					Vertex *endVert = linkHead->getEndVertex();
+					VertexListNode *head = linkHead->getLink();
+					VertexListNode *parentNode = head;
+					VertexListNode *node = parentNode->getNextNode();
+					while (node) {
+						if (!node->isPreFaceDeleted()) {
+							Tetrahedron t(vert, endVert, parentNode->getVertex(), node->getVertex(), true);
+							if (ghost || !t.v[0]->isGhost())
+								tets.push_back(t);
+						}
+						parentNode = node;
+						node = node->getNextNode();
+					}
+					if (!head->isPreFaceDeleted()) {
+						Tetrahedron t(vert, endVert, parentNode->getVertex(), head->getVertex(), true);
+						if (ghost || !t.v[0]->isGhost())
+							tets.push_back(t);
 					}
 					linkHead = linkHead->getNextNode();
 				}

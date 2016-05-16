@@ -1,14 +1,14 @@
 #include "stdafx.h"
 #include "DelMesher.h"
+#include <memory>
 #include <set>
 #include <random>
-#include <stack>
 
 namespace ODER{
 
 Predicator<REAL> DelTriangulator::predicator;
 
-void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount){
+void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, bool boundaryOnly){
 	meshRep.Clear();
 	this->segments.clear();
 	invertion = false;
@@ -19,6 +19,16 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 	if (vertexCount < 3)
 		Severe("a subpolygon contains less than 3 vertices");
 #endif
+
+	//shuffle input segments
+	std::random_device rng;
+	std::default_random_engine randomEngine(rng());
+	for (int i = segmentCount - 1; i > 0; i--) {
+		std::uniform_int_distribution<int> indexDistrubution(0, i);
+		int newIndex = indexDistrubution(randomEngine);
+		std::swap(segments[i * 2 + 0], segments[newIndex * 2 + 0]);
+		std::swap(segments[i * 2 + 1], segments[newIndex * 2 + 1]);
+	}
 
 	for (int i = 0; i < segmentCount; i++)
 		this->segments.insert(Segment(vertices[segments[i * 2 + 0]], vertices[segments[i * 2 + 1]]));
@@ -39,9 +49,9 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 		f = findPosition(v3, f);
 		v0 = f.v[0]; v1 = f.v[1]; v2 = f.v[2];
 		meshRep.deleteTriangle(v0, v1, v2);
-		digCavity(v3, Segment(v1, v0), &f);
-		digCavity(v3, Segment(v0, v2));
-		digCavity(v3, Segment(v2, v1));
+		digCavity(v3, Segment(v1, v0), &f, 0);
+		digCavity(v3, Segment(v0, v2), NULL, 0);
+		digCavity(v3, Segment(v2, v1), NULL, 0);
 	}
 
 	//insert segments
@@ -51,20 +61,21 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 			insertSegment(s);
 	}
 
+	invertion = detectInversion(f);
 	//clean out of region triangles
-	cleanRigion();
+	if(boundaryOnly) cleanRigion(f);
 }
 
-void DelTriangulator::cleanRigion() {
+bool DelTriangulator::detectInversion(Face& ghostFace) const {
 	Face f;
 	meshRep.adjacent2Vertex(ghost, &f);
 	Vertex *b = f.v[1], *c = f.v[2];
 	bool done = false;
+	bool flip = false;
 	do {
 		if (segments.find(Segment(c, b)) != segments.end()) done = true;
 		else if (segments.find(Segment(b, c)) != segments.end()) {
-			//detect invertion
-			invertion = true;
+			flip = true;
 			done = true;
 		}
 		else {
@@ -74,9 +85,16 @@ void DelTriangulator::cleanRigion() {
 	} while (!done && (b != f.v[1]));
 	Assert(done);
 
-	meshRep.deleteTriangle(ghost, b, c);
-	propagateClean(Segment(b, ghost), 0);
-	propagateClean(Segment(ghost, c), 0);
+	ghostFace = Face(ghost, b, c);
+	return flip;
+}
+
+void DelTriangulator::cleanRigion(const Face& ghostFace) {
+	Vertex *a = ghostFace.v[0], *b = ghostFace.v[1], *c = ghostFace.v[2];
+	Assert(a == ghost);
+	meshRep.deleteTriangle(a, b, c);
+	propagateClean(Segment(b, a), 0);
+	propagateClean(Segment(a, c), 0);
 
 	for (auto s : segments) {
 		if (!invertion) std::swap(s.v[0], s.v[1]);
@@ -103,7 +121,7 @@ void DelTriangulator::propagateClean(const Segment& s, int depth) {
 }
 
 void DelTriangulator::outPut(DelMesher *mesher){
-	std::set<Face, face_compare> output = meshRep.getTriangles(NULL);
+	std::set<Face, face_compare> output = meshRep.getTriangleSet(NULL);
 	for (auto f : output){
 		if (invertion) std::swap(f.v[1], f.v[2]);
 		(mesher->surfaceRep).addTriangle(f.v[0], f.v[1], f.v[2]);
@@ -208,6 +226,7 @@ void DelTriangulator::findCavity(const Segment& s, std::vector<Vertex *>& positi
 	//transverse the intersected triangle
 	Vertex *opposite = NULL;
 	meshRep.Adjacent(Segment(d, c), &opposite);
+	meshRep.deleteTriangle(d, c, opposite);
 	while (opposite != b) {
 		REAL ori = predicator.orient2d(aa, bb, opposite->vert, above);
 		Assert(ori != 0);
@@ -220,6 +239,7 @@ void DelTriangulator::findCavity(const Segment& s, std::vector<Vertex *>& positi
 			c = opposite;
 		}
 		meshRep.Adjacent(Segment(d, c), &opposite);
+		meshRep.deleteTriangle(d, c, opposite);
 	}
 
 	positive.push_back(b);
@@ -254,7 +274,7 @@ void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *>& vertices)
 	std::default_random_engine randomEngine(rng());
 	std::shuffle(indices, indices + indexCount, randomEngine);
 	
-	for (int i = indexCount - 1; i > 0; i++) {
+	for (int i = indexCount - 1; i > 0; i--) {
 		std::uniform_int_distribution<int> indexDistrubution(0, i);
 		int j = 0, trueIndex = 0;
 		do {
@@ -269,21 +289,30 @@ void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *>& vertices)
 	cavityRep.addTriangle(start, end, vertices[indices[0]]);
 
 
+	std::deque<Vertex *> fanVertices;
 	std::vector<Vertex *> convexPoly;
-	for (int i = 1; i < size - 2; i++) {
+	for (int i = 1; i < indexCount; i++) {
 		int trueIndex = indices[i];
+		bool convexPolyOri = true;
 		insertVertexToCavity(vertices[trueIndex], vertices[next[trueIndex]], vertices[prev[trueIndex]],
-			convexPoly, false, 0);
+			false, true, fanVertices, 0);
 
-		Assert(convexPoly.size() != 1);
-		if(convexPoly.size() > 2)
-		  triangulateConvexPoly(vertices[trueIndex], convexPoly);
+		Assert(fanVertices.size() != 1);
+		if (fanVertices.size() > 2) {
+			convexPoly.reserve(fanVertices.size());
+			for (auto vert : fanVertices)
+				convexPoly.push_back(vert);
+			triangulateConvexPoly(vertices[trueIndex], convexPoly);
 
-		convexPoly.clear();
+			fanVertices.clear();
+			convexPoly.clear();
+		}
 	}
-	auto triangles = cavityRep.getTriangles(NULL);
-	for (auto f : triangles)
-		meshRep.addTriangle(f.v[0], f.v[1], f.v[2]);
+	auto triangles = cavityRep.getTriangleVector(false);
+	for (auto f : triangles) {
+		if(!meshRep.Contain(f)) 
+			meshRep.addTriangle(f.v[0], f.v[1], f.v[2]);
+	}
 
 	delete[] indices;
 	delete[] prev;
@@ -292,32 +321,40 @@ void DelTriangulator::triangulateHalfHole(const std::vector<Vertex *>& vertices)
 }
 
 void DelTriangulator::insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, 
-	std::vector<Vertex *>& marked, bool mark, int depth) {
+	bool mark, bool oriTest, std::deque<Vertex *>& marked, int depth) {
 	Vertex *x = NULL;
 	bool exited = cavityRep.Adjacent(Segment(w, v), &x);
-	bool outCircle = false;
+	bool outCircle = true;
 	bool deleted = false;
+	bool negativeOri = false;
 	if (exited) {
 		outCircle = predicator.inOrthoCirclePerturbed(u->vert, u->weight, v->vert, v->weight, w->vert, w->weight,
 			x->vert, x->weight, ghost->vert) > 0;
 
-		deleted = outCircle | (predicator.orient2d(u->vert, v->vert, w->vert, ghost->vert) <= 0);
+		if (oriTest) negativeOri = predicator.orient2d(u->vert, v->vert, w->vert, ghost->vert) <= 0;
+		deleted = outCircle | negativeOri;
 	}
 
 	if (deleted) {
 		cavityRep.deleteTriangle(x, w, v);
-		bool nextMark = false;
-		if (!outCircle)
-			nextMark = true;
-		insertVertexToCavity(u, v, x, marked, nextMark, depth + 1);
-		insertVertexToCavity(u, x, w, marked, nextMark, depth + 1);
+		bool nextMark = outCircle ? false : true;
+		insertVertexToCavity(u, v, x, nextMark, negativeOri, marked, depth + 1);
+		insertVertexToCavity(u, x, w, nextMark, negativeOri, marked, depth + 1);
 	}
 	else {
 		if (mark) {
-			if(marked.empty())
+			if (marked.empty()) {
 				marked.push_back(v);
-			Assert(marked.back() == v);
-			marked.push_back(w);
+				marked.push_back(w);
+			}
+			else {
+				if (marked.back() == v)
+					marked.push_back(w);
+				else {
+					Assert(marked.front() == w);
+					marked.push_front(v);
+				}
+			}
 		}
 		else
 			cavityRep.addTriangle(u, v, w);
@@ -375,7 +412,7 @@ void DelTriangulator::triangulateConvexPoly(Vertex *u, const std::vector<Vertex 
 	delete[] indices;
 }
 
-void DelTriangulator::digCavity(Vertex *u, const Segment &s, Face *rf){
+void DelTriangulator::digCavity(Vertex *u, const Segment &s, Face *rf, int depth){
 	Vertex *x;
 	if (!meshRep.Adjacent(s, &x))
 		return;
@@ -400,8 +437,8 @@ void DelTriangulator::digCavity(Vertex *u, const Segment &s, Face *rf){
 	}
 	if (deleted){
 		meshRep.deleteTriangle(verts[0], verts[1], verts[2]);
-		digCavity(u, Segment(verts[2], verts[1]), rf);
-		digCavity(u, Segment(verts[0], verts[2]), rf);
+		digCavity(u, Segment(verts[2], verts[1]), rf, depth + 1);
+		digCavity(u, Segment(verts[0], verts[2]), rf, depth + 1);
 	}
 	else{
 		meshRep.addTriangle(u, verts[1], verts[0]);
@@ -482,7 +519,7 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 		for (int j = 0; j < numsubpol[i]; j++){
 			polygonVerts.push_back(vertices[subpolygons[j]]);
 		}
-		t.generateSubPolygons(&polygonVerts[0], NULL, numsubpol[i], 0);
+		t.generateSubPolygons(&polygonVerts[0], NULL, numsubpol[i], 0, true);
 		t.outPut(this);
 		subpolygons += numsubpol[i];
 		polygonVerts.clear();
@@ -1192,9 +1229,9 @@ start:
 	}
 
 	//output to mesh
-	std::set<Tetrahedron, tet_compare> tets = meshRep.getTetraherons(ghost);
+	std::set<Tetrahedron, tet_compare> tets = meshRep.getTetraheronSet(false);
 
-	std::set<Face, face_compare> polygons = surfaceRep.getTriangles(NULL);
+	std::set<Face, face_compare> polygons = surfaceRep.getTriangleSet(false);
 
 	std::map<Vertex*, int> vi;
 	for (int i = 0; i < vertices.size(); i++){

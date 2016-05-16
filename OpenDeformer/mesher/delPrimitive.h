@@ -37,11 +37,15 @@ namespace ODER {
 
 	struct Vertex {
 		Vertex() : weight(0.0), label(-1), pointer(0) {}
-		template<class FT> Vertex(const VectorBase<FT>& vv) : vert{ vv.x, vv.y, vv.z }, weight(0.0), label(-1), pointer(0){}
+		template<class FT> Vertex(const VectorBase<FT>& vv) : vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), pointer(0){}
 		Vertex(const DelVector& vv, REAL w = 0) :vert(vv), weight(w), label(-1), pointer(0) {}
 		void setGhost() {
 			vert.x = FLT_MAX; vert.y = FLT_MAX; vert.z = FLT_MAX;
+			weight = -FLT_MAX;
 			label = labeler.getSpecilGhostLabel();
+		}
+		bool isGhost() {
+			return label == labeler.getSpecilGhostLabel();
 		}
 		void setLabel() {
 			label = labeler.getLabel();
@@ -296,7 +300,8 @@ namespace ODER {
 		bool Contain(const Face &f) const;
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const;
 		void Clear();
-		std::set<Face, face_compare> getTriangles(const Vertex *ghost) const;
+		std::set<Face, face_compare> getTriangleSet(bool ghost) const;
+		std::vector<Face> getTriangleVector(bool ghost) const;
 		~TriMeshDataStructure();
 	private:
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
@@ -313,7 +318,8 @@ namespace ODER {
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		bool Adjacent(const Face &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
-		std::set<Tetrahedron, tet_compare> getTetraherons(const Vertex *ghost) const;
+		std::set<Tetrahedron, tet_compare> getTetraheronSet(bool ghost) const;
+		std::vector<Tetrahedron> getTetraheronVector(bool ghost) const;
 		~TetMeshDataStructure();
 	private:
 		bool Adjacent(Vertex* w, Vertex *x, Vertex *y, Vertex **z) const;
