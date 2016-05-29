@@ -533,7 +533,7 @@ void DelMesher::triangulation3D(){
 	Vertex *d;
 	for (int i = 3; i < vertices.size(); i++){
 		d = vertices[i];
-		if (!predicator.coPlane(a->vert, b->vert, c->vert, d->vert)){
+		if (!predicator.fastCoPlane(a->vert, b->vert, c->vert, d->vert)){
 			std::swap(vertices[3], vertices[i]);
 			break;
 		}
@@ -850,7 +850,7 @@ Face DelMesher::findFaceAroundOnPlane(const Vertex& origin, Vertex *center) cons
 
 	indice = 0;
 	do{
-		if (predicator.coPlane(center->vert, b->vert, c->vert, origin.vert)){
+		if (predicator.fastCoPlane(center->vert, b->vert, c->vert, origin.vert)){
 			ret = Face(center, b, c);
 			break;
 		}
@@ -1156,7 +1156,7 @@ REAL DelMesher::estimateLocalGapSize2(const DelVector &c) const{
 		Segment segment = oriSegments[i];
 		DelVector a = segment.v[0]->vert, b = segment.v[1]->vert;
 		REAL size = FLT_MAX;
-		if (predicator.coLine(a, b, c)){
+		if (predicator.fastCoLine(a, b, c)){
 			size = std::max((c - a).length2(), (c - b).length2());
 		}
 		else{

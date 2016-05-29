@@ -41,6 +41,9 @@ public:
 
 	FT orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const;
 
+	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
+
+	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, int hint) const;
 
 	FT inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& n) const;
 
@@ -73,12 +76,12 @@ public:
 
 	void OrthoCenter(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight, VectorBase<FT> *center, FT *r = NULL) const;
 
-	bool coPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
+	bool fastCoPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
 		VectorBase<FT> n = (b - a) % (c - a);
 		return fabs(n*(d - a)) <= arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}
 
-	bool coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c) const{
+	bool fastCoLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c) const{
 		VectorBase<FT> n = (b - a) % (c - a);
 		return n.length2() <= arthemetricer.epsilon*arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
 	}
@@ -88,6 +91,12 @@ public:
 	bool inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& above) const;
 
 	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const;
+
+	bool Intersection(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
+
+	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
+		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
 private:
 
@@ -106,6 +115,15 @@ private:
 
 	FT inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, 
 		const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const;
+
+	bool intersectionTestEdge(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+		const VectorBase<FT>& a, const VectorBase<FT>& b, int hint) const;
+
+	bool intersectionTestVertex(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, int hint) const;
+
+	bool intersectionTriSegCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
+		const VectorBase<FT>& p, const VectorBase<FT>& q, int hint) const;
 
 	static const ExactArthmeticer<FT> arthemetricer;
 	static const FT epsilon;
@@ -229,8 +247,8 @@ template<class FT> FT Predicator<FT>::orient2d(const VectorBase<FT>& a, const Ve
 }
 
 
-template<class FT> FT Predicator<FT>::inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& n) const{
-	return inSphere(a + n, a, b, c, d);
+template<class FT> FT Predicator<FT>::inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const{
+	return inSphere(above, a, b, c, d);
 }
 
 template<class FT> FT Predicator<FT>::inOrthoCircle(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
@@ -603,6 +621,29 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 	return finNow[finLength - 1];
 }
 
+template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+	FT xy = orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
+	if (xy != 0) return xy;
+	FT xz = orient2d(a.x, a.z, b.x, b.z, c.x, c.z);
+	if (xz != 0) return xz;
+	return orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
+}
+
+template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, int hint) const {
+	switch (hint) {
+	case 0:
+		return orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
+	case 1:
+		return orient2d(a.x, a.z, b.x, b.z, c.x, c.z);
+	case 2:
+		return orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
+	default:
+		return orientCoplane(a, b, c);
+	}
+
+	return orientCoplane(a, b, c); // never here
+}
+
 template<class FT> FT Predicator<FT>::inSphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const{
 	VectorBase<FT> ea = a - e;
 	VectorBase<FT> eb = b - e;
@@ -847,7 +888,7 @@ template<class FT> FT Predicator<FT>::inSphereAdaptive(const VectorBase<FT>& a, 
 
 
 	det += (-ea.length2()*bcdError + eb.length2()*cdaError - ec.length2()*dabError + ed.length2()*abcError
-		+ 2.f*(-eaLength2ErrorOne*bcd + ebLength2ErrorOne*cda - ecLength2ErrorOne*dab + edLength2ErrorOne*abc));
+		+ FT(2)*(-eaLength2ErrorOne*bcd + ebLength2ErrorOne*cda - ecLength2ErrorOne*dab + edLength2ErrorOne*abc));
 
 	errorBound = inSpeErrorBoundC*norm + commonBound*fabs(det);
 	if (fabs(det) >= errorBound)
@@ -1342,8 +1383,8 @@ template<class FT> FT Predicator<FT>::inOrthoSphereAdaptive(const VectorBase<FT>
 
 	det += ((-(ea.length2() + eaWeight)*bcdError + (eb.length2() + ebWeight)*cdaError
 		- (ec.length2() + ecWeight)*dabError + (ed.length2() + edWeight)*abcError)
-		+ (-(2.f*eaLength2ErrorOne + eawError)*bcd + (2.f*ebLength2ErrorOne + ebwError)*cda
-		- (2.f*ecLength2ErrorOne + ecwError)*dab + (2.f*edLength2ErrorOne + edwError)*abc));
+		+ (-(FT(2)*eaLength2ErrorOne + eawError)*bcd + (FT(2)*ebLength2ErrorOne + ebwError)*cda
+		- (FT(2)*ecLength2ErrorOne + ecwError)*dab + (FT(2)*edLength2ErrorOne + edwError)*abc));
 
 	errorBound = inSpeErrorBoundC*norm + commonBound*fabs(det);
 	if (fabs(det) >= errorBound)
@@ -1931,6 +1972,317 @@ template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, c
 	else
 		return false;
 }
+
+template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+	const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+
+	FT dp = orient3d(p, a, b, c);
+	FT dq = orient3d(q, a, b, c);
+	FT dr = orient3d(r, a, b, c);
+
+	if (dp != 0 || dq != 0 || dr != 0) {
+		const VectorBase<FT> *sMin1, *sMax1, *tMin1, *tMax1;
+		int condition = (dp > 0) + ((dq > 0) << 1) + ((dr > 0) << 2);
+
+		switch (condition) {
+		case 0:
+			return false;
+		case 1: //positive p
+			sMin1 = &p; tMin1 = &q; sMax1 = &r; tMax1 = &p;
+			break;
+		case 2: //positive q
+			sMin1 = &q; tMin1 = &r; sMax1 = &p; tMax1 = &q;
+			break;
+		case 3: //negative r
+			sMin1 = &q; tMin1 = &r; sMax1 = &r; tMax1 = &p;
+			break;
+		case 4: //positive r
+			sMin1 = &r; tMin1 = &p; sMax1 = &q; tMax1 = &r;
+			break;
+		case 5: //negative q
+			sMin1 = &p; tMin1 = &q; sMax1 = &q; tMax1 = &r;
+			break;
+		case 6: //negative p
+			sMin1 = &r; tMin1 = &p; sMax1 = &p; tMax1 = &q;
+			break;
+		case 7:
+		{
+			VectorBase<FT> normal = triangleNormal(a, b, c);
+			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
+			int maxIndex = nz > ny ? : (nz > nx ? 2 : 0) : (ny > nx ? 2 : 1);
+			int plane = normal[maxIndex] != 0 ? 2 - maxIndex : -1;
+
+			int zeroCondition = (dp == 0) + ((dq == 0) << 1) + ((dr == 0) << 2);
+			switch (zeroCondition) {
+			case 0:
+				return false;
+			case 1:
+				return orientCoplane(p, a, b, plane) >= 0 &&
+					orientCoplane(p, b, c, plane) >= 0 &&
+					orientCoplane(p, c, a, plane) >= 0;
+			case 2:
+				return orientCoplane(q, a, b, plane) >= 0 &&
+					orientCoplane(q, b, c, plane) >= 0 &&
+					orientCoplane(q, c, a, plane) >= 0;
+			case 3:
+				return intersectionTriSegCoplane(a, b, c, p, q, plane);
+			case 4:
+				return orientCoplane(r, a, b, plane) >= 0 &&
+					orientCoplane(r, b, c, plane) >= 0 &&
+					orientCoplane(r, c, a, plane) >= 0;
+			case 5:
+				return intersectionTriSegCoplane(a, b, c, r, p, plane);
+			case 6:
+				return intersectionTriSegCoplane(a, b, c, q, r, plane);
+			default:
+				Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+				break;
+			}
+			break;
+		}
+		default:
+			Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+			break;
+		}
+
+		FT da = orient3d(a, p, q, r);
+		FT db = orient3d(b, p, q, r);
+		FT dc = orient3d(c, p, q, r);
+		Assert(da != 0 || db != 0 || dc != 0);
+
+		const VectorBase<FT> *sMin2, *sMax2, *tMin2, *tMax2;
+		condition = (da > 0) + ((db > 0) << 1) + ((dc > 0) << 2);
+
+		switch (condition) {
+		case 0:
+			return false;
+		case 1: //positive a
+			sMin2 = &a; tMin2 = &b; sMax2 = &c; tMax2 = &a;
+			break;
+		case 2: //positive b
+			sMin2 = &b; tMin2 = &c; sMax2 = &a; tMax2 = &b;
+			break;
+		case 3: //negative c
+			sMin2 = &b; tMin2 = &c; sMax2 = &c; tMax2 = &a;
+			break;
+		case 4: //positive c
+			sMin2 = &c; tMin2 = &a; sMax2 = &b; tMax2 = &c;
+			break;
+		case 5: //negative b
+			sMin2 = &a; tMin2 = &b; sMax2 = &b; tMax2 = &c;
+			break;
+		case 6: //negative a
+			sMin2 = &c; tMin2 = &a; sMax2 = &a; tMax2 = &b;
+			break;
+		case 7:
+		{
+			int zeroCondition = (da == 0) + ((db == 0) << 1) + ((dc == 0) << 2);
+			switch (zeroCondition) {
+			case 0:
+				return false;
+			case 1:
+				sMin2 = &a; tMin2 = &b; sMax2 = &c; tMax2 = &a;
+				break;
+			case 2:
+				sMin2 = &b; tMin2 = &c; sMax2 = &a; tMax2 = &b;
+				break;
+			case 3:
+				sMin2 = &b; tMin2 = &c; sMax2 = &c; tMax2 = &a;
+				break;
+			case 4:
+				sMin2 = &c; tMin2 = &a; sMax2 = &b; tMax2 = &c;
+				break;
+			case 5:
+				sMin2 = &a; tMin2 = &b; sMax2 = &b; tMax2 = &c;
+				break;
+			case 6: 
+				sMin2 = &c; tMin2 = &a; sMax2 = &a; tMax2 = &b;
+				break;
+			default:
+				Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+				break;
+			}
+			break;
+		}
+		default:
+			Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+			break;
+		}
+
+		return orient3d(*sMin1, *tMin1, *tMin2, *sMin2) <= 0 &&
+			orient3d(*sMax1, *tMax1, *sMax2, *tMax2) <= 0;
+	}
+	else {
+		VectorBase<FT> normal = triangleNormal(p, q, r);
+		bool zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
+		if (zeroTest) {
+			normal = triangleNormal(a, b, c);
+			zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
+		}
+
+		int plane = -1;
+		if (!zeroTest) {
+			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
+			plane = nz > ny ? : (nz > nx ? 0 : 2) : (ny > nx ? 1 : 2);
+		}
+
+		if (orientCoplane(p, b, a, plane) > 0) {
+			if (orientCoplane(p, c, a, plane) > 0) {
+				if (orientCoplane(p, b, c, plane) > 0)
+					return intersectionTestEdge(p, q, r, a, b, plane);
+				
+				return intersectionTestVertex(p, q, r, b, c, a, plane);
+			}
+			return intersectionTestVertex(p, q, r, a, b, c, plane);
+		}
+
+		if (orientCoplane(p, c, b, plane) > 0) {
+			if (orientCoplane(p, c, a, plane) > 0)
+				return intersectionTestEdge(p, q, r, b, c, plane);
+
+			return intersectionTestVertex(p, q, r, c, a, b, plane);
+		}
+
+		if (orientCoplane(p, a, c, plane) > 0)
+			return intersectionTestEdge(p, q, r, c, a, plane);
+
+		return true;
+	}
+}
+
+template<class FT> bool Predicator<FT>::intersectionTestEdge(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+	const VectorBase<FT>& a, const VectorBase<FT>& b, int hint) const {
+
+	if (orientCoplane(q, a, b, hint) >= 0) {
+		if (orientCoplane(p, b, q, hint) >= 0)
+			return orientCoplane(p, q, a, hint) >= 0;
+
+		return orientCoplane(p, b, r, hint) >= 0 && orientCoplane(q, r, b, hint) >= 0;
+	}
+
+	if (orientCoplane(r, a, b, hint) >= 0)
+		return orientCoplane(q, r, a, hint) >= 0 && orientCoplane(p, b, r, hint) >= 0;
+
+	return false;
+}
+
+template<class FT> bool Predicator<FT>::intersectionTestVertex(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+	const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, int hint) const {
+
+	if (orientCoplane(q, a, b, hint) >= 0) {
+		if (orientCoplane(c, a, q, hint) >= 0) {
+			if (orientCoplane(p, b, q, hint) >= 0)
+				return orientCoplane(p, c, q, hint) <= 0;
+
+			return orientCoplane(p, b, r, hint) >= 0 && orientCoplane(q, r, b, hint) >= 0;
+		}
+
+		return orientCoplane(p, c, q, hint) <= 0 && orientCoplane(c, a, r, hint) >= 0 &&
+			orientCoplane(q, r, c, hint) >= 0;
+	}
+
+	if (orientCoplane(r, a, b, hint) >= 0) {
+		if (orientCoplane(q, r, a, hint) >= 0)
+			return orientCoplane(r, p, b, hint) >= 0;
+
+		return orientCoplane(q, r, c, hint) >= 0 && orientCoplane(c, a, r, hint) >= 0;
+	}
+
+	return false;
+}
+
+template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
+	const VectorBase<FT>& p, const VectorBase<FT>& q) const {
+
+	FT dp = orient3d(p, a, b, c);
+	FT dq = orient3d(q, a, b, c);
+
+	if (dp != 0 || dq != 0) {
+		int condition = (dp > 0) + ((dq > 0) << 1);
+
+		switch (condition) {
+		case 0:
+			return false;
+		case 1:
+			return orient3d(p, q, a, b) >= 0 && orient3d(p, q, b, c) >= 0 && orient3d(p, q, c, a) >= 0;
+		case 2:
+			return orient3d(q, p, a, b) >= 0 && orient3d(q, p, b, c) >= 0 && orient3d(q, p, c, a) >= 0;
+		case 3:
+		{
+			if(dp == 0) return orient3d(p, q, a, b) >= 0 && orient3d(p, q, b, c) >= 0 && orient3d(p, q, c, a) >= 0;
+			if(dq == 0) return orient3d(q, p, a, b) >= 0 && orient3d(q, p, b, c) >= 0 && orient3d(q, p, c, a) >= 0;
+			return false;
+		}
+		default:
+			Severe("Unexpected Case Triangle-Segment Predicator::Intersection");
+			break;
+		}
+		return false;
+	}
+	else {
+		VectorBase<FT> normal = triangleNormal(a, b, c);
+		FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
+		int maxIndex = nz > ny ? : (nz > nx ? 2 : 0) : (ny > nx ? 2 : 1);
+		int plane = normal[maxIndex] != 0 ? 2 - maxIndex : -1;
+
+		return intersectionTriSegCoplane(a, b, c, p, q, plane);
+	}
+}
+
+template<class FT> bool Predicator<FT>::intersectionTriSegCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
+	const VectorBase<FT>& p, const VectorBase<FT>& q, int hint) const {
+	FT pqa = orientCoplane(p, q, a, hint);
+	FT pqb = orientCoplane(p, q, b, hint);
+	FT pqc = orientCoplane(p, q, c, hint);
+
+	int condition = (pqa > 0) + ((pqb > 0) << 1) + ((pqc > 0) << 2);
+
+	switch (condition) {
+	case 0:
+		return false;
+	case 1:
+		return orientCoplane(p, c, a, hint) >= 0 && orientCoplane(q, a, b, hint) >= 0;
+	case 2:
+		return orientCoplane(p, c, b, hint) >= 0 && orientCoplane(q, b, a, hint) >= 0;
+	case 3:
+		return orientCoplane(p, c, a, hint) >= 0 && orientCoplane(q, b, c, hint) >= 0;
+	case 4:
+		return orientCoplane(p, b, c, hint) >= 0 && orientCoplane(q, c, a, hint) >= 0;
+	case 5:
+		return orientCoplane(p, b, c, hint) >= 0 && orientCoplane(q, a, b, hint) >= 0;
+	case 6:
+		return orientCoplane(p, a, b, hint) >= 0 && orientCoplane(q, c, a, hint) >= 0;
+	case 7:
+	{
+		int zeroCondition = (pqa == 0) + ((pqb == 0) << 1) + ((pqc == 0) << 2);
+		switch (zeroCondition) {
+		case 0:
+			return false;
+		case 1:
+			return orientCoplane(p, c, a, hint) >= 0 && orientCoplane(q, a, b, hint) >= 0;
+		case 2:
+			return orientCoplane(p, c, b, hint) >= 0 && orientCoplane(q, b, a, hint) >= 0;
+		case 3:
+			return orientCoplane(p, c, a, hint) >= 0 && orientCoplane(q, b, c, hint) >= 0;
+		case 4:
+			return orientCoplane(p, b, c, hint) >= 0 && orientCoplane(q, c, a, hint) >= 0;
+		case 5:
+			return orientCoplane(p, b, c, hint) >= 0 && orientCoplane(q, a, b, hint) >= 0;
+		case 6:
+			return orientCoplane(p, a, b, hint) >= 0 && orientCoplane(q, c, a, hint) >= 0;
+		default:
+			Severe("Unexpected Case Predicator::intersectionTriSegCoplane");
+			break;
+		}
+		break;
+	}
+	default:
+		Severe("Unexpected Case Predicator::intersectionTriSegCoplane");
+		break;
+	}
+	return false; //never here
+}
+
 }
 
 #if defined(_MSC_VER)

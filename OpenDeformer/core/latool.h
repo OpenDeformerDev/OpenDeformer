@@ -508,6 +508,28 @@ namespace ODER{
 		return right * left;
 	}
 
+	template<class FT> inline VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
+		const VectorBase<FT>& b, const VectorBase<FT>& c) {
+		VectorBase<FT> ab = b - a;
+		VectorBase<FT> ac = c - a;
+		VectorBase<FT> bc = c - b;
+		FT abLen2 = ab.length2();
+		FT acLen2 = ac.length2();
+		FT bcLen2 = bc.length2();
+
+		VectorBase<FT> *u = &ab;
+		VectorBase<FT> *v = &ac;
+
+		if (bcLen2 < abLen2) {
+			if (abLen2 < acLen2) v = &bc;
+			else {
+				u = &ac; v = &bc;
+			}
+		}
+		else if (bcLen2 < acLen2) v = &bc;
+
+		return *u % *v;
+	}
 
 
 	constexpr float const_pow(float base, int exp) noexcept{
