@@ -113,6 +113,7 @@ namespace ODER{
 		REAL estimateLocalGapSize2(const DelVector &c) const;
 
 		Face findFaceAroundOnPlane(const Vertex& origin, Vertex *center) const;
+		DelVector findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
 		REAL maxRatio;
 		REAL maxRadius;

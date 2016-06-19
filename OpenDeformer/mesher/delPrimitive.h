@@ -16,7 +16,6 @@ namespace ODER {
 #define NEXT_F(i) (((i)+1)%3)
 #define NEXT_T(i) (((i)+1)%4)
 #define SQRTF_2 REAL(1.41422)
-#define ODD_MAKE 1
 
 	using DelVector = VectorBase<REAL>;
 
@@ -320,6 +319,10 @@ namespace ODER {
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
 		std::set<Tetrahedron, tet_compare> getTetraheronSet(bool ghost) const;
 		std::vector<Tetrahedron> getTetraheronVector(bool ghost) const;
+		bool Contain(const Segment &s) const;
+		bool Contain(const Face &f) const;
+		bool Contain(const Tetrahedron& t) const;
+		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		~TetMeshDataStructure();
 	private:
 		bool Adjacent(Vertex* w, Vertex *x, Vertex *y, Vertex **z) const;
@@ -334,21 +337,53 @@ namespace ODER {
 
 
 	inline bool parityCheck(const Vertex *x, const Vertex *y) {
-		return (std::hash<int>()(x->getLabel()) & ODD_MAKE) == (std::hash<int>()(y->getLabel()) & ODD_MAKE);
+		constexpr int odd_mark = 1;
+		return (std::hash<int>()(x->getLabel()) & odd_mark) == (std::hash<int>()(y->getLabel()) & odd_mark);
 	}
 
 	inline bool TriMeshDataStructure::Contain(const Segment &s) const {
-		Vertex *w;
+		Vertex *w = NULL;
 		return Adjacent(s, &w);
 	}
 
 	inline bool TriMeshDataStructure::Contain(const Face &f) const {
-		Vertex *w;
+		Vertex *w = NULL;
 		bool find = Adjacent(Segment(f.v[0], f.v[1]), &w);
 		if (find) return w == f.v[2];
 
 		return false;
 	}
+
+	inline bool TetMeshDataStructure::Contain(const Segment &s) const {
+		Vertex *a = s.v[0], *b = s.v[1];
+		if (Randomnation(2)) std::swap(a, b);
+		Tetrahedron t;
+		bool find = findIntersectedTetrahedron(a, b->vert, &t);
+		if (find) return t.v[1] == b || t.v[2] == b || t.v[3] == b;
+
+		return false;
+	}
+
+	inline bool TetMeshDataStructure::Contain(const Face &f) const {
+		Vertex *x = NULL;
+		return Adjacent(f, &x);
+	}
+
+	inline bool TetMeshDataStructure::Contain(const Tetrahedron& t) const {
+		Vertex *x = NULL;
+		Adjacent(t.v[1], t.v[2], t.v[3], &x);
+		return x == t.v[0];
+	}
+
+	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
+		DelVector oa = a - o;
+		DelVector ob = b - o;
+		REAL len = oa.length() * ob.length();
+		Assert(len != 0);
+
+		return acos(Clamp((oa * ob) / len, REAL(-1), REAL(1)));
+	}
+
 }
 
 #endif

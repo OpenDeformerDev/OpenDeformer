@@ -860,6 +860,154 @@ Face DelMesher::findFaceAroundOnPlane(const Vertex& origin, Vertex *center) cons
 	return ret;
 }
 
+DelVector DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const {
+	Vertex *a = intersected.v[0], *b = intersected.v[1], *c = intersected.v[2], *d = intersected.v[3];
+
+	DelVector startVert = a->vert, endVert = end->vert;
+	DelVector ref = b->vert;
+	REAL maxAngle = interiorAngle(ref, startVert, endVert);
+
+	REAL angle = interiorAngle(c->vert, startVert, endVert);
+	if (angle > maxAngle) {
+		ref = c->vert;
+		maxAngle = angle;
+	}
+	angle = interiorAngle(d->vert, startVert, endVert);
+	if (angle > maxAngle) {
+		ref = d->vert;
+		maxAngle = angle;
+	}
+
+	enum Intersection { AcrossFace, AcrossEdge };
+	Intersection intersect = Intersection::AcrossFace;
+	if (predicator.orient3d(endVert, a->vert, d->vert, c->vert) == 0) {
+		std::swap(d, b);
+		std::swap(b, c);
+		intersect = Intersection::AcrossEdge;
+	}
+	if (predicator.orient3d(endVert, a->vert, b->vert, d->vert) == 0) {
+		std::swap(b, c);
+		std::swap(d, b);
+		intersect = Intersection::AcrossEdge;
+	}
+
+	bool terminate = false;
+	while (!terminate) {
+		switch (intersect) {
+		case Intersection::AcrossFace: //bcd is the intersected face
+		{
+			bool found = meshRep.Adjacent(Face(b, d, c), &a);
+			Assert(found && !a->isGhost());
+			if (a != end) {
+				angle = interiorAngle(a->vert, startVert, endVert);
+				if (angle > maxAngle) {
+					angle = maxAngle;
+					ref = a->vert;
+				}
+				std::swap(a, d);
+				bool dbc = predicator.Intersection(d->vert, b->vert, c->vert, startVert, endVert);
+				bool dab = predicator.Intersection(d->vert, a->vert, b->vert, startVert, endVert);
+				bool dca = predicator.Intersection(d->vert, c->vert, a->vert, startVert, endVert);
+				int condition = dbc + dab << 1 + dca << 2;
+				switch (condition) {
+				case 1:
+					intersect = Intersection::AcrossFace;
+					break;
+				case 2:
+					intersect = Intersection::AcrossFace;
+					std::swap(c, a); std::swap(b, c);
+					break;
+				case 3:
+					intersect = Intersection::AcrossEdge;
+					std::swap(b, d); std::swap(c, d);
+					break;
+				case 4:
+					intersect = Intersection::AcrossFace;
+					std::swap(a, b); std::swap(b, c);
+					break;
+				case 5:
+					intersect = Intersection::AcrossEdge;
+					std::swap(c, d); std::swap(b, c);
+					break;
+				case 6:
+					intersect = Intersection::AcrossEdge;
+					std::swap(c, a); std::swap(b, d);
+					break;
+				default:
+					Severe("Unexpected Case in DelMesher::findSegmentEncroachedReference");
+					terminate = true;
+					break;
+				}
+			}
+			else
+				terminate = true;
+
+			break;
+		}
+		case Intersection::AcrossEdge: //bc is the intersected edge
+		{
+			bool hasIntersect = false;
+			do {
+				bool found = meshRep.Adjacent(Face(b, d, c), &a);
+				Assert(found);
+				if (!a->isGhost()) {
+					angle = interiorAngle(a->vert, startVert, endVert);
+					if (angle > maxAngle) {
+						angle = maxAngle;
+						ref = a->vert;
+					}
+					std::swap(a, d);
+					bool dab = predicator.Intersection(d->vert, a->vert, b->vert, startVert, endVert);
+					bool dca = predicator.Intersection(d->vert, c->vert, a->vert, startVert, endVert);
+					bool coplane = predicator.orient3d(endVert, b->vert, c->vert, d->vert) == 0;
+					int condition = dab + dca << 1;
+					switch (condition) {
+					case 0:
+						break;
+					case 1:
+					{
+						if (coplane)
+							intersect = Intersection::AcrossEdge;
+						else
+							intersect = Intersection::AcrossFace;
+						std::swap(a, b); std::swap(c, a);
+						hasIntersect = true;
+						break;
+					}
+					case 2:
+						if (coplane)
+							intersect = Intersection::AcrossEdge;
+						else
+							intersect = Intersection::AcrossFace;
+						std::swap(a, c); std::swap(b, a);
+						hasIntersect = true;
+						break;
+					case 3:
+						if (d == end) terminate = true;
+						std::swap(a, b); std::swap(c, d);
+						hasIntersect = true;
+						break;
+					default:
+						break;
+					}
+				}
+				else {
+					bool found = meshRep.Adjacent(Face(a, b, c), &d);
+					Assert(found);
+				}
+			} while (!hasIntersect);
+			break;
+		}
+		default:
+			Severe("Unexpected Case in DelMesher::findSegmentEncroachedReference");
+			terminate = true;
+			break;
+		}
+	}
+
+	return ref;
+}
+
 void DelMesher::splitSubSegment(const Segment &s){
 	Vertex *a = s.v[0], *b = s.v[1];
 	Vertex *mid = Cover(s);
@@ -1177,9 +1325,7 @@ REAL DelMesher::estimateLocalGapSize2(const DelVector &c) const{
 }
 
 bool DelMesher::findSubPolygons(const Face& f) const{
-	Vertex *x = NULL;
-	surfaceRep.Adjacent(Segment(f.v[0], f.v[1]), &x);
-	return x == f.v[2];
+	return surfaceRep.Contain(Segment(f.v[0], f.v[1]));
 }
 
 bool DelMesher::findTet(const Tetrahedron& t) const{

@@ -2,6 +2,7 @@
 #include "predicate.h"
 #include "delPrimitive.h"
 #include "memory.h"
+#include <numeric>
 
 namespace ODER {
 	Labeler Vertex::labeler;
@@ -864,6 +865,105 @@ namespace ODER {
 		}
 
 		return tets;
+	}
+
+	bool TetMeshDataStructure::findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const {
+		if (!adjacent2Vertex(a, t)) return false;
+
+		Vertex *b = t->v[1], *c = t->v[2], *d = t->v[3];
+		if (b->isGhost()) {
+			bool found = Adjacent(a, c, d, &b);
+			if(!found || b->isGhost()) return false;
+			std::swap(b, c);
+		}
+		if (c->isGhost()) {
+			bool found = Adjacent(a, d, b, &c);
+			if (!found || c->isGhost()) return false;
+			std::swap(b, c);
+		}
+		if (d->isGhost()) {
+			bool found = Adjacent(a, b, c, &d);
+			if (!found || d->isGhost()) return false;
+			std::swap(b, c);
+		}
+
+		const Predicator<REAL> predicator;
+		enum Move { Left, Right, Horizon };
+		bool terminate = false;
+		do {
+			bool ori0 = predicator.orient3d(bb, a->vert, d->vert, c->vert) >= 0;
+			bool ori1 = predicator.orient3d(bb, a->vert, b->vert, d->vert) >= 0;
+			bool ori2 = predicator.orient3d(bb, a->vert, c->vert, b->vert) >= 0;
+
+			int condition = ori0  + (ori1 << 1) + (ori2 << 2);
+			Move nextMove;
+			switch (condition) {
+			case 0:
+			{
+				switch (Randomnation(3)){
+				case 0:
+					nextMove = Move::Left;
+					break;
+				case 1:
+					nextMove = Move::Right;
+					break;
+				default:
+					nextMove = Move::Horizon;
+					break;
+				}
+				break;
+			}
+			case 1:
+				if (Randomnation(2)) nextMove = Move::Right;
+				else nextMove = Move::Horizon;
+				break;
+			case 2:
+				if (Randomnation(2)) nextMove = Move::Left;
+				else nextMove = Move::Horizon;
+				break;
+			case 3:
+				nextMove = Move::Horizon;
+				break;
+			case 4:
+				if (Randomnation(2)) nextMove = Move::Left;
+				else nextMove = Move::Right;
+				break;
+			case 5:
+				nextMove = Move::Right;
+				break;
+			case 6:
+				nextMove = Move::Horizon;
+				break;
+			case 7:
+				*t = Tetrahedron(a, b, c, d);
+				return true;
+			default:
+				Severe("Unexpected Condition in TetMeshDataStructure::findIntersectedTet");
+				break;
+			}
+
+			switch (nextMove) {
+			case Move::Left:
+				bool found = Adjacent(a, c, d, &b);
+				terminate = !found || b->isGhost();
+				break;
+			case Move::Right:
+				bool found = Adjacent(a, d, b, &c);
+				terminate = !found || c->isGhost();
+				break;
+			case Move::Horizon:
+				bool found = Adjacent(a, b, c, &d);
+				terminate = !found || d->isGhost();
+				break;
+			default:
+				Severe("Unexpected Move Case in TetMeshDataStructure::findIntersectedTet");
+				break;
+			}
+			std::swap(b, c);
+
+		} while (!terminate);
+
+		return false;
 	}
 
 	void TetMeshDataStructure::insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD) {
