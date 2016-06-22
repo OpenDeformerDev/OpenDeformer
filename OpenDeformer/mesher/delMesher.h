@@ -82,13 +82,13 @@ namespace ODER{
 
 	private:
 		bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
-		bool findSubPolygons(const Face& f) const;
-		bool findTet(const Tetrahedron& t) const;
 
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, bool boundary = false) const;
 		Face findPosition(Vertex *u, const Face& f) const;
 
 		void triangulation3D();
+
+		void splitSubSegment(const Segment& s, Vertex* ref, bool onFace);
 
 		void splitSubSegment(const Segment& s);
 		void splitSubPolygon(const Face& f);
@@ -96,10 +96,10 @@ namespace ODER{
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
 		Vertex* allocVertex(const Vertex &vert);
-		void insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool boundaryVert = false);
+		void insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt = NULL, bool insertToSkinny = false);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 
-		void digCavity(Vertex *u, const Face& f, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool trulyDeleteOrAdd = true, bool boundaryVert = false);
+		void digCavity(Vertex *u, const Face& f, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void digCavity(Vertex *u, const Vertex& aboveVert, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
@@ -113,7 +113,8 @@ namespace ODER{
 		REAL estimateLocalGapSize2(const DelVector &c) const;
 
 		Face findFaceAroundOnPlane(const Vertex& origin, Vertex *center) const;
-		DelVector findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
+		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
+		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
 		REAL maxRatio;
 		REAL maxRadius;
@@ -122,6 +123,7 @@ namespace ODER{
 		std::unordered_set<Segment, segment_hash> segments;
 		std::vector<Segment> oriSegments;
 		std::vector<int> oriVertexIndices;
+		std::unordered_map<Vertex *, int, vertex_hash> vorisHash;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
 
@@ -166,6 +168,15 @@ namespace ODER{
 		newVertex->setLabel();
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
+	}
+
+	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
+		DelVector oa = a - o;
+		DelVector ob = b - o;
+		REAL len = oa.length() * ob.length();
+		Assert(len != 0);
+
+		return acos(Clamp((oa * ob) / len, REAL(-1), REAL(1)));
 	}
 
 }

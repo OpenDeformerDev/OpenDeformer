@@ -196,40 +196,7 @@ namespace ODER {
 		return true;
 	}
 
-	std::set<Face, face_compare> TriMeshDataStructure::getTriangleSet(bool ghost) const {
-		std::set<Face, face_compare> output;
-		VertexListNode *parent = NULL;
-		VertexListNode *child = NULL;
-
-		for (auto entry : topology) {
-			Vertex *center = entry.first;
-			if ((ghost || !center->isGhost()) && entry.second) {
-				parent = entry.second;
-				child = parent->getNextNode();
-				while (child != NULL) {
-					Vertex *b = parent->getVertex();
-					Vertex *c = child->getVertex();
-					if (!child->isPreFaceDeleted()) {
-						Face f(center, b, c, true);
-						if (ghost || !f.v[0]->isGhost())
-							output.insert(f);
-					}
-					parent = child;
-					child = child->getNextNode();
-				}
-				if (!entry.second->isPreFaceDeleted()) {
-					Vertex *b = parent->getVertex();
-					Vertex *c = entry.second->getVertex();
-					Face f(center, b, c, true);
-					if (ghost || !f.v[0]->isGhost())
-						output.insert(f);
-				}
-			}
-		}
-		return output;
-	}
-
-	std::vector<Face> TriMeshDataStructure::getTriangleVector(bool ghost) const {
+	std::vector<Face> TriMeshDataStructure::getTriangles(bool ghost) const {
 		std::vector<Face> output;
 		VertexListNode *parent = NULL;
 		VertexListNode *child = NULL;
@@ -242,20 +209,18 @@ namespace ODER {
 				while (child != NULL) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
-					if (!child->isPreFaceDeleted()) {
-						Face f(center, b, c, true);
-						if (ghost || !f.v[0]->isGhost())
-							output.push_back(f);
-					}
+					if (!child->isPreFaceDeleted() && 
+						*center < *b && *center < *c) 
+						output.push_back(Face(center, b, c));
+
 					parent = child;
 					child = child->getNextNode();
 				}
 				if (!entry.second->isPreFaceDeleted()) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = entry.second->getVertex();
-					Face f(center, b, c, true);
-					if (ghost || !f.v[0]->isGhost())
-						output.push_back(f);
+					if (*center < *b && *center < *c)
+						output.push_back(Face(center, b, c));
 				}
 			}
 		}
@@ -709,13 +674,12 @@ namespace ODER {
 		else
 			found = Adjacent(f.v[1], f.v[2], f.v[0], z);
 
-		//if (oldFound != found)
 		return found;
 	}
 
 	bool TetMeshDataStructure::Adjacent(Vertex *w, Vertex *x, Vertex *y, Vertex **z) const {
 		bool found = false;
-		if (w->getLabel() > x->getLabel()) {
+		if (edgeOrderCheck(x, w)) {
 			if (x->hasList()) {
 				EdgeListNode *linkHead = x->getListHead();
 				while (linkHead != NULL && linkHead->getEndVertex() != w) {
@@ -732,6 +696,7 @@ namespace ODER {
 								*z = foundNode->getVertex();
 								found = true;
 							}
+							break;
 						}
 						node = node->getNextNode();
 					}
@@ -761,6 +726,7 @@ namespace ODER {
 								*z = foundNode->getVertex();
 								found = true;
 							}
+							break;
 						}
 						parentNode = node;
 						node = node->getNextNode();
@@ -803,172 +769,49 @@ namespace ODER {
 		return found;
 	}
 
-	std::set<Tetrahedron, tet_compare> TetMeshDataStructure::getTetraheronSet(bool ghost) const {
-		std::set<Tetrahedron, tet_compare> tets;
-		for (auto vert : vertices) {
-			if (vert->hasList()) {
-				EdgeListNode *linkHead = vert->getListHead();
-				while (linkHead) {
-					Vertex *endVert = linkHead->getEndVertex();
-					VertexListNode *head = linkHead->getLink();
-					VertexListNode *parentNode = head;
-					VertexListNode *node = parentNode->getNextNode();
-					while (node) {
-						if (!node->isPreFaceDeleted()) {
-							Tetrahedron t(vert, endVert, parentNode->getVertex(), node->getVertex(), true);
-							if (ghost || !t.v[0]->isGhost())
-								tets.insert(t);
-						}
-						parentNode = node;
-						node = node->getNextNode();
-					}
-					if (!head->isPreFaceDeleted()) {
-						Tetrahedron t(vert, endVert, parentNode->getVertex(), head->getVertex(), true);
-						if (ghost || !t.v[0]->isGhost())
-							tets.insert(t);
-					}
-					linkHead = linkHead->getNextNode();
-				}
-			}
-		}
-
-		return tets;
-	}
-
-	std::vector<Tetrahedron> TetMeshDataStructure::getTetraheronVector(bool ghost) const {
+	std::vector<Tetrahedron> TetMeshDataStructure::getTetraherons(bool ghost) const {
 		std::vector<Tetrahedron> tets;
 		for (auto vert : vertices) {
-			if (vert->hasList()) {
-				EdgeListNode *linkHead = vert->getListHead();
-				while (linkHead) {
-					Vertex *endVert = linkHead->getEndVertex();
-					VertexListNode *head = linkHead->getLink();
-					VertexListNode *parentNode = head;
-					VertexListNode *node = parentNode->getNextNode();
-					while (node) {
-						if (!node->isPreFaceDeleted()) {
-							Tetrahedron t(vert, endVert, parentNode->getVertex(), node->getVertex(), true);
-							if (ghost || !t.v[0]->isGhost())
-								tets.push_back(t);
+			EdgeListNode *linkHead = vert->getListHead();
+			while (linkHead) {
+				Vertex *endVert = linkHead->getEndVertex();
+				VertexListNode *head = linkHead->getLink();
+				VertexListNode *parentNode = head;
+				VertexListNode *node = parentNode->getNextNode();
+				while (node) {
+					if (!node->isPreFaceDeleted()) {
+						Vertex *c = parentNode->getVertex();
+						Vertex *d = node->getVertex();
+						if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
+							(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
+							(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
+							if (ghost || (!endVert->isGhost() && !c->isGhost() && !d->isGhost()))
+								tets.push_back(Tetrahedron(vert, endVert, c, d));
 						}
-						parentNode = node;
-						node = node->getNextNode();
 					}
-					if (!head->isPreFaceDeleted()) {
-						Tetrahedron t(vert, endVert, parentNode->getVertex(), head->getVertex(), true);
-						if (ghost || !t.v[0]->isGhost())
-							tets.push_back(t);
-					}
-					linkHead = linkHead->getNextNode();
+					parentNode = node;
+					node = node->getNextNode();
 				}
+				if (!head->isPreFaceDeleted()) {
+					Vertex *c = parentNode->getVertex();
+					Vertex *d = node->getVertex();
+					if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
+						(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
+						(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
+						if (ghost || (!endVert->isGhost() && !c->isGhost() && !d->isGhost()))
+							tets.push_back(Tetrahedron(vert, endVert, c, d));
+					}
+				}
+				linkHead = linkHead->getNextNode();
 			}
 		}
 
 		return tets;
-	}
-
-	bool TetMeshDataStructure::findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const {
-		if (!adjacent2Vertex(a, t)) return false;
-
-		Vertex *b = t->v[1], *c = t->v[2], *d = t->v[3];
-		if (b->isGhost()) {
-			bool found = Adjacent(a, c, d, &b);
-			if(!found || b->isGhost()) return false;
-			std::swap(b, c);
-		}
-		if (c->isGhost()) {
-			bool found = Adjacent(a, d, b, &c);
-			if (!found || c->isGhost()) return false;
-			std::swap(b, c);
-		}
-		if (d->isGhost()) {
-			bool found = Adjacent(a, b, c, &d);
-			if (!found || d->isGhost()) return false;
-			std::swap(b, c);
-		}
-
-		const Predicator<REAL> predicator;
-		enum Move { Left, Right, Horizon };
-		bool terminate = false;
-		do {
-			bool ori0 = predicator.orient3d(bb, a->vert, d->vert, c->vert) >= 0;
-			bool ori1 = predicator.orient3d(bb, a->vert, b->vert, d->vert) >= 0;
-			bool ori2 = predicator.orient3d(bb, a->vert, c->vert, b->vert) >= 0;
-
-			int condition = ori0  + (ori1 << 1) + (ori2 << 2);
-			Move nextMove;
-			switch (condition) {
-			case 0:
-			{
-				switch (Randomnation(3)){
-				case 0:
-					nextMove = Move::Left;
-					break;
-				case 1:
-					nextMove = Move::Right;
-					break;
-				default:
-					nextMove = Move::Horizon;
-					break;
-				}
-				break;
-			}
-			case 1:
-				if (Randomnation(2)) nextMove = Move::Right;
-				else nextMove = Move::Horizon;
-				break;
-			case 2:
-				if (Randomnation(2)) nextMove = Move::Left;
-				else nextMove = Move::Horizon;
-				break;
-			case 3:
-				nextMove = Move::Horizon;
-				break;
-			case 4:
-				if (Randomnation(2)) nextMove = Move::Left;
-				else nextMove = Move::Right;
-				break;
-			case 5:
-				nextMove = Move::Right;
-				break;
-			case 6:
-				nextMove = Move::Horizon;
-				break;
-			case 7:
-				*t = Tetrahedron(a, b, c, d);
-				return true;
-			default:
-				Severe("Unexpected Condition in TetMeshDataStructure::findIntersectedTet");
-				break;
-			}
-
-			switch (nextMove) {
-			case Move::Left:
-				bool found = Adjacent(a, c, d, &b);
-				terminate = !found || b->isGhost();
-				break;
-			case Move::Right:
-				bool found = Adjacent(a, d, b, &c);
-				terminate = !found || c->isGhost();
-				break;
-			case Move::Horizon:
-				bool found = Adjacent(a, b, c, &d);
-				terminate = !found || d->isGhost();
-				break;
-			default:
-				Severe("Unexpected Move Case in TetMeshDataStructure::findIntersectedTet");
-				break;
-			}
-			std::swap(b, c);
-
-		} while (!terminate);
-
-		return false;
 	}
 
 	void TetMeshDataStructure::insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD) {
 		Vertex *a = s.v[0], *b = s.v[1], *c = mayC, *d = mayD;
-		if (*a > *b) {
+		if (!edgeOrderCheck(a, b)) {
 			std::swap(a, b);
 			std::swap(c, d);
 		}
@@ -1191,7 +1034,7 @@ namespace ODER {
 
 	void TetMeshDataStructure::removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD) {
 		Vertex *a = s.v[0], *b = s.v[1], *c = mayC, *d = mayD;
-		if (*a > *b) {
+		if (!edgeOrderCheck(a, b)) {
 			std::swap(a, b);
 			std::swap(c, d);
 		}
@@ -1210,13 +1053,6 @@ namespace ODER {
 		}
 		Assert(foundHead);
 		if (foundHead) {
-			VertexListNode *loop = linkHead->getLink();
-			int startnum = 0;
-			while (loop) {
-				loop = loop->getNextNode();
-				startnum++;
-			}
-
 			VertexListNode *head = linkHead->getLink();
 			VertexListNode *grandparent = head;
 			VertexListNode *parent = grandparent->getNextNode();

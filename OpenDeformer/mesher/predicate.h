@@ -96,7 +96,6 @@ public:
 	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
-
 private:
 
 	enum Plane { Plane_XY, Plane_YZ, Plane_XZ, Plane_Arbitary };
@@ -1912,57 +1911,21 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 	FT orient = orient3d(u, a, b, c);
 	if (orient > 0.0)
 		return true;
-	else if (orient == 0.0){
-		VectorBase<FT> n = Normalize((a - c) % (b - c));
-		return inSphere(a + n, a, b, c, u) > 0.0;
-	}
+	else if (orient == 0.0)
+		return inSphere(a + triangleNormal(a, b, c), a, b, c, u) > 0.0;
 	else
 		return false;
 }
 
 template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, 
 	        FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const{
-	if (!boundaryVert){
-		FT orient = orient3d(u, a, b, c);
-		if (orient > 0.0)
-			return true;
-		else if (orient == 0.0){
-			VectorBase<FT> n = Normalize((a - c) % (b - c));
-			return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + n) > 0.0;
-		}
-		else
-			return false;
-	}
-	else{
-		VectorBase<FT> ca = a - c;
-		VectorBase<FT> cb = b - c;
-
-		FT caxcby = ca.x*cb.y;
-		FT caycbx = ca.y*cb.x;
-
-		FT caxcbz = ca.x*cb.z;
-		FT cazcbx = ca.z*cb.x;
-
-		FT caycbz = ca.y*cb.z;
-		FT cazcby = ca.z*cb.y;
-
-		FT nx = caycbz - cazcby;
-		FT ny = cazcbx - caxcbz;
-		FT nz = caxcby - caycbx;
-
-		if (inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + Normalize(VectorBase<FT>(nx, ny, nz))) < 0.0)
-			return false;
-
-		VectorBase<FT> cu = u - c;
-
-		FT det = nx * cu.x + ny * cu.y + nz * cu.z;
-
-		FT norm = (fabs(caycbz) + fabs(cazcby)) * fabs(cu.x)
-			+ (fabs(cazcbx) + fabs(caxcbz)) * fabs(cu.y)
-			+ (fabs(caxcby) + fabs(caycbx)) * fabs(cu.z);
-
-		return fabs(det) <= epsilon*norm;
-	}
+	FT orient = orient3d(u, a, b, c);
+	if (orient > 0.0)
+		return true;
+	else if (orient == 0.0) 
+		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + triangleNormal(a, b, c)) > 0.0;
+	else
+		return false;
 }
 
 template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const{

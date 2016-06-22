@@ -9,6 +9,7 @@
 #include "latool.h"
 #include <unordered_map>
 #include <set>
+#include <numeric>
 
 namespace ODER {
 #define REAL double
@@ -39,11 +40,12 @@ namespace ODER {
 		template<class FT> Vertex(const VectorBase<FT>& vv) : vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), pointer(0){}
 		Vertex(const DelVector& vv, REAL w = 0) :vert(vv), weight(w), label(-1), pointer(0) {}
 		void setGhost() {
-			vert.x = FLT_MAX; vert.y = FLT_MAX; vert.z = FLT_MAX;
-			weight = -FLT_MAX;
+			constexpr REAL max = std::numeric_limits<REAL>::max();
+			vert.x = max; vert.y = max; vert.z = max;
+			weight = -max;
 			label = labeler.getSpecilGhostLabel();
 		}
-		bool isGhost() {
+		bool isGhost() const {
 			return label == labeler.getSpecilGhostLabel();
 		}
 		void setLabel() {
@@ -299,8 +301,7 @@ namespace ODER {
 		bool Contain(const Face &f) const;
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const;
 		void Clear();
-		std::set<Face, face_compare> getTriangleSet(bool ghost) const;
-		std::vector<Face> getTriangleVector(bool ghost) const;
+		std::vector<Face> getTriangles(bool ghost) const;
 		~TriMeshDataStructure();
 	private:
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
@@ -317,18 +318,17 @@ namespace ODER {
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		bool Adjacent(const Face &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
-		std::set<Tetrahedron, tet_compare> getTetraheronSet(bool ghost) const;
-		std::vector<Tetrahedron> getTetraheronVector(bool ghost) const;
-		bool Contain(const Segment &s) const;
+		std::vector<Tetrahedron> getTetraherons(bool ghost) const;
 		bool Contain(const Face &f) const;
 		bool Contain(const Tetrahedron& t) const;
-		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		~TetMeshDataStructure();
 	private:
 		bool Adjacent(Vertex* w, Vertex *x, Vertex *y, Vertex **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
+		bool parityCheck(const Vertex *x, const Vertex *y) const;
+		bool edgeOrderCheck(const Vertex *a, const Vertex *b) const;
 
 		std::vector<Vertex *> vertices;
 		MemoryPool<VertexListNode> *nodePool;
@@ -336,9 +336,15 @@ namespace ODER {
 	};
 
 
-	inline bool parityCheck(const Vertex *x, const Vertex *y) {
+	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) const {
 		constexpr int odd_mark = 1;
 		return (std::hash<int>()(x->getLabel()) & odd_mark) == (std::hash<int>()(y->getLabel()) & odd_mark);
+	}
+
+	inline bool TetMeshDataStructure::edgeOrderCheck(const Vertex *a, const Vertex *b) const {
+		constexpr int mask = 2;
+		int aLabel = a->getLabel(), bLabel = b->getLabel();
+		return b->isGhost() || ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask)));
 	}
 
 	inline bool TriMeshDataStructure::Contain(const Segment &s) const {
@@ -354,16 +360,6 @@ namespace ODER {
 		return false;
 	}
 
-	inline bool TetMeshDataStructure::Contain(const Segment &s) const {
-		Vertex *a = s.v[0], *b = s.v[1];
-		if (Randomnation(2)) std::swap(a, b);
-		Tetrahedron t;
-		bool find = findIntersectedTetrahedron(a, b->vert, &t);
-		if (find) return t.v[1] == b || t.v[2] == b || t.v[3] == b;
-
-		return false;
-	}
-
 	inline bool TetMeshDataStructure::Contain(const Face &f) const {
 		Vertex *x = NULL;
 		return Adjacent(f, &x);
@@ -374,16 +370,6 @@ namespace ODER {
 		Adjacent(t.v[1], t.v[2], t.v[3], &x);
 		return x == t.v[0];
 	}
-
-	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
-		DelVector oa = a - o;
-		DelVector ob = b - o;
-		REAL len = oa.length() * ob.length();
-		Assert(len != 0);
-
-		return acos(Clamp((oa * ob) / len, REAL(-1), REAL(1)));
-	}
-
 }
 
 #endif
