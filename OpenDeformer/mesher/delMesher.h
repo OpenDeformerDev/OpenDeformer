@@ -87,12 +87,33 @@ namespace ODER{
 		Face findPosition(Vertex *u, const Face& f) const;
 
 		void triangulation3D();
-
+	
 		void splitSubSegment(const Segment& s, Vertex* ref, bool onFace);
 
 		void splitSubSegment(const Segment& s);
 		void splitSubPolygon(const Face& f);
 		void splitTetrahedron(const Tetrahedron& tet);
+
+		//face recovery
+		enum CavityTriangleType { TwoPositive, TwoNegative, PositiveNegativeCoplanar, NegativePositiveCoplanar };
+		void findMissingRegion(const Segment& edge, std::vector<Vertex *> &regionVertices, std::vector<Face>& regionFaces, 
+			Segment *boundary, int depth);
+		void findCavity(const std::vector<Face>& regionFaces,
+			const Face& intersect, const CavityTriangleType& faceType,
+			std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces, 
+			std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+			std::vector<Tetrahedron>& deleted, int depth);
+		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
+		bool faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vector<Vertex *>& regionVertices, 
+			std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
+		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
+			const std::vector<Vertex *>& boundaryVertices, std::deque<Face>& boundaryFaces, 
+			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
+		void insertVertexToCavity(Vertex *u, const Face& f);
+		Vertex *allocCavityVertex(const Vertex &vert);
+		void deallocCavityVertex(Vertex *vert);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
 		Vertex* allocVertex(const Vertex &vert);
@@ -144,8 +165,10 @@ namespace ODER{
 
 		std::vector<Vertex *> vertices;
 		MemoryArena<Vertex> vertArena;
+		MemoryPool<Vertex> vertPool;
 
 		TetMeshDataStructure meshRep;
+		TetMeshDataStructure cavityRep;
 		TriMeshDataStructure surfaceRep;
 
 		Vertex *ghost;
@@ -169,6 +192,17 @@ namespace ODER{
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}
+
+	inline Vertex* DelMesher::allocCavityVertex(const Vertex &vert) {
+		Vertex *newVertex = vertPool.Alloc();
+		vert.Copy(*newVertex);
+		return newVertex;
+	}
+
+	inline void DelMesher::deallocCavityVertex(Vertex *vert) {
+		vertPool.Dealloc(vert);
+	}
+
 
 	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
 		DelVector oa = a - o;

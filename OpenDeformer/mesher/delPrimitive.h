@@ -45,6 +45,11 @@ namespace ODER {
 			weight = -max;
 			label = labeler.getSpecilGhostLabel();
 		}
+		void Copy(Vertex &v) const {
+			v.vert = vert;
+			v.weight = weight;
+			v.label = label;
+		}
 		bool isGhost() const {
 			return label == labeler.getSpecilGhostLabel();
 		}
@@ -55,19 +60,28 @@ namespace ODER {
 			return label;
 		}
 		void setListPointer(EdgeListNode *n) {
-			pointer = uintptr_t(n);
+			pointer = uintptr_t(n) | (pointer & 0x2);
 		}
-		void setEndVertexPoint(Vertex *v) {
-			pointer = uintptr_t(v) | 0x1;
+		void setEndVertexPointer(Vertex *v) {
+			pointer = (uintptr_t(v) | 0x1) | (pointer & 0x2);
 		}
 		EdgeListNode *getListHead() {
-			return (EdgeListNode *)pointer;
+			return (EdgeListNode *)(pointer & (~0x2));
 		}
 		Vertex *getEndVertex() const {
-			return (Vertex *)(pointer & (~0x1));
+			return (Vertex *)(pointer & (~0x3));
+		}
+		void setMark() {
+			pointer |= 0x2;
+		}
+		void unSetMark() {
+			pointer &= (~0x2);
+		}
+		bool isMarked() const {
+			return (pointer & 0x2) == 0x2;
 		}
 		bool hasList() const {
-			return pointer != 0 && (pointer & 0x1) == 0;
+			return (pointer & (~0x2)) != 0 && (pointer & 0x1) == 0;
 		}
 		bool operator<(const Vertex& v) const {
 			return label < v.label;
@@ -295,13 +309,19 @@ namespace ODER {
 		TriMeshDataStructure();
 		void addTriangle(Vertex *a, Vertex *b, Vertex *c);
 		void deleteTriangle(Vertex *a, Vertex *b, Vertex *c);
+		void setDeletedMark(Vertex *u, Vertex *v);
+		void unSetDeletedMark(Vertex *u, Vertex *v);
+		void setDeletedMark(Vertex *a, Vertex *b, Vertex *c);
+		void unSetDeletedMark(Vertex *a, Vertex *b, Vertex *c);
 		bool Adjacent(const Segment &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Face *f) const;
+		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
 		bool Contain(const Face &f) const;
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const;
 		void Clear();
 		std::vector<Face> getTriangles(bool ghost) const;
+		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
 		~TriMeshDataStructure();
 	private:
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
@@ -319,8 +339,11 @@ namespace ODER {
 		bool Adjacent(const Face &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
 		std::vector<Tetrahedron> getTetraherons(bool ghost) const;
+		void getTetraherons(bool ghost, std::vector<Tetrahedron>& tets) const;
+		bool Contain(Vertex *v) const;
 		bool Contain(const Face &f) const;
 		bool Contain(const Tetrahedron& t) const;
+		void Clear();
 		~TetMeshDataStructure();
 	private:
 		bool Adjacent(Vertex* w, Vertex *x, Vertex *y, Vertex **z) const;
@@ -347,6 +370,11 @@ namespace ODER {
 		return b->isGhost() || ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask)));
 	}
 
+	inline bool TriMeshDataStructure::Contain(Vertex *v) const {
+		Face f;
+		return adjacent2Vertex(v, &f);
+	}
+
 	inline bool TriMeshDataStructure::Contain(const Segment &s) const {
 		Vertex *w = NULL;
 		return Adjacent(s, &w);
@@ -358,6 +386,11 @@ namespace ODER {
 		if (find) return w == f.v[2];
 
 		return false;
+	}
+
+	inline bool TetMeshDataStructure::Contain(Vertex *v) const {
+		Tetrahedron t;
+		return adjacent2Vertex(v, &t);
 	}
 
 	inline bool TetMeshDataStructure::Contain(const Face &f) const {

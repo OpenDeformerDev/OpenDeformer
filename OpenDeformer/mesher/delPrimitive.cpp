@@ -94,6 +94,54 @@ namespace ODER {
 		removeFromTopology(c, a, b);
 	}
 
+	void TriMeshDataStructure::setDeletedMark(Vertex *u, Vertex *v) {
+		auto entry = topology.find(u);
+		if (entry == topology.end()) return;
+
+		VertexListNode *node = entry->second;
+		bool found = false;
+		while (node != NULL) {
+			if (node->getVertex() == v) {
+				VertexListNode *nextNode = node->getNextNode();
+				if (nextNode == NULL)
+					nextNode = entry->second;
+				nextNode->setDeletedMark();
+				break;
+			}
+			node = node->getNextNode();
+		}
+	}
+
+	void TriMeshDataStructure::unSetDeletedMark(Vertex *u, Vertex *v) {
+		auto entry = topology.find(u);
+		if (entry == topology.end()) return;
+
+		VertexListNode *node = entry->second;
+		bool found = false;
+		while (node != NULL) {
+			if (node->getVertex() == v) {
+				VertexListNode *nextNode = node->getNextNode();
+				if (nextNode == NULL)
+					nextNode = entry->second;
+				nextNode->unSetDeletedMark();
+				break;
+			}
+			node = node->getNextNode();
+		}
+	}
+
+	void TriMeshDataStructure::setDeletedMark(Vertex *a, Vertex *b, Vertex *c) {
+		setDeletedMark(a, b);
+		setDeletedMark(b, c);
+		setDeletedMark(c, a);
+	}
+
+	void TriMeshDataStructure::unSetDeletedMark(Vertex *a, Vertex *b, Vertex *c) {
+		unSetDeletedMark(a, b);
+		unSetDeletedMark(b, c);
+		unSetDeletedMark(c, a);
+	}
+
 	bool TriMeshDataStructure::Adjacent(const Segment &s, Vertex **w) const {
 		auto entry = topology.find(s.v[0]);
 		if (entry == topology.end())
@@ -198,6 +246,11 @@ namespace ODER {
 
 	std::vector<Face> TriMeshDataStructure::getTriangles(bool ghost) const {
 		std::vector<Face> output;
+		getTriangles(ghost, output);
+		return output;
+	}
+
+	void TriMeshDataStructure::getTriangles(bool ghost, std::vector<Face>& triangles) const {
 		VertexListNode *parent = NULL;
 		VertexListNode *child = NULL;
 
@@ -209,9 +262,9 @@ namespace ODER {
 				while (child != NULL) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
-					if (!child->isPreFaceDeleted() && 
-						*center < *b && *center < *c) 
-						output.push_back(Face(center, b, c));
+					if (!child->isPreFaceDeleted() &&
+						*center < *b && *center < *c)
+						triangles.push_back(Face(center, b, c));
 
 					parent = child;
 					child = child->getNextNode();
@@ -220,12 +273,10 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = entry.second->getVertex();
 					if (*center < *b && *center < *c)
-						output.push_back(Face(center, b, c));
+						triangles.push_back(Face(center, b, c));
 				}
 			}
 		}
-
-		return output;
 	}
 
 	void TriMeshDataStructure::insertToTopology(Vertex *a, Vertex *b, Vertex *c) {
@@ -769,8 +820,7 @@ namespace ODER {
 		return found;
 	}
 
-	std::vector<Tetrahedron> TetMeshDataStructure::getTetraherons(bool ghost) const {
-		std::vector<Tetrahedron> tets;
+	void TetMeshDataStructure::getTetraherons(bool ghost, std::vector<Tetrahedron>& tets) const {
 		for (auto vert : vertices) {
 			EdgeListNode *linkHead = vert->getListHead();
 			while (linkHead) {
@@ -805,8 +855,18 @@ namespace ODER {
 				linkHead = linkHead->getNextNode();
 			}
 		}
+	}
 
+	std::vector<Tetrahedron> TetMeshDataStructure::getTetraherons(bool ghost) const {
+		std::vector<Tetrahedron> tets;
+		getTetraherons(ghost, tets);
 		return tets;
+	}
+
+	void TetMeshDataStructure::Clear() {
+		vertices.clear();
+		nodePool->freeAll();
+		edgeNodePool->freeAll();
 	}
 
 	void TetMeshDataStructure::insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD) {
@@ -1178,39 +1238,39 @@ namespace ODER {
 		case 0:
 			if (aIndex > bIndex) {
 				if (!a->hasList())
-					a->setEndVertexPoint(b);
+					a->setEndVertexPointer(b);
 			}
 			else {
 				if (!b->hasList())
-					b->setEndVertexPoint(a);
+					b->setEndVertexPointer(a);
 			}
 			if (cIndex > dIndex) {
 				if (!c->hasList())
-					c->setEndVertexPoint(d);
+					c->setEndVertexPointer(d);
 			}
 			else {
 				if (!d->hasList())
-					d->setEndVertexPoint(c);
+					d->setEndVertexPointer(c);
 			}
 			break;
 		case 1:
 			if (aIndex > bIndex) {
 				if (aIndex > cIndex) {
 					if (!a->hasList())
-						a->setEndVertexPoint(c);
+						a->setEndVertexPointer(c);
 				}
 				else {
 					if (!b->hasList())
-						b->setEndVertexPoint(c);
+						b->setEndVertexPointer(c);
 				}
 			}
 			else if (bIndex > cIndex) {
 				if (!b->hasList())
-					b->setEndVertexPoint(a);
+					b->setEndVertexPointer(a);
 			}
 			else {
 				if (!c->hasList())
-					c->setEndVertexPoint(b);
+					c->setEndVertexPointer(b);
 			}
 			break;
 		case 2:
@@ -1223,19 +1283,19 @@ namespace ODER {
 			}
 			if (max == 0) {
 				if (!a->hasList())
-					a->setEndVertexPoint(b);
+					a->setEndVertexPointer(b);
 			}
 			else if (max == 1) {
 				if (!b->hasList())
-					b->setEndVertexPoint(c);
+					b->setEndVertexPointer(c);
 			}
 			else if (max == 2) {
 				if (!c->hasList())
-					c->setEndVertexPoint(d);
+					c->setEndVertexPointer(d);
 			}
 			else {
 				if (!d->hasList())
-					d->setEndVertexPoint(a);
+					d->setEndVertexPointer(a);
 			}
 			break;
 		}

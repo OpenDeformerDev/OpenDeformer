@@ -385,6 +385,12 @@ void DelTriangulator::triangulateConvexPoly(Vertex *u, const std::vector<Vertex 
 	int *prev = new int[size];
 	int *next = new int[size];
 	int *indices = new int[size];
+	bool *marked = new bool[size + 2];
+
+	//isolate convex poly
+	u->setMark();
+	for (int i = 0; i < convexPoly.size(); i++)
+		convexPoly[i]->setMark();
 
 	for (int i = 0; i < size; i++) {
 		prev[i] = i;
@@ -407,6 +413,11 @@ void DelTriangulator::triangulateConvexPoly(Vertex *u, const std::vector<Vertex 
 		insertVertexToCavity(convexPoly[trueIndex], convexPoly[next[trueIndex]], convexPoly[prev[trueIndex]], 0);
 	}
 
+	//restore canvity
+	u->unSetMark();
+	for (int i = 0; i < convexPoly.size(); i++)
+		convexPoly[i]->unSetMark();
+
 	delete[] prev;
 	delete[] next;
 	delete[] indices;
@@ -414,7 +425,7 @@ void DelTriangulator::triangulateConvexPoly(Vertex *u, const std::vector<Vertex 
 
 void DelTriangulator::digCavity(Vertex *u, const Segment &s, Face *rf, int depth){
 	Vertex *x;
-	if (!meshRep.Adjacent(s, &x))
+	if (!meshRep.Adjacent(s, &x) || !x->isMarked())
 		return;
 
 	//Vertex *w = s.v[0], *v = s.v[1], *x;
@@ -965,7 +976,7 @@ bool DelMesher::findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetra
 	return false;
 }
 
-Vertex*  DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const {
+Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const {
 	Vertex *a = intersected.v[0], *b = intersected.v[1], *c = intersected.v[2], *d = intersected.v[3];
 
 	DelVector startVert = a->vert, endVert = end->vert;
@@ -1113,7 +1124,7 @@ Vertex*  DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedro
 	return ref;
 }
 
-void DelMesher::splitSubSegment(const Segment& s, Vertex*  ref, bool onFace){
+void DelMesher::splitSubSegment(const Segment& s, Vertex* ref, bool onFace){
 	Vertex *a = s.v[0], *b = s.v[1];
 	DelVector aa = a->vert, bb = b->vert;
 	DelVector ab = bb - aa;
@@ -1333,6 +1344,420 @@ void DelMesher::splitTetrahedron(const Tetrahedron& tet){
 	}
 	tobeDeletedTets.clear();
 	newFacesOfTets.clear();
+}
+
+void DelMesher::findMissingRegion(const Segment& edge, std::vector<Vertex *> &regionVertices, std::vector<Face>& regionFaces, 
+	Segment *boundary, int depth) {
+	if (findSegment(Segment(edge.v[0], edge.v[1], true))) {
+		if (boundary) *boundary = Segment(edge.v[1], edge.v[0]);
+		return;
+	}
+
+	Vertex *w = NULL;
+	if (!surfaceRep.Adjacent(edge, &w)) return;
+
+	Vertex *u = edge.v[0], *v = edge.v[1];
+	Face f(u, v, w);
+	if (!meshRep.Contain(f)) {
+		regionFaces.push_back(f);
+		regionVertices.push_back(w);
+		surfaceRep.setDeletedMark(u, v, w);
+		findMissingRegion(Segment(u, w), regionVertices, regionFaces, boundary, depth + 1);
+		findMissingRegion(Segment(w, v), regionVertices, regionFaces, boundary, depth + 1);
+	}
+	else
+		if (boundary) *boundary = Segment(v, u);
+}
+
+void DelMesher::findCavity(const std::vector<Face>& regionFaces, 
+	const Face& intersect, const CavityTriangleType& faceType,
+	std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
+	std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+	std::vector<Tetrahedron>& deleted, int depth) {
+
+	Vertex *a = intersect.v[0], *b = intersect.v[1], *c = intersect.v[2], *d = NULL;
+	bool found = meshRep.Adjacent(intersect, &d);
+	Assert(found && !d->isGhost());
+	deleted.push_back(Tetrahedron(d, a, b, c));
+	meshRep.deleteTetrahedron(d, a, b, c);
+
+	switch (faceType){
+	case CavityTriangleType::TwoPositive:
+	{
+		Face intersected;
+		bool hasIntersection = false;
+		for (auto f : regionFaces) {
+			if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, a->vert, b->vert, d->vert)) {
+				intersected = f;
+				hasIntersection = true;
+				break;
+			}
+		}
+		if (hasIntersection) {
+			REAL ori = predicator.orient3d(d->vert, intersected.v[0]->vert, intersected.v[1]->vert, intersected.v[2]->vert);
+			if (ori != 0) {
+				negativeVertices.push_back(d);
+				findCavity(regionFaces,
+					Face(a, b, d), CavityTriangleType::TwoPositive,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(c, d, a), CavityTriangleType::TwoNegative,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(d, c, b), CavityTriangleType::TwoNegative,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+			}
+			else {
+				positiveFaces.push_back(Face(b, a, d));
+				findCavity(regionFaces,
+					Face(b, c, d), CavityTriangleType::PositiveNegativeCoplanar,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(c, a, d), CavityTriangleType::NegativePositiveCoplanar,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+			}
+		}
+		else {
+			positiveVertices.push_back(d);
+			positiveFaces.push_back(Face(b, a, d));
+			findCavity(regionFaces,
+				Face(a, d, c), CavityTriangleType::TwoPositive,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces,
+				Face(d, b, c), CavityTriangleType::TwoPositive,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		break;
+	}
+	case CavityTriangleType::TwoNegative:
+	{
+		Face intersected;
+		bool hasIntersection = false;
+		for (auto f : regionFaces) {
+			if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, a->vert, b->vert, d->vert)) {
+				intersected = f;
+				hasIntersection = true;
+				break;
+			}
+		}
+		if (hasIntersection) {
+			REAL ori = predicator.orient3d(d->vert, intersected.v[0]->vert, intersected.v[1]->vert, intersected.v[2]->vert);
+			if (ori != 0) {
+				negativeVertices.push_back(d);
+				findCavity(regionFaces,
+					Face(a, b, d), CavityTriangleType::TwoNegative,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(c, d, a), CavityTriangleType::TwoPositive,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(d, c, b), CavityTriangleType::TwoPositive,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+			}
+			else {
+				negativeFaces.push_back(Face(b, a, d));
+				findCavity(regionFaces,
+					Face(b, c, d), CavityTriangleType::NegativePositiveCoplanar,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+				findCavity(regionFaces,
+					Face(c, a, d), CavityTriangleType::PositiveNegativeCoplanar,
+					positiveVertices, positiveFaces,
+					negativeVertices, negativeFaces,
+					deleted, depth + 1);
+			}
+		}
+		else {
+			negativeVertices.push_back(d);
+			negativeFaces.push_back(Face(b, a, d));
+			findCavity(regionFaces,
+				Face(a, d, c), CavityTriangleType::TwoNegative,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces,
+				Face(d, b, c), CavityTriangleType::TwoNegative,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		break;
+	}
+	case CavityTriangleType::PositiveNegativeCoplanar:
+	{
+		DelVector pp = a->vert, qq = b->vert, rr = d->vert;
+		Face intersected;
+		bool hasIntersection = false;
+		for (auto f : regionFaces) {
+			if(predicator.Intersection(pp, rr, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) || 
+				predicator.Intersection(qq, rr, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert)) {
+				intersected = f;
+				hasIntersection = true;
+				break;
+			}
+		}
+		Assert(hasIntersection);
+		
+		REAL ori = predicator.orient3d(rr, intersected.v[0]->vert, intersected.v[1]->vert, intersected.v[2]->vert);
+		if (ori > 0) {
+			positiveVertices.push_back(d);
+			positiveFaces.push_back(Face(a, c, d));
+			findCavity(regionFaces,
+				Face(d, a, b), CavityTriangleType::TwoPositive,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces, 
+				Face(d, b, c), CavityTriangleType::PositiveNegativeCoplanar,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		else if (ori < 0) {
+			negativeVertices.push_back(d);
+			negativeFaces.push_back(Face(c, b, d));
+			findCavity(regionFaces,
+				Face(b, d, a), CavityTriangleType::TwoNegative,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces,
+				Face(a, d, c), CavityTriangleType::PositiveNegativeCoplanar,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		else {
+			positiveFaces.push_back(Face(a, c, d));
+			negativeFaces.push_back(Face(c, b, d));
+		}
+		break;
+	}
+	case CavityTriangleType::NegativePositiveCoplanar:
+	{
+		DelVector pp = a->vert, qq = b->vert, rr = d->vert;
+		Face intersected;
+		bool hasIntersection = false;
+		for (auto f : regionFaces) {
+			if (predicator.Intersection(pp, rr, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) ||
+				predicator.Intersection(qq, rr, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert)) {
+				intersected = f;
+				hasIntersection = true;
+				break;
+			}
+		}
+		Assert(hasIntersection);
+
+		REAL ori = predicator.orient3d(rr, intersected.v[0]->vert, intersected.v[1]->vert, intersected.v[2]->vert);
+		if (ori < 0) {
+			negativeVertices.push_back(d);
+			negativeFaces.push_back(Face(a, c, d));
+			findCavity(regionFaces,
+				Face(d, a, b), CavityTriangleType::TwoNegative,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces,
+				Face(d, b, c), CavityTriangleType::NegativePositiveCoplanar,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		else if (ori > 0) {
+			positiveVertices.push_back(d);
+			positiveFaces.push_back(Face(c, b, d));
+			findCavity(regionFaces,
+				Face(b, d, a), CavityTriangleType::TwoPositive,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+			findCavity(regionFaces,
+				Face(a, d, c), CavityTriangleType::NegativePositiveCoplanar,
+				positiveVertices, positiveFaces,
+				negativeVertices, negativeFaces,
+				deleted, depth + 1);
+		}
+		else {
+			negativeFaces.push_back(Face(a, c, d));
+			positiveFaces.push_back(Face(c, b, d));
+		}
+		break;
+	}
+	default:
+		Severe("Unexpected case in DelMesher::findCavity");
+		break;
+	}
+}
+
+bool DelMesher::findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const {
+	Vertex *a = boundary.v[0], *b = boundary.v[1], *c = NULL, *d = NULL, *e = NULL;
+	Tetrahedron t;
+	if (!findIntersectedTetrahedron(a, b->vert, &t)) return false;
+
+	b = t.v[1]; c = t.v[2]; d = t.v[3];
+	if (c == boundary.v[1]) {
+		std::swap(b, c);
+		std::swap(c, d);
+	}
+	else if (d == boundary.v[1]) {
+		std::swap(b, d);
+		std::swap(c, d);
+	}
+	if (b != boundary.v[1]) return false;
+
+	for (auto f : regionFaces) {
+		if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, c->vert, d->vert)) {
+			cross = Segment(c, d);
+			return true;
+		}
+	}
+	if (!surfaceRep.Adjacent(boundary, &e)) return false;
+	if (predicator.orient3d(c->vert, a->vert, b->vert, e->vert) < 0) std::swap(c, d);
+
+	Vertex *anchor = c;
+	do {
+		meshRep.Adjacent(Face(a, b, d), &c);
+		std::swap(c, d);
+		if (!c->isGhost()) {
+			for (auto f : regionFaces) {
+				if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, c->vert, d->vert)) {
+					if (predicator.orient3d(c->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) < 0) 
+						std::swap(c, d);
+					cross = Segment(c, d);
+					return true;
+				}
+			}
+		}
+	} while (d != anchor);
+
+	return false;
+}
+
+bool DelMesher::faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vector<Vertex *>& regionVertices,
+	std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
+	std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces,
+	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted) {
+	Face seed = f;
+	regionFaces.clear(); regionVertices.clear();
+	positiveVertices.clear(); positiveFaces.clear();
+	negativeVertices.clear(); negativeFaces.clear();
+	deleted.clear(); inserted.clear();
+
+	//form region
+	Segment boundary;
+	regionFaces.push_back(seed);
+	surfaceRep.setDeletedMark(seed.v[0], seed.v[1], seed.v[2]);
+	findMissingRegion(Segment(seed.v[0], seed.v[1]),
+		regionVertices, regionFaces,  &boundary, 0);
+	findMissingRegion(Segment(seed.v[1], seed.v[2]),
+		regionVertices, regionFaces, NULL, 0);
+	findMissingRegion(Segment(seed.v[2], seed.v[0]),
+		regionVertices, regionFaces, NULL, 0);
+
+	Assert(regionFaces.size() > 1);
+
+	//form cavity
+	//find a crossed edge
+	Segment cross;
+	bool found = findCrossEdge(boundary, regionFaces, cross);
+	Assert(found);
+	positiveVertices.push_back(cross.v[0]);
+	positiveFaces.push_back(Face(boundary.v[1], boundary.v[0], cross.v[0]));
+	negativeVertices.push_back(cross.v[1]);
+	negativeFaces.push_back(Face(boundary.v[0], boundary.v[1], cross.v[1]));
+
+	findCavity(regionFaces,
+		Face(cross.v[0], cross.v[1], boundary.v[0]), CavityTriangleType::PositiveNegativeCoplanar,
+		positiveVertices, positiveFaces,
+		negativeVertices, negativeFaces,
+		tobeDeletedTets, 0);
+	findCavity(regionFaces,
+		Face(cross.v[1], cross.v[0], boundary.v[1]), CavityTriangleType::NegativePositiveCoplanar,
+		positiveVertices, positiveFaces,
+		negativeVertices, negativeFaces,
+		tobeDeletedTets, 0);
+
+	//alloc seperated region vertices and faces
+	int regionVertCount = regionVertices.size();
+	int regionFaceCount = regionFaces.size();
+	std::vector<Vertex *> newRegionVertices(regionVertCount);
+	std::vector<Face> newRegionFaces(regionFaceCount);
+	for (int i = 0; i < regionVertCount; i++) {
+		newRegionVertices[i] = allocCavityVertex(*regionVertices[i]);
+		//temporary hack
+		newRegionVertices[i]->setListPointer(regionVertices[i]->getListHead());
+		regionVertices[i]->setEndVertexPointer(newRegionVertices[i]);
+	}
+	for (int i = 0; i < regionFaceCount; i++) {
+		Face f = regionFaces[i];
+		newRegionFaces[i] = Face(f.v[0]->getEndVertex(), f.v[1]->getEndVertex(), f.v[2]->getEndVertex());
+	}
+	for (int i = 0; i < regionVertCount; i++) {
+		regionVertices[i]->setListPointer(newRegionVertices[i]->getListHead());
+		regionVertices[i]->setMark();
+		newRegionVertices[i]->setListPointer(NULL);
+	}
+
+	bool success = true;
+	if (triangulateCavity(newRegionVertices, newRegionFaces, positiveVertices, positiveFaces, deleted, inserted, seed) &&
+		triangulateCavity(newRegionVertices, newRegionFaces, negativeVertices, negativeFaces, deleted, inserted, seed)) {
+		for (auto t : inserted)
+			meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
+	}
+	else {
+		for (auto t : deleted)
+			meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
+
+		success = false;
+	}
+	
+	for (int i = 0; i < regionVertCount; i++) {
+		regionVertices[i]->unSetMark();
+		deallocCavityVertex(newRegionVertices[i]);
+	}
+
+	return success;
+}
+
+bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
+	const std::vector<Vertex *>& boundaryVertices, std::deque<Face>& boundaryFaces,
+	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached) {
+	cavityRep.Clear();
+	std::vector<Vertex *> cavityVertices;
+	cavityVertices.reserve(boundaryVertices.size());
+	std::unordered_map<int, std::pair<Vertex*, Vertex*>> vertexMap;
+	vertexMap.reserve(regionVertices.size() + boundaryVertices.size());
+
+	for (int i = 0; i < boundaryVertices.size(); i++) {
+		Vertex *cavityVert = allocCavityVertex(*boundaryVertices[i]);
+		vertexMap.insert(std::make_pair(cavityVert->getLabel(), std::make_pair(boundaryVertices[i], cavityVert)));
+		cavityVertices.push_back(cavityVert);
+	}
+
+	//construct triangulation
+
+	return true;
 }
 
 void DelMesher::insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt, bool insertToSkinny){
