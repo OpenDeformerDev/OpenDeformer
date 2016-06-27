@@ -100,16 +100,16 @@ namespace ODER{
 			Segment *boundary, int depth);
 		void findCavity(const std::vector<Face>& regionFaces,
 			const Face& intersect, const CavityTriangleType& faceType,
-			std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces, 
-			std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, int depth);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
 		bool faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vector<Vertex *>& regionVertices, 
-			std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
-			std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
 		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
-			const std::vector<Vertex *>& boundaryVertices, std::deque<Face>& boundaryFaces, 
+			const std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
 		void insertVertexToCavity(Vertex *u, const Face& f);
 		Vertex *allocCavityVertex(const Vertex &vert);

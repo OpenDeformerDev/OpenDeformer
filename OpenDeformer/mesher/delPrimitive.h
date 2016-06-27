@@ -62,13 +62,13 @@ namespace ODER {
 		void setListPointer(EdgeListNode *n) {
 			pointer = uintptr_t(n) | (pointer & 0x2);
 		}
-		void setEndVertexPointer(Vertex *v) {
+		void setVertexPointer(Vertex *v) {
 			pointer = (uintptr_t(v) | 0x1) | (pointer & 0x2);
 		}
 		EdgeListNode *getListHead() {
 			return (EdgeListNode *)(pointer & (~0x2));
 		}
-		Vertex *getEndVertex() const {
+		Vertex *getPointedVertex() const {
 			return (Vertex *)(pointer & (~0x3));
 		}
 		void setMark() {

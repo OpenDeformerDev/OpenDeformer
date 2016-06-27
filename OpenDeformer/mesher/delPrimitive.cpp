@@ -148,7 +148,7 @@ namespace ODER {
 			return false;
 		VertexListNode *node = entry->second;
 		bool found = false;
-		while (node != NULL) {
+		while (node != NULL && !found) {
 			if (node->getVertex() == s.v[1]) {
 				VertexListNode *nextNode = node->getNextNode();
 				if (nextNode == NULL)
@@ -157,7 +157,6 @@ namespace ODER {
 					*w = nextNode->getVertex();
 					found = true;
 				}
-				break;
 			}
 			node = node->getNextNode();
 		}
@@ -602,7 +601,7 @@ namespace ODER {
 			insertToTopology(Segment(b, d), c, a);
 			insertToTopology(Segment(c, d), a, b);
 
-			addSupplyVerts(b, c, d, NULL, 1);
+			addSupplyVerts(b, c, d, a, 1);
 			break;
 		case 1:
 			insertToTopology(Segment(a, b), c, d);
@@ -621,7 +620,7 @@ namespace ODER {
 			insertToTopology(Segment(a, c), d, b);
 			insertToTopology(Segment(b, c), a, d);
 
-			addSupplyVerts(a, b, c, NULL, 1);
+			addSupplyVerts(a, b, c, d, 1);
 			break;
 		case 4:
 			insertToTopology(Segment(a, d), b, c);
@@ -634,14 +633,14 @@ namespace ODER {
 			insertToTopology(Segment(a, d), b, c);
 			insertToTopology(Segment(b, d), c, a);
 
-			addSupplyVerts(a, b, d, NULL, 1);
+			addSupplyVerts(a, b, d, c, 1);
 			break;
 		case 6:
 			insertToTopology(Segment(a, c), d, b);
 			insertToTopology(Segment(a, d), b, c);
 			insertToTopology(Segment(c, d), a, b);
 
-			addSupplyVerts(a, c, d, NULL, 1);
+			addSupplyVerts(a, c, d, b, 1);
 			break;
 		case 7:
 			insertToTopology(Segment(a, b), c, d);
@@ -747,7 +746,6 @@ namespace ODER {
 								*z = foundNode->getVertex();
 								found = true;
 							}
-							break;
 						}
 						node = node->getNextNode();
 					}
@@ -777,7 +775,6 @@ namespace ODER {
 								*z = foundNode->getVertex();
 								found = true;
 							}
-							break;
 						}
 						parentNode = node;
 						node = node->getNextNode();
@@ -791,8 +788,9 @@ namespace ODER {
 	bool TetMeshDataStructure::adjacent2Vertex(Vertex *w, Tetrahedron *t) const {
 		bool found = false;
 		EdgeListNode *linkHead = NULL;
-		if (!w->hasList()) {
-			Vertex *end = w->getEndVertex();
+		bool hasList = w->hasList();
+		if (!hasList) {
+			Vertex *end = w->getPointedVertex();
 			linkHead = end->getListHead();
 			bool foundHead = false;
 			while (linkHead != NULL && !foundHead) {
@@ -806,17 +804,58 @@ namespace ODER {
 			linkHead = w->getListHead();
 
 		if (linkHead != NULL) {
+			VertexListNode *head = linkHead->getLink();
 			VertexListNode *parentLoop = linkHead->getLink();
 			VertexListNode *loop = parentLoop->getNextNode();
 			while (loop && loop->isPreFaceDeleted()) {
 				parentLoop = loop;
 				loop = loop->getNextNode();
 			}
+			if (loop == NULL && !head->isPreFaceDeleted()) {
+				parentLoop = loop;
+				loop = head;
+			}
 			if (loop) {
-				*t = Tetrahedron(w, linkHead->getEndVertex(), parentLoop->getVertex(), loop->getVertex(), true);
+				if(hasList)
+				    *t = Tetrahedron(w, linkHead->getEndVertex(), parentLoop->getVertex(), loop->getVertex());
+				else
+					*t = Tetrahedron(w, w->getPointedVertex(), loop->getVertex(), parentLoop->getVertex());
 				found = true;
 			}
 		}
+		else {
+			if (!hasList) {
+				Vertex *oppo = w->getPointedVertex();
+				linkHead = oppo->getListHead();
+				while (linkHead && !found) {
+					VertexListNode *head = linkHead->getLink();
+					VertexListNode *parentLoop = head;
+					VertexListNode *loop = parentLoop->getNextNode();
+					while (loop->getVertex() != w) {
+						parentLoop = loop;
+						loop = loop->getNextNode();
+					}
+					if (loop == NULL && head->getVertex() == w) {
+						parentLoop = loop;
+						loop = head;
+					}
+					if (loop) {
+						VertexListNode *childLoop = loop->getNextNode();
+						if (childLoop == NULL) childLoop = head;
+						if (!loop->isPreFaceDeleted()) {
+							*t = Tetrahedron(w, parentLoop->getVertex(), oppo, linkHead->getEndVertex());
+							found = true;
+						}
+						else if (!childLoop->isPreFaceDeleted()) {
+							*t = Tetrahedron(w, childLoop->getVertex(), linkHead->getEndVertex(), oppo);
+							found = true;
+						}
+					}
+					linkHead = linkHead->getNextNode();
+				}
+			}
+		}
+
 		return found;
 	}
 
@@ -1226,79 +1265,25 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode) {
-		int aIndex = a->getLabel();
-		int bIndex = b->getLabel();
-		int cIndex = c->getLabel();
-
-		int dIndex = -1;
-		if (d)
-			dIndex = d->getLabel();
-
 		switch (mode) {
 		case 0:
-			if (aIndex > bIndex) {
-				if (!a->hasList())
-					a->setEndVertexPointer(b);
-			}
-			else {
-				if (!b->hasList())
-					b->setEndVertexPointer(a);
-			}
-			if (cIndex > dIndex) {
-				if (!c->hasList())
-					c->setEndVertexPointer(d);
-			}
-			else {
-				if (!d->hasList())
-					d->setEndVertexPointer(c);
-			}
+			if (!a->hasList()) a->setVertexPointer(b);
+			if (!b->hasList()) b->setVertexPointer(a);
+			if (!c->hasList()) c->setVertexPointer(d);
+			if (!d->hasList()) d->setVertexPointer(c);
 			break;
 		case 1:
-			if (aIndex > bIndex) {
-				if (aIndex > cIndex) {
-					if (!a->hasList())
-						a->setEndVertexPointer(c);
-				}
-				else {
-					if (!b->hasList())
-						b->setEndVertexPointer(c);
-				}
-			}
-			else if (bIndex > cIndex) {
-				if (!b->hasList())
-					b->setEndVertexPointer(a);
-			}
-			else {
-				if (!c->hasList())
-					c->setEndVertexPointer(b);
-			}
+			if (!a->hasList()) a->setVertexPointer(b);
+			if (!b->hasList()) b->setVertexPointer(c);
+			if (!c->hasList()) c->setVertexPointer(a);
+			if (!d->hasList()) d->setVertexPointer(a);
 			break;
 		case 2:
-		{
-			int v[4] = { aIndex, bIndex, cIndex, dIndex };
-			int max = 0;
-			for (int i = 1; i < 4; i++) {
-				if (v[i] > v[max])
-					max = i;
-			}
-			if (max == 0) {
-				if (!a->hasList())
-					a->setEndVertexPointer(b);
-			}
-			else if (max == 1) {
-				if (!b->hasList())
-					b->setEndVertexPointer(c);
-			}
-			else if (max == 2) {
-				if (!c->hasList())
-					c->setEndVertexPointer(d);
-			}
-			else {
-				if (!d->hasList())
-					d->setEndVertexPointer(a);
-			}
+			if (!a->hasList()) a->setVertexPointer(b);
+			if (!b->hasList()) b->setVertexPointer(c);
+			if (!c->hasList()) c->setVertexPointer(d);
+			if (!d->hasList()) d->setVertexPointer(a);
 			break;
-		}
 		default:
 			Severe("Unexpected mode in DelMesher::addSupplyVerts");
 			break;

@@ -1371,8 +1371,8 @@ void DelMesher::findMissingRegion(const Segment& edge, std::vector<Vertex *> &re
 
 void DelMesher::findCavity(const std::vector<Face>& regionFaces, 
 	const Face& intersect, const CavityTriangleType& faceType,
-	std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
-	std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces, 
+	std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
+	std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 	std::vector<Tetrahedron>& deleted, int depth) {
 
 	Vertex *a = intersect.v[0], *b = intersect.v[1], *c = intersect.v[2], *d = NULL;
@@ -1655,8 +1655,8 @@ bool DelMesher::findCrossEdge(const Segment& boundary, const std::vector<Face>& 
 }
 
 bool DelMesher::faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vector<Vertex *>& regionVertices,
-	std::vector<Vertex *>& positiveVertices, std::deque<Face>& positiveFaces,
-	std::vector<Vertex *>& negativeVertices, std::deque<Face>& negativeFaces,
+	std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
+	std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted) {
 	Face seed = f;
 	regionFaces.clear(); regionVertices.clear();
@@ -1706,15 +1706,22 @@ bool DelMesher::faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vecto
 	for (int i = 0; i < regionVertCount; i++) {
 		newRegionVertices[i] = allocCavityVertex(*regionVertices[i]);
 		//temporary hack
-		newRegionVertices[i]->setListPointer(regionVertices[i]->getListHead());
-		regionVertices[i]->setEndVertexPointer(newRegionVertices[i]);
+		if (regionVertices[i]->hasList()) 
+			newRegionVertices[i]->setListPointer(regionVertices[i]->getListHead());
+		else 
+			newRegionVertices[i]->setVertexPointer(regionVertices[i]->getPointedVertex());
+		regionVertices[i]->setVertexPointer(newRegionVertices[i]);
 	}
 	for (int i = 0; i < regionFaceCount; i++) {
 		Face f = regionFaces[i];
-		newRegionFaces[i] = Face(f.v[0]->getEndVertex(), f.v[1]->getEndVertex(), f.v[2]->getEndVertex());
+		newRegionFaces[i] = Face(f.v[0]->getPointedVertex(), f.v[1]->getPointedVertex(), f.v[2]->getPointedVertex());
 	}
 	for (int i = 0; i < regionVertCount; i++) {
-		regionVertices[i]->setListPointer(newRegionVertices[i]->getListHead());
+		if(newRegionVertices[i]->hasList()) 
+			regionVertices[i]->setListPointer(newRegionVertices[i]->getListHead());
+		else 
+			regionVertices[i]->setVertexPointer(newRegionVertices[i]->getPointedVertex());
+
 		regionVertices[i]->setMark();
 		newRegionVertices[i]->setListPointer(NULL);
 	}
@@ -1741,22 +1748,37 @@ bool DelMesher::faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vecto
 }
 
 bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
-	const std::vector<Vertex *>& boundaryVertices, std::deque<Face>& boundaryFaces,
+	const std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached) {
 	cavityRep.Clear();
 	std::vector<Vertex *> cavityVertices;
 	cavityVertices.reserve(boundaryVertices.size());
-	std::unordered_map<int, std::pair<Vertex*, Vertex*>> vertexMap;
-	vertexMap.reserve(regionVertices.size() + boundaryVertices.size());
+	std::deque<std::pair<Face, Face>> facePairs;
 
-	for (int i = 0; i < boundaryVertices.size(); i++) {
-		Vertex *cavityVert = allocCavityVertex(*boundaryVertices[i]);
-		vertexMap.insert(std::make_pair(cavityVert->getLabel(), std::make_pair(boundaryVertices[i], cavityVert)));
+	for (auto v : boundaryVertices) {
+		Vertex *cavityVert = allocCavityVertex(*v);
 		cavityVertices.push_back(cavityVert);
+		//temporary hack
+		if (v->hasList()) cavityVert->setListPointer(v->getListHead());
+		else cavityVert->setVertexPointer(v->getPointedVertex());
+		v->setVertexPointer(cavityVert);
+	}
+	for (auto f : regionFaces)
+		facePairs.push_back(std::make_pair(f, Face(f.v[0]->getPointedVertex(), f.v[1]->getPointedVertex(), f.v[2]->getPointedVertex())));
+	for (int i = 0; i < boundaryVertices.size(); i++) {
+		if (cavityVertices[i]->hasList())
+			boundaryVertices[i]->setListPointer(cavityVertices[i]->getListHead());
+		else
+			boundaryVertices[i]->setVertexPointer(cavityVertices[i]->getPointedVertex());
+
+		cavityVertices[i]->setListPointer(NULL);
+		boundaryVertices[i]->setMark();
 	}
 
-	//construct triangulation
 
+
+
+	//construct triangulation
 	return true;
 }
 
