@@ -83,10 +83,10 @@ namespace ODER{
 	private:
 		bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
 
-		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, bool boundary = false) const;
+		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
 		Face findPosition(Vertex *u, const Face& f) const;
 
-		void triangulation3D();
+		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
 	
 		void splitSubSegment(const Segment& s, Vertex* ref, bool onFace);
 
@@ -111,16 +111,18 @@ namespace ODER{
 		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
 			const std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
-		void insertVertexToCavity(Vertex *u, const Face& f);
+		void refineRegion(const Face& regionFace);
 		Vertex *allocCavityVertex(const Vertex &vert);
 		void deallocCavityVertex(Vertex *vert);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
 		Vertex* allocVertex(const Vertex &vert);
-		void insertVertex(Vertex *u, const Tetrahedron& tet, Tetrahedron *rt = NULL, bool insertToSkinny = false);
+		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
+			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 
-		void digCavity(Vertex *u, const Face& f, Tetrahedron *rt = NULL, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
+		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
+			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void digCavity(Vertex *u, const Vertex& aboveVert, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
@@ -133,7 +135,6 @@ namespace ODER{
 		Vertex* Cover(const Segment &s);
 		REAL estimateLocalGapSize2(const DelVector &c) const;
 
-		Face findFaceAroundOnPlane(const Vertex& origin, Vertex *center) const;
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 

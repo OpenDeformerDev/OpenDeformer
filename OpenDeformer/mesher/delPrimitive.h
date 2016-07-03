@@ -77,6 +77,12 @@ namespace ODER {
 		void unSetMark() {
 			pointer &= (~0x2);
 		}
+		uintptr_t getRawPointer() const {
+			return pointer;
+		}
+		void setRawPointer(uintptr_t p) {
+			pointer = p;
+		}
 		bool isMarked() const {
 			return (pointer & 0x2) == 0x2;
 		}
@@ -216,7 +222,7 @@ namespace ODER {
 			reRation = r = 0.f;
 		}
 		Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered = false);
-		void setRationAndRadius(const Vertex *ghost);
+		void setRationAndRadius();
 		void sortVertices();
 		bool operator==(const Tetrahedron& t) const {
 			return v[0] == t.v[0] &&

@@ -16,8 +16,8 @@ namespace ODER {
 			sortVertices();
 	}
 
-	void Tetrahedron::setRationAndRadius(const Vertex *ghost) {
-		if (v[0] == ghost || v[1] == ghost || v[2] == ghost || v[3] == ghost) {
+	void Tetrahedron::setRationAndRadius() {
+		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost() || v[3]->isGhost()) {
 			reRation = 0.0;
 			r = 0.0;
 			return;
