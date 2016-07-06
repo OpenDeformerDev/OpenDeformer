@@ -1267,22 +1267,22 @@ namespace ODER {
 	void TetMeshDataStructure::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode) {
 		switch (mode) {
 		case 0:
-			if (!a->hasList()) a->setVertexPointer(b);
-			if (!b->hasList()) b->setVertexPointer(a);
-			if (!c->hasList()) c->setVertexPointer(d);
-			if (!d->hasList()) d->setVertexPointer(c);
+			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
+			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(a);
+			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(d);
+			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(c);
 			break;
 		case 1:
-			if (!a->hasList()) a->setVertexPointer(b);
-			if (!b->hasList()) b->setVertexPointer(c);
-			if (!c->hasList()) c->setVertexPointer(a);
-			if (!d->hasList()) d->setVertexPointer(a);
+			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
+			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(c);
+			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(a);
+			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(a);
 			break;
 		case 2:
-			if (!a->hasList()) a->setVertexPointer(b);
-			if (!b->hasList()) b->setVertexPointer(c);
-			if (!c->hasList()) c->setVertexPointer(d);
-			if (!d->hasList()) d->setVertexPointer(a);
+			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
+			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(c);
+			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(d);
+			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(a);
 			break;
 		default:
 			Severe("Unexpected mode in DelMesher::addSupplyVerts");

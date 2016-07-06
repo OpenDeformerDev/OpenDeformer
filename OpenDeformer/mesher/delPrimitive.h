@@ -45,11 +45,6 @@ namespace ODER {
 			weight = -max;
 			label = labeler.getSpecilGhostLabel();
 		}
-		void Copy(Vertex &v) const {
-			v.vert = vert;
-			v.weight = weight;
-			v.label = label;
-		}
 		bool isGhost() const {
 			return label == labeler.getSpecilGhostLabel();
 		}
@@ -363,6 +358,7 @@ namespace ODER {
 		MemoryPool<VertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
 	};
+
 
 
 	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) const {

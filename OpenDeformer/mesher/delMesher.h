@@ -49,14 +49,14 @@ namespace ODER{
 		void propagateClean(const Segment& s, int depth);
 		inline int findGhost(const Face &f){
 			for (int i = 0; i < 3; i++){
-				if (f.v[i] == ghost)
+				if (f.v[i]->isGhost())
 					return i;
 			}
 			return -1;
 		}
 		inline int findGhost(Vertex **v, int n){
 			for (int i = 0; i < n; i++){
-				if (v[i] == ghost)
+				if (v[i]->isGhost())
 					return i;
 			}
 			return -1;
@@ -109,14 +109,15 @@ namespace ODER{
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
 		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
-			const std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
+			std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
+		void getTetsInCavity(const Face& f, std::vector<Tetrahedron>& inserted, int depth);
 		void refineRegion(const Face& regionFace);
-		Vertex *allocCavityVertex(const Vertex &vert);
-		void deallocCavityVertex(Vertex *vert);
 
+		Vertex* allocVertex();
 		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
 		Vertex* allocVertex(const Vertex &vert);
+		void deallocVertex(Vertex *vert);
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
 			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
@@ -165,7 +166,6 @@ namespace ODER{
 		std::vector<Face> newFacesOfTets;
 
 		std::vector<Vertex *> vertices;
-		MemoryArena<Vertex> vertArena;
 		MemoryPool<Vertex> vertPool;
 
 		TetMeshDataStructure meshRep;
@@ -177,8 +177,10 @@ namespace ODER{
 		friend class DelTriangulator;
 	};
 
+	inline Vertex* DelMesher::allocVertex() { return vertPool.Alloc(); }
+
 	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight){
-		Vertex *newVertex = vertArena.Alloc();
+		Vertex *newVertex = vertPool.Alloc();
 		newVertex->vert = vert;
 		newVertex->weight = weight;
 		newVertex->setLabel();
@@ -187,23 +189,16 @@ namespace ODER{
 	}
 
 	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
-		Vertex *newVertex = vertArena.Alloc();
+		Vertex *newVertex = vertPool.Alloc();
 		*newVertex = vertex;
-		newVertex->setLabel();
+		newVertex->setRawPointer(0);
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}
 
-	inline Vertex* DelMesher::allocCavityVertex(const Vertex &vert) {
-		Vertex *newVertex = vertPool.Alloc();
-		vert.Copy(*newVertex);
-		return newVertex;
-	}
-
-	inline void DelMesher::deallocCavityVertex(Vertex *vert) {
+	inline void DelMesher::deallocVertex(Vertex *vert) {
 		vertPool.Dealloc(vert);
 	}
-
 
 	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
 		DelVector oa = a - o;
