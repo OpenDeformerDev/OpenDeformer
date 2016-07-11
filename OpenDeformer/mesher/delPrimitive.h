@@ -105,7 +105,7 @@ namespace ODER {
 			currentVert = uintptr_t(vert);
 		}
 		Vertex *getVertex() const {
-			return (Vertex *)(currentVert & (~0x1));
+			return (Vertex *)(currentVert & (~0x3));
 		}
 		VertexListNode *getNextNode() const {
 			return next;
@@ -121,6 +121,15 @@ namespace ODER {
 		}
 		bool isPreFaceDeleted() const {
 			return (currentVert & 0x1) == 0x1;
+		}
+		void setMark() {
+			currentVert |= 0x2;
+		}
+		void unSetMark() {
+			currentVert &= (~0x2);
+		}
+		bool isMarked() {
+			return (currentVert & 0x2) == 0x2;
 		}
 	private:
 		uintptr_t currentVert;
@@ -268,9 +277,9 @@ namespace ODER {
 
 	struct segment_hash {
 		size_t operator()(const Segment &s) const {
-			int smallerLable = s.v[0]->getLabel();
-			int biggerLable = s.v[1]->getLabel();
-			return std::hash<int>()(((biggerLable * (biggerLable + 1)) >> 1) + smallerLable);
+			int64_t smallerLable = s.v[0]->getLabel();
+			int64_t biggerLable = s.v[1]->getLabel();
+			return std::hash<int64_t>()(((biggerLable * (biggerLable + 1)) >> 1) + smallerLable);
 		}
 	};
 
@@ -314,17 +323,21 @@ namespace ODER {
 		void unSetDeletedMark(Vertex *u, Vertex *v);
 		void setDeletedMark(Vertex *a, Vertex *b, Vertex *c);
 		void unSetDeletedMark(Vertex *a, Vertex *b, Vertex *c);
+		void setMark(Vertex *u, Vertex *v);
+		void unSetMark(Vertex *u, Vertex *v);
+		bool isMarked(Vertex *u, Vertex *v) const;
 		bool Adjacent(const Segment &s, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Face *f) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
 		bool Contain(const Face &f) const;
-		bool findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const;
+		bool findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const;
 		void Clear();
 		std::vector<Face> getTriangles(bool ghost) const;
 		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
 		~TriMeshDataStructure();
 	private:
+		bool getAdjacentListNode(Vertex* u, Vertex* v, VertexListNode **w) const;
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
 		void removeFromTopology(Vertex *a, Vertex *b, Vertex *c);
 
@@ -337,7 +350,11 @@ namespace ODER {
 		TetMeshDataStructure();
 		void addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
-		bool Adjacent(const Face &s, Vertex **w) const;
+		void setMark(Vertex *u, Vertex *v, Vertex *w);
+		void unSetMark(Vertex *u, Vertex *v, Vertex *w);
+		bool testAndMark(Vertex *u, Vertex *v, Vertex *w);
+		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
+		bool Adjacent(const Face &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
 		std::vector<Tetrahedron> getTetraherons(bool ghost) const;
 		void getTetraherons(bool ghost, std::vector<Tetrahedron>& tets) const;
@@ -347,7 +364,8 @@ namespace ODER {
 		void Clear();
 		~TetMeshDataStructure();
 	private:
-		bool Adjacent(Vertex* w, Vertex *x, Vertex *y, Vertex **z) const;
+		bool getAdjacentListNode(const Face& f, VertexListNode **z) const;
+		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, VertexListNode **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
@@ -358,7 +376,6 @@ namespace ODER {
 		MemoryPool<VertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
 	};
-
 
 
 	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) const {
@@ -402,7 +419,7 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::Contain(const Tetrahedron& t) const {
 		Vertex *x = NULL;
-		Adjacent(t.v[1], t.v[2], t.v[3], &x);
+		Adjacent(Face(t.v[1], t.v[2], t.v[3]), &x);
 		return x == t.v[0];
 	}
 }

@@ -7,7 +7,7 @@
 namespace ODER {
 	Labeler Vertex::labeler;
 
-	REAL Tetrahedron::maxREration = FLT_MAX;
+	REAL Tetrahedron::maxREration = std::numeric_limits<REAL>::max();
 
 	Tetrahedron::Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered) {
 		reRation = r = 0.0;
@@ -95,39 +95,15 @@ namespace ODER {
 	}
 
 	void TriMeshDataStructure::setDeletedMark(Vertex *u, Vertex *v) {
-		auto entry = topology.find(u);
-		if (entry == topology.end()) return;
-
-		VertexListNode *node = entry->second;
-		bool found = false;
-		while (node != NULL) {
-			if (node->getVertex() == v) {
-				VertexListNode *nextNode = node->getNextNode();
-				if (nextNode == NULL)
-					nextNode = entry->second;
-				nextNode->setDeletedMark();
-				break;
-			}
-			node = node->getNextNode();
-		}
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(u, v, &node))
+			node->setDeletedMark();
 	}
 
 	void TriMeshDataStructure::unSetDeletedMark(Vertex *u, Vertex *v) {
-		auto entry = topology.find(u);
-		if (entry == topology.end()) return;
-
-		VertexListNode *node = entry->second;
-		bool found = false;
-		while (node != NULL) {
-			if (node->getVertex() == v) {
-				VertexListNode *nextNode = node->getNextNode();
-				if (nextNode == NULL)
-					nextNode = entry->second;
-				nextNode->unSetDeletedMark();
-				break;
-			}
-			node = node->getNextNode();
-		}
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(u, v, &node))
+			node->unSetDeletedMark();
 	}
 
 	void TriMeshDataStructure::setDeletedMark(Vertex *a, Vertex *b, Vertex *c) {
@@ -142,25 +118,30 @@ namespace ODER {
 		unSetDeletedMark(c, a);
 	}
 
+	void TriMeshDataStructure::setMark(Vertex *u, Vertex *v) {
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(u, v, &node))
+			node->setMark();
+	}
+
+	void TriMeshDataStructure::unSetMark(Vertex *u, Vertex *v) {
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(u, v, &node))
+			node->unSetMark();
+	}
+
+	bool TriMeshDataStructure::isMarked(Vertex *u, Vertex *v) const {
+		VertexListNode *node = NULL;
+		return getAdjacentListNode(u, v, &node) && node->isMarked();
+	}
+
 	bool TriMeshDataStructure::Adjacent(const Segment &s, Vertex **w) const {
-		auto entry = topology.find(s.v[0]);
-		if (entry == topology.end())
-			return false;
-		VertexListNode *node = entry->second;
-		bool found = false;
-		while (node != NULL && !found) {
-			if (node->getVertex() == s.v[1]) {
-				VertexListNode *nextNode = node->getNextNode();
-				if (nextNode == NULL)
-					nextNode = entry->second;
-				if (!nextNode->isPreFaceDeleted()) {
-					*w = nextNode->getVertex();
-					found = true;
-				}
-			}
-			node = node->getNextNode();
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(s.v[0], s.v[1], &node) && !node->isPreFaceDeleted()) {
+			*w = node->getVertex();
+			return true;
 		}
-		return found;
+		return false;
 	}
 
 	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Face *f) const {
@@ -181,7 +162,7 @@ namespace ODER {
 		return found;
 	}
 
-	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, const DelVector& above, Face *f) const {
+	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const {
 		auto entry = topology.find(a);
 		Assert(entry != topology.end());
 
@@ -207,8 +188,8 @@ namespace ODER {
 			d = child->getVertex();
 		}
 
-		REAL ori0 = predicator.orient2d(aa, bb, c->vert, above);
-		REAL ori1 = predicator.orient2d(aa, bb, d->vert, above);
+		REAL ori0 = predicator.orientCoplane(aa, bb, c->vert);
+		REAL ori1 = predicator.orientCoplane(aa, bb, d->vert);
 		Assert(ori0 != 0);
 		Assert(ori1 != 0);
 		while (child != NULL && (ori0 > 0) == (ori1 > 0)) {
@@ -218,7 +199,7 @@ namespace ODER {
 			d = child->getVertex();
 			if (!d->isGhost()) {
 				ori0 = ori1;
-				ori1 = predicator.orient2d(aa, bb, d->vert, above);
+				ori1 = predicator.orientCoplane(aa, bb, d->vert);
 			}
 			else {
 				parent = child->getNextNode();
@@ -229,8 +210,8 @@ namespace ODER {
 
 				c = parent->getVertex();
 				d = child->getVertex();
-				ori0 = predicator.orient2d(aa, bb, c->vert, above);
-				ori1 = predicator.orient2d(aa, bb, d->vert, above);
+				ori0 = predicator.orientCoplane(aa, bb, c->vert);
+				ori1 = predicator.orientCoplane(aa, bb, d->vert);
 				Assert(ori0 != 0);
 			}
 			Assert(ori1 != 0);
@@ -276,6 +257,27 @@ namespace ODER {
 				}
 			}
 		}
+	}
+
+	bool TriMeshDataStructure::getAdjacentListNode(Vertex* u, Vertex* v, VertexListNode **w) const {
+		auto entry = topology.find(u);
+		if (entry == topology.end()) return false;
+
+		VertexListNode *node = entry->second;
+		bool found = false;
+		while (node != NULL) {
+			if (node->getVertex() == v) {
+				VertexListNode *nextNode = node->getNextNode();
+				if (nextNode == NULL)
+					nextNode = entry->second;
+				*w = nextNode;
+				found = true;
+				break;
+			}
+			node = node->getNextNode();
+		}
+
+		return found;
 	}
 
 	void TriMeshDataStructure::insertToTopology(Vertex *a, Vertex *b, Vertex *c) {
@@ -653,7 +655,7 @@ namespace ODER {
 			addSupplyVerts(a, b, c, d, 2);
 			break;
 		default:
-			Severe("Unexpected Case in DelMesher::addTet");
+			Severe("Unexpected Case in TetMeshDataStructure::addTetrahedron");
 			break;
 		}
 	}
@@ -707,27 +709,72 @@ namespace ODER {
 			removeFromTopology(Segment(c, d), a, b);
 			break;
 		default:
-			Severe("Unexpected Case in DelMesher::deleteTet");
+			Severe("Unexpected Case in TetMeshDataStructure::deleteTetrahedron");
 			break;
 		}
 	}
 
+	void TetMeshDataStructure::setMark(Vertex *u, Vertex *v, Vertex *w) {
+		Face f(u, v, w, true);
+
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(f, &node))
+			node->setMark();
+	}
+
+	void TetMeshDataStructure::unSetMark(Vertex *u, Vertex *v, Vertex *w) {
+		Face f(u, v, w, true);
+
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(f, &node))
+			node->unSetMark();
+	}
+
+	bool TetMeshDataStructure::testAndMark(Vertex *u, Vertex *v, Vertex *w) {
+		Face f(u, v, w, true);
+
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(f, &node)) {
+			if (node->isMarked()) return true;
+			node->setMark();
+		}
+		return false;
+	}
+
+	bool TetMeshDataStructure::isMarked(Vertex *u, Vertex *v, Vertex *w) const {
+		Face f(u, v, w, true);
+		VertexListNode *node = NULL;
+
+		return getAdjacentListNode(f, &node) && node->isMarked();
+	}
+
+
 	bool TetMeshDataStructure::Adjacent(const Face &f, Vertex **z) const {
+		VertexListNode *node = NULL;
+		if (getAdjacentListNode(f, &node)) {
+			*z = node->getVertex();
+			return true;
+		}
+		return false;
+	}
+
+	bool TetMeshDataStructure::getAdjacentListNode(const Face& f, VertexListNode **z) const {
 		bool found = false;
 		bool ab = parityCheck(f.v[0], f.v[1]);
 		bool ac = parityCheck(f.v[0], f.v[2]);
 
+		VertexListNode *node = NULL;
 		if (ab)
-			found = Adjacent(f.v[0], f.v[1], f.v[2], z);
+			found = getAdjacentListNode(f.v[0], f.v[1], f.v[2], &node);
 		else if (ac)
-			found = Adjacent(f.v[2], f.v[0], f.v[1], z);
+			found = getAdjacentListNode(f.v[2], f.v[0], f.v[1], &node);
 		else
-			found = Adjacent(f.v[1], f.v[2], f.v[0], z);
+			found = getAdjacentListNode(f.v[1], f.v[2], f.v[0], &node);
 
 		return found;
 	}
 
-	bool TetMeshDataStructure::Adjacent(Vertex *w, Vertex *x, Vertex *y, Vertex **z) const {
+	bool TetMeshDataStructure::getAdjacentListNode(Vertex *w, Vertex *x, Vertex *y, VertexListNode **z) const {
 		bool found = false;
 		if (edgeOrderCheck(x, w)) {
 			if (x->hasList()) {
@@ -743,7 +790,7 @@ namespace ODER {
 							if (foundNode == NULL)
 								foundNode = linkHead->getLink();
 							if (!foundNode->isPreFaceDeleted()) {
-								*z = foundNode->getVertex();
+								*z = foundNode;
 								found = true;
 							}
 						}
@@ -772,7 +819,7 @@ namespace ODER {
 										loop = loop->getNextNode();
 									}
 								}
-								*z = foundNode->getVertex();
+								*z = foundNode;
 								found = true;
 							}
 						}

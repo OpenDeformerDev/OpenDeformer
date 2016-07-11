@@ -95,23 +95,24 @@ namespace ODER{
 		void splitTetrahedron(const Tetrahedron& tet);
 
 		//face recovery
-		enum CavityTriangleType { TwoPositive, TwoNegative, PositiveNegativeCoplanar, NegativePositiveCoplanar };
-		void findMissingRegion(const Segment& edge, std::vector<Vertex *> &regionVertices, std::vector<Face>& regionFaces, 
-			Segment *boundary, int depth);
-		void findCavity(const std::vector<Face>& regionFaces,
-			const Face& intersect, const CavityTriangleType& faceType,
-			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
-			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
-			std::vector<Tetrahedron>& deleted, int depth);
-		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool faceRecovery(Face& f, std::vector<Face>& regionFaces, std::vector<Vertex *>& regionVertices, 
+		bool faceRecovery(Face& f, std::vector<Face>& regionFaces, 
+			std::vector<Segment>& regionBoundaries, std::vector<Vertex *>& regionVertices,
 			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
+		void findMissingRegion(const Face& missed, std::vector<Vertex *> &regionVertices, 
+			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces);
+		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
+			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces, int depth);
+		bool findCavity(const std::vector<Segment>& regionBoundary, const std::vector<Face>& regionFaces,
+			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
+			std::vector<Tetrahedron>& deleted, Face& encroached);
+		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
 		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
 			std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
-		void getTetsInCavity(const Face& f, std::vector<Tetrahedron>& inserted, int depth);
+		void propagateCleanCavity(const Face& f, int depth);
 		void refineRegion(const Face& regionFace);
 
 		Vertex* allocVertex();
