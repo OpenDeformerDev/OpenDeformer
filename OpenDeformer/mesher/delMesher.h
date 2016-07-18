@@ -120,7 +120,7 @@ namespace ODER{
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
-			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false);
+			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 
 		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
