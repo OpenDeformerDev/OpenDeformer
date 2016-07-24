@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "predicate.h"
 #include "delPrimitive.h"
+#include "geometer.h"
 #include "memory.h"
 #include <numeric>
 
@@ -30,9 +31,8 @@ namespace ODER {
 		DelVector cb = v[1]->vert - v[2]->vert;
 		DelVector ba = v[0]->vert - v[1]->vert;
 
-		const Predicator<REAL> predicator;
-		predicator.Orthosphere(v[0]->vert, v[0]->weight, v[1]->vert, v[1]->weight, v[2]->vert, v[2]->weight, 
-			v[3]->vert, v[3]->weight, NULL, &r);
+		Geometer::Orthosphere(v[0]->vert, v[0]->weight, v[1]->vert, v[1]->weight, v[2]->vert, v[2]->weight, 
+			v[3]->vert, v[3]->weight, (DelVector *)NULL, &r);
 
 		REAL minEdgeLength = sqrt(std::min(da.length2(), std::min(db.length2(), 
 			std::min(dc.length2(), std::min(ca.length2(), std::min(cb.length2(), ba.length2()))))));
@@ -170,51 +170,56 @@ namespace ODER {
 		const Predicator<REAL> predicator;
 
 		VertexListNode *parent = entry->second;
-		if (parent == NULL) return false;
-		Vertex *c = parent->getVertex();
-
-		VertexListNode *child = parent->getNextNode();
-		if (child == NULL) return false;
-		Vertex *d = child->getVertex();
-
-		if(c->isGhost() || d->isGhost()) {
-			parent = child->getNextNode();
-			if (parent == NULL) return false;
-
+		VertexListNode *child = NULL;
+		Vertex *c = NULL, *d = NULL;
+		
+		while (parent != NULL) {
 			child = parent->getNextNode();
-			if (child == NULL) return false;
-
-			c = parent->getVertex();
-			d = child->getVertex();
+			if (child && !child->isPreFaceDeleted()) {
+				c = parent->getVertex();
+				d = child->getVertex();
+				if(!c->isGhost() && !d->isGhost()) break;
+			}
+			parent = child;
 		}
+		if (parent == NULL) return false;
 
 		REAL ori0 = predicator.orientCoplane(aa, bb, c->vert);
 		REAL ori1 = predicator.orientCoplane(aa, bb, d->vert);
-		Assert(ori0 != 0);
-		Assert(ori1 != 0);
-		while (child != NULL && (ori0 > 0) == (ori1 > 0)) {
+		while ((ori0 > 0) == (ori1 > 0) || ori1 == 0 || ori1 == 0) {
+			bool nextSuccess = false;
 			parent = child;
 			child = parent->getNextNode();
 			c = d;
-			d = child->getVertex();
-			if (!d->isGhost()) {
-				ori0 = ori1;
-				ori1 = predicator.orientCoplane(aa, bb, d->vert);
-			}
-			else {
-				parent = child->getNextNode();
-				if (parent == NULL) return false;
 
-				child = parent->getNextNode();
-				if (child == NULL) return false;
-
-				c = parent->getVertex();
+			if (child == NULL) break;
+			if (!child->isPreFaceDeleted()) {
 				d = child->getVertex();
-				ori0 = predicator.orientCoplane(aa, bb, c->vert);
-				ori1 = predicator.orientCoplane(aa, bb, d->vert);
-				Assert(ori0 != 0);
+				if (!d->isGhost()) {
+					nextSuccess = true;
+					ori0 = ori1;
+					ori1 = predicator.orientCoplane(aa, bb, d->vert);
+				}
 			}
-			Assert(ori1 != 0);
+
+			if(!nextSuccess){
+				parent = child;
+				while (parent != NULL) {
+					child = parent->getNextNode();
+					if (child && !child->isPreFaceDeleted()) {
+						c = parent->getVertex();
+						d = child->getVertex();
+						if (!c->isGhost() && !d->isGhost()) break;
+					}
+					parent = child;
+				}
+				if (parent != NULL) {
+					ori0 = predicator.orientCoplane(aa, bb, c->vert);
+					ori1 = predicator.orientCoplane(aa, bb, d->vert);
+				}
+				else
+					break;
+			}
 		}
 
 		if (child == NULL) return false;
@@ -906,36 +911,38 @@ namespace ODER {
 		return found;
 	}
 
-	void TetMeshDataStructure::getTetraherons(bool ghost, std::vector<Tetrahedron>& tets) const {
+	void TetMeshDataStructure::getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const {
 		for (auto vert : vertices) {
 			EdgeListNode *linkHead = vert->getListHead();
 			while (linkHead) {
 				Vertex *endVert = linkHead->getEndVertex();
-				VertexListNode *head = linkHead->getLink();
-				VertexListNode *parentNode = head;
-				VertexListNode *node = parentNode->getNextNode();
-				while (node) {
-					if (!node->isPreFaceDeleted()) {
+				if (ghost || !endVert->isGhost()) {
+					VertexListNode *head = linkHead->getLink();
+					VertexListNode *parentNode = head;
+					VertexListNode *node = parentNode->getNextNode();
+					while (node) {
+						if (!node->isPreFaceDeleted()) {
+							Vertex *c = parentNode->getVertex();
+							Vertex *d = node->getVertex();
+							if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
+								(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
+								(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
+								if (ghost || (!c->isGhost() && !d->isGhost()))
+									tets.push_back(Tetrahedron(vert, endVert, c, d));
+							}
+						}
+						parentNode = node;
+						node = node->getNextNode();
+					}
+					if (!head->isPreFaceDeleted()) {
 						Vertex *c = parentNode->getVertex();
 						Vertex *d = node->getVertex();
 						if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
 							(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
 							(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
-							if (ghost || (!endVert->isGhost() && !c->isGhost() && !d->isGhost()))
+							if (ghost || (!c->isGhost() && !d->isGhost()))
 								tets.push_back(Tetrahedron(vert, endVert, c, d));
 						}
-					}
-					parentNode = node;
-					node = node->getNextNode();
-				}
-				if (!head->isPreFaceDeleted()) {
-					Vertex *c = parentNode->getVertex();
-					Vertex *d = node->getVertex();
-					if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
-						(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
-						(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
-						if (ghost || (!endVert->isGhost() && !c->isGhost() && !d->isGhost()))
-							tets.push_back(Tetrahedron(vert, endVert, c, d));
 					}
 				}
 				linkHead = linkHead->getNextNode();
@@ -943,9 +950,9 @@ namespace ODER {
 		}
 	}
 
-	std::vector<Tetrahedron> TetMeshDataStructure::getTetraherons(bool ghost) const {
+	std::vector<Tetrahedron> TetMeshDataStructure::getTetrahedrons(bool ghost) const {
 		std::vector<Tetrahedron> tets;
-		getTetraherons(ghost, tets);
+		getTetrahedrons(ghost, tets);
 		return tets;
 	}
 

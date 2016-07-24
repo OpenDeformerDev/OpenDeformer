@@ -82,21 +82,21 @@ namespace ODER{
 
 	private:
 		bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
-
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
 		Face findPosition(Vertex *u, const Face& f) const;
 
+		void constrainedTriangulation();
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
 	
-		void splitSubSegment(const Segment& s, Vertex* ref, bool onFace);
+		void splitSubSegment(const Segment& s, Vertex* ref);
 
 		void splitSubSegment(const Segment& s);
 		void splitSubPolygon(const Face& f);
 		void splitTetrahedron(const Tetrahedron& tet);
 
 		//face recovery
-		bool faceRecovery(Face& f, std::vector<Face>& regionFaces, 
-			std::vector<Segment>& regionBoundaries, std::vector<Vertex *>& regionVertices,
+		bool faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
+			std::vector<Segment>& regionBoundaries, std::vector<Face>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
@@ -116,7 +116,7 @@ namespace ODER{
 		void refineRegion(const Face& regionFace);
 
 		Vertex* allocVertex();
-		Vertex* allocVertex(const DelVector &vert, REAL weight = 0.f);
+		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type);
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
@@ -180,10 +180,11 @@ namespace ODER{
 
 	inline Vertex* DelMesher::allocVertex() { return vertPool.Alloc(); }
 
-	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight){
+	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight, VertexType type){
 		Vertex *newVertex = vertPool.Alloc();
 		newVertex->vert = vert;
 		newVertex->weight = weight;
+		newVertex->type = type;
 		newVertex->setLabel();
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
@@ -200,16 +201,6 @@ namespace ODER{
 	inline void DelMesher::deallocVertex(Vertex *vert) {
 		vertPool.Dealloc(vert);
 	}
-
-	inline REAL interiorAngle(const DelVector& o, const DelVector& a, const DelVector& b) {
-		DelVector oa = a - o;
-		DelVector ob = b - o;
-		REAL len = oa.length() * ob.length();
-		Assert(len != 0);
-
-		return acos(Clamp((oa * ob) / len, REAL(-1), REAL(1)));
-	}
-
 }
 
 #endif

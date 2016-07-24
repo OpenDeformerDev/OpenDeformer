@@ -507,46 +507,6 @@ namespace ODER{
 	inline double operator*(const double *left, const SparseVector& right) {
 		return right * left;
 	}
-
-	template<class FT> inline VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
-		const VectorBase<FT>& b, const VectorBase<FT>& c) {
-		VectorBase<FT> ab = b - a;
-		VectorBase<FT> ac = c - a;
-		VectorBase<FT> bc = c - b;
-		FT abLen2 = ab.length2();
-		FT acLen2 = ac.length2();
-		FT bcLen2 = bc.length2();
-
-		VectorBase<FT> *u = &ab;
-		VectorBase<FT> *v = &ac;
-
-		if (bcLen2 < abLen2) {
-			if (abLen2 < acLen2) v = &bc;
-			else {
-				u = &ac; v = &bc;
-			}
-		}
-		else if (bcLen2 < acLen2) v = &bc;
-
-		return *u % *v;
-	}
-
-
-	constexpr float const_pow(float base, int exp) noexcept{
-		return exp < 0 ? 1.f / const_pow(base, -exp) : 
-			(exp == 0 ? 1.f :
-				exp % 2 == 0 ? const_pow(base * base, exp / 2) :
-				const_pow(base * base, (exp - 1) / 2) * base);
-	}
-
-	constexpr double const_pow(double base, int exp) noexcept{
-		return exp < 0 ? 1.0 / const_pow(base, -exp) : 
-			(exp == 0 ? 1.0 :
-				exp % 2 == 0 ? const_pow(base * base, exp / 2) :
-				const_pow(base * base, (exp - 1) / 2) * base);
-	}
-
-
 }
 
 #endif

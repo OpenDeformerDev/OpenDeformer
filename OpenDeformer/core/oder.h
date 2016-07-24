@@ -90,6 +90,20 @@ namespace ODER{
 		else if (val > high) return high;
 		else return val;
 	}
+
+	constexpr float const_pow(float base, int exp) noexcept {
+		return exp < 0 ? 1.f / const_pow(base, -exp) :
+			(exp == 0 ? 1.f :
+				exp % 2 == 0 ? const_pow(base * base, exp / 2) :
+				const_pow(base * base, (exp - 1) / 2) * base);
+	}
+
+	constexpr double const_pow(double base, int exp) noexcept {
+		return exp < 0 ? 1.0 / const_pow(base, -exp) :
+			(exp == 0 ? 1.0 :
+				exp % 2 == 0 ? const_pow(base * base, exp / 2) :
+				const_pow(base * base, (exp - 1) / 2) * base);
+	}
 }
 
 #endif

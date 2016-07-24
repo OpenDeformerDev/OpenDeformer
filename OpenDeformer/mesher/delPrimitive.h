@@ -33,17 +33,39 @@ namespace ODER {
 		int label;
 	};
 
+	enum VertexType {
+		Vertex_Undefined = 0,
+		Vertex_Fixed = 1 << 0,
+		Vertex_Free = 1 << 1,
+		Vertex_Segment = 1 << 2, 
+		Vertex_Facet = 1 << 3,
+		Vertex_Volume = 1 << 4,
+
+		Vertex_FixedSegment = Vertex_Fixed | Vertex_Segment,
+		Vertex_FixedFacet = Vertex_Fixed | Vertex_Facet,
+		Vertex_FixedVolume = Vertex_Fixed | Vertex_Volume,
+		
+		Vertex_FreeSegment = Vertex_Free | Vertex_Segment,
+		Vertex_FreeFacet = Vertex_Free | Vertex_Facet,
+		Vertex_FreeVolume = Vertex_Free | Vertex_Facet,
+
+		Vertex_Low_Dimen = Vertex_Segment | Vertex_Facet
+	};
+
 	class EdgeListNode;
 
 	struct Vertex {
-		Vertex() : weight(0.0), label(-1), pointer(0) {}
-		template<class FT> Vertex(const VectorBase<FT>& vv) : vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), pointer(0){}
-		Vertex(const DelVector& vv, REAL w = 0) :vert(vv), weight(w), label(-1), pointer(0) {}
+		Vertex() : weight(0.0), label(-1), pointer(0), type(VertexType::Vertex_Undefined){}
+		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
+			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), pointer(0), type(t) {}
+		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
+			: vert(vv), weight(w), label(-1), pointer(0), type(t) {}
 		void setGhost() {
 			constexpr REAL max = std::numeric_limits<REAL>::max();
 			vert.x = max; vert.y = max; vert.z = max;
 			weight = -max;
 			label = labeler.getSpecilGhostLabel();
+			type = VertexType::Vertex_Undefined;
 		}
 		bool isGhost() const {
 			return label == labeler.getSpecilGhostLabel();
@@ -92,11 +114,13 @@ namespace ODER {
 		}
 		DelVector vert;
 		REAL weight;
+		VertexType type;
 	private:
 		int label;
 		uintptr_t pointer;//point to the adjaceny list or another vertex
 		static Labeler labeler;
 	};
+
 
 	class VertexListNode {
 	public:
@@ -356,8 +380,8 @@ namespace ODER {
 		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
 		bool Adjacent(const Face &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
-		std::vector<Tetrahedron> getTetraherons(bool ghost) const;
-		void getTetraherons(bool ghost, std::vector<Tetrahedron>& tets) const;
+		std::vector<Tetrahedron> getTetrahedrons(bool ghost) const;
+		void getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Face &f) const;
 		bool Contain(const Tetrahedron& t) const;
@@ -422,6 +446,11 @@ namespace ODER {
 		Adjacent(Face(t.v[1], t.v[2], t.v[3]), &x);
 		return x == t.v[0];
 	}
+
+	inline bool matchVertexFlag(VertexType type, VertexType flag) {
+		return (type & flag) == flag;
+	}
+
 }
 
 #endif

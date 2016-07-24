@@ -28,7 +28,7 @@
 #endif
 
 #include "latool.h"
-#include "numerMethod.h"
+#include "geometer.h"
 
 namespace ODER{
 template<class FT> class Predicator{
@@ -61,18 +61,6 @@ public:
 
 	FT inOrthoSphereExact(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 		const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight) const;
-
-	void Circumcircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, VectorBase<FT> *center, FT *r = NULL) const;
-
-	void Circumsphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, VectorBase<FT> *center, FT *r = NULL) const;
-
-	void Orthocircle(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT>& c, FT cWeight, VectorBase<FT> *center, FT *r = NULL) const;
-
-	void Orthosphere(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight, 
-		             const VectorBase<FT>& c, FT cWeight, const VectorBase<FT>& d, FT dWeight,
-					 VectorBase<FT> *center, FT *r = NULL) const;
-
-	void OrthoCenter(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight, VectorBase<FT> *center, FT *r = NULL) const;
 
 	bool fastCoPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
 		VectorBase<FT> n = (b - a) % (c - a);
@@ -142,17 +130,16 @@ private:
 	static const FT inSegRangeErrorBoundA;
 	static const FT inSegRangeErrorBoundB;
 	static const FT inSegRangeErrorBoundC;
-
 };
 
 template<class FT> const ExactArthmeticer<FT> Predicator<FT>::arthemetricer;
 template<class FT> const FT Predicator<FT>::epsilon = FT(1e-8);
 template<class FT> const FT Predicator<FT>::commonBound = (FT(3.0) + FT(8.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const  FT Predicator<FT>::o2dErrorBoundA = (FT(3.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o2dErrorBoundA = (FT(3.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::o2dErrorBoundB = (FT(2.0) + FT(12.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::o2dErrorBoundC = (FT(9.0) + FT(64.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::o3dErrorBoundA = (FT(7.0) + FT(56.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const  FT Predicator<FT>::o3dErrorBoundB = (FT(3.0) + FT(28.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+template<class FT> const FT Predicator<FT>::o3dErrorBoundB = (FT(3.0) + FT(28.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::o3dErrorBoundC = (FT(26.0) + FT(288.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::inSpeErrorBoundA = (FT(16.0) + FT(224.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
 template<class FT> const FT Predicator<FT>::inSpeErrorBoundB = (FT(5.0) + FT(72.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
@@ -1789,130 +1776,12 @@ template<class FT> FT Predicator<FT>::inOrthoSpherePerturbed(const VectorBase<FT
 	return oriB;
 }
 
-template<class FT> void Predicator<FT>::Circumcircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, VectorBase<FT> *center, FT *r) const{
-	VectorBase<FT> ca = a - c;
-	VectorBase<FT> cb = b - c;
-	VectorBase<FT> n = ca%cb;
-
-	FT A[9];
-	A[0] = ca[0], A[1] = ca[1], A[2] = ca[2],
-	A[3] = cb[0], A[4] = cb[1], A[5] = cb[2],
-	A[6] = n[0], A[7] = n[1], A[8] = n[2];
-
-	FT rhs[3];
-	rhs[0] = (ca.length2())*FT(0.5);
-	rhs[1] = (cb.length2())*FT(0.5);
-	rhs[2] = 0.0;
-
-	VectorBase<FT> rr;
-	gaussianElimination3x3(A, rhs, &rr[0]);
-
-	if (center)
-		*center = c + rr;
-
-	if (r)
-		*r = sqrt(rr.length2());
-}
-
-template<class FT> void Predicator<FT>::Circumsphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, VectorBase<FT> *center, FT *r) const{
-	VectorBase<FT> t = a - d;
-	VectorBase<FT> u = b - d;
-	VectorBase<FT> v = c - d;
-
-	FT A[9];
-	A[0] = t[0], A[1] = t[1], A[2] = t[2],
-	A[3] = u[0], A[4] = u[1], A[5] = u[2],
-	A[6] = v[0], A[7] = v[1], A[8] = v[2];
-
-	FT rhs[3];
-	rhs[0] = t.length2()*FT(0.5);
-	rhs[1] = u.length2()*FT(0.5);
-	rhs[2] = v.length2()*FT(0.5);
-
-	VectorBase<FT> rr;
-	gaussianElimination3x3(A, rhs, &rr[0]);
-
-	if (center)
-		*center = d + rr;
-
-	if (r)
-		*r = sqrt(rr.length2());
-}
-
-template<class FT> void Predicator<FT>::Orthocircle(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight,
-	const VectorBase<FT>& c, FT cWeight, VectorBase<FT> *center, FT *r) const{
-	VectorBase<FT> ca = a - c;
-	VectorBase<FT> cb = b - c;
-	VectorBase<FT> n = ca%cb;
-
-	FT A[9];
-	A[0] = ca[0], A[1] = ca[1], A[2] = ca[2],
-	A[3] = cb[0], A[4] = cb[1], A[5] = cb[2],
-	A[6] = n[0], A[7] = n[1], A[8] = n[2];
-
-	FT rhs[3];
-	rhs[0] = (ca.length2() + cWeight - aWeight)*FT(0.5);
-	rhs[1] = (cb.length2() + cWeight - bWeight)*FT(0.5);
-	rhs[2] = FT(0.0);
-
-	VectorBase<FT> rr;
-	gaussianElimination3x3(A, rhs, &rr[0]);
-
-	if (center)
-		*center = c + rr;
-
-	if (r)
-		*r = sqrt(rr.length2() - cWeight);
-}
-
-template<class FT> void Predicator<FT>::Orthosphere(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight,
-	const VectorBase<FT>& c, FT cWeight, const VectorBase<FT>& d, FT dWeight,
-	VectorBase<FT> *center, FT *r) const{
-
-	VectorBase<FT> t = a - d;
-	VectorBase<FT> u = b - d;
-	VectorBase<FT> v = c - d;
-
-	FT A[9];
-	A[0] = t[0], A[1] = t[1], A[2] = t[2],
-	A[3] = u[0], A[4] = u[1], A[5] = u[2],
-	A[6] = v[0], A[7] = v[1], A[8] = v[2];
-
-	FT rhs[3];
-	rhs[0] = (t.length2() + dWeight - aWeight)*FT(0.5);
-	rhs[1] = (u.length2() + dWeight - bWeight)*FT(0.5);
-	rhs[2] = (v.length2() + dWeight - cWeight)*FT(0.5);
-
-	VectorBase<FT> rr;
-	gaussianElimination3x3(A, rhs, &rr[0]);
-
-	if (center)
-		*center = d + rr;
-
-	if (r)
-		*r = sqrt(rr.length2() - dWeight);
-}
-
-template<class FT> void Predicator<FT>::OrthoCenter(const VectorBase<FT>& a, FT aWeight, const VectorBase<FT>& b, FT bWeight, VectorBase<FT> *center, FT *r) const{
-	VectorBase<FT> ab = b - a;
-	FT abLen = ab.length();
-	FT extraDis = (aWeight - bWeight) / (FT(2.0) * abLen);
-
-	if (center)
-		*center = a + (FT(0.5) + extraDis / abLen)*ab;
-
-	if (r){
-		FT distance = abLen*FT(0.5) + extraDis;
-		*r = sqrt(distance*distance - aWeight);
-	}
-}
-
 template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT>& b, const VectorBase<FT> &c) const{
 	FT orient = orient3d(u, a, b, c);
-	if (orient > 0.0)
+	if (orient > FT(0))
 		return true;
-	else if (orient == 0.0)
-		return inSphere(a + triangleNormal(a, b, c), a, b, c, u) > 0.0;
+	else if (orient == FT(0))
+		return inSphere(a + Geometer::triangleNormal(a, b, c), a, b, c, u) > FT(0);
 	else
 		return false;
 }
@@ -1920,19 +1789,19 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, 
 	        FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const{
 	FT orient = orient3d(u, a, b, c);
-	if (orient > 0.0)
+	if (orient > FT(0))
 		return true;
-	else if (orient == 0.0) 
-		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + triangleNormal(a, b, c)) > 0.0;
+	else if (orient == FT(0))
+		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + Geometer::triangleNormal(a, b, c)) > FT(0);
 	else
 		return false;
 }
 
 template<class FT> bool Predicator<FT>::inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const{
 	FT orient = orient2d(u, b, c, above);
-	if (orient > 0.0)
+	if (orient > FT(0))
 		return true;
-	else if (orient == 0.0){
+	else if (orient == FT(0)){
 		return inSegmentRange(u, b, c);
 	}
 	else
@@ -1973,7 +1842,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			break;
 		case 7:
 		{
-			VectorBase<FT> normal = triangleNormal(a, b, c);
+			VectorBase<FT> normal = Geometer::triangleNormal(a, b, c);
 			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 			Plane plane = Plane::Plane_Arbitary;
 			if (nx != 0 || ny != 0 || nz != 0)
@@ -2043,7 +1912,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			break;
 		case 7:
 		{
-			VectorBase<FT> normal = triangleNormal(p, q, r);
+			VectorBase<FT> normal = Geometer::triangleNormal(p, q, r);
 			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 			Plane plane = Plane::Plane_Arbitary;
 			if (nx != 0 || ny != 0 || nz != 0)
@@ -2086,10 +1955,10 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			orient3d(*sMax1, *tMax1, *sMax2, *tMax2) <= 0;
 	}
 	else {
-		VectorBase<FT> normal = triangleNormal(p, q, r);
+		VectorBase<FT> normal = Geometer::triangleNormal(p, q, r);
 		bool zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
 		if (zeroTest) {
-			normal = triangleNormal(a, b, c);
+			normal = Geometer::triangleNormal(a, b, c);
 			zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
 		}
 
@@ -2193,7 +2062,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& a, co
 		return false;
 	}
 	else {
-		VectorBase<FT> normal = triangleNormal(a, b, c);
+		VectorBase<FT> normal = Geometer::triangleNormal(a, b, c);
 		FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 		Plane plane = Plane::Plane_Arbitary;
 		if(nx != 0 || ny != 0 || nz != 0)

@@ -193,6 +193,7 @@
     <ClInclude Include="core\element.h" />
     <ClInclude Include="core\nodeIndexer.h" />
     <ClInclude Include="mesher\delPrimitive.h" />
+    <ClInclude Include="mesher\geometer.h" />
     <ClInclude Include="mesher\predicate.h" />
     <ClInclude Include="core\constrainer.h" />
     <ClInclude Include="core\datastructure.h" />
@@ -249,6 +250,9 @@
     <ClCompile Include="solver\inLDLTPreconditioner.cpp" />
     <ClCompile Include="solver\jacobiPreconditioner.cpp" />
     <ClCompile Include="solver\stubPreconditioner.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

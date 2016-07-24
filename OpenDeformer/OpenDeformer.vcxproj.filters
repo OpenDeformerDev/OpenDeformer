@@ -183,6 +183,9 @@
     <ClInclude Include="mesher\delPrimitive.h">
       <Filter>头文件\mesher</Filter>
     </ClInclude>
+    <ClInclude Include="mesher\geometer.h">
+      <Filter>头文件\mesher</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -269,5 +272,8 @@
     <ClCompile Include="mesher\delPrimitive.cpp">
       <Filter>源文件\mesher</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\LICENSE.txt" />
   </ItemGroup>
 </Project>
