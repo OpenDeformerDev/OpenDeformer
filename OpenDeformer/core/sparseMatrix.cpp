@@ -50,7 +50,7 @@ namespace ODER{
 		}
 	}
 
-	SparseMatrix::SparseMatrix(const SparseMatrixAssembler &assembler){
+	SparseMatrix::SparseMatrix(const Assembler &assembler){
 		numColumns = assembler.numColumns;
 		pcol = (int*)allocAligned<int>(numColumns + 1);
 

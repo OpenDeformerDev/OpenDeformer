@@ -52,7 +52,7 @@ namespace ODER {
 		externalVirtualWork = memory + 4 * dofs;
 		rhs = memory + 5 * dofs;
 
-		using AssemblerType = std::conditional_t<std::is_same<SpMatrix, BlockedSymSpMatrix>::value, BlockedSymSpMatrixAssembler, SparseMatrixAssembler>;
+		using AssemblerType = SpMatrix::Assembler;
 		AssemblerType structureAssembler(dofs);
 		material->getMatrixStructure(mesh, indexer, structureAssembler);
 

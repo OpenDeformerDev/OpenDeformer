@@ -76,7 +76,7 @@ public:
 
 	bool inHalfSpace2D(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& above) const;
 
-	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const;
+	bool inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, FT bWeight, const VectorBase<FT> &c, FT cWeight) const;
 
 	bool Intersection(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
 		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
@@ -1714,9 +1714,9 @@ template<class FT> FT Predicator<FT>::inSegmentRangeHalfAdaptive(const VectorBas
 
 template<class FT> FT Predicator<FT>::inOrthoCirclePerturbed(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
-	FT test = inOrthoSphere(above, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
+	FT test = inOrthoSphere(above, FT(0), a, aWeight, b, bWeight, c, cWeight, d, dWeight);
 
-	if (test != 0.0)
+	if (test != FT(0))
 		return test;
 
 	int swaps = 0;
@@ -1787,7 +1787,7 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 }
 
 template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> &u, FT uWeight, const VectorBase<FT> &a, FT aWeight, const VectorBase<FT>& b, 
-	        FT bWeight, const VectorBase<FT> &c, FT cWeight, bool boundaryVert = false) const{
+	        FT bWeight, const VectorBase<FT> &c, FT cWeight) const{
 	FT orient = orient3d(u, a, b, c);
 	if (orient > FT(0))
 		return true;

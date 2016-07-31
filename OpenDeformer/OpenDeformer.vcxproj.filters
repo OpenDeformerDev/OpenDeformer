@@ -273,7 +273,4 @@
       <Filter>源文件\mesher</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\LICENSE.txt" />
-  </ItemGroup>
 </Project>

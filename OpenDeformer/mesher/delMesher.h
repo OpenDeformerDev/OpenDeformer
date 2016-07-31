@@ -146,7 +146,6 @@ namespace ODER{
 
 		std::unordered_set<Segment, segment_hash> segments;
 		std::vector<Segment> oriSegments;
-		std::vector<int> oriVertexIndices;
 		std::unordered_map<Vertex *, int, vertex_hash> vorisHash;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
@@ -166,7 +165,7 @@ namespace ODER{
 		std::vector<Tetrahedron> tobeDeletedTets;
 		std::vector<Face> newFacesOfTets;
 
-		std::vector<Vertex *> vertices;
+		std::vector<Vertex *> oriVertices;
 		MemoryPool<Vertex> vertPool;
 
 		TetMeshDataStructure meshRep;

@@ -11,13 +11,13 @@
 #include <set>
 #include <numeric>
 
-namespace ODER {
 #define REAL double
 
 #define NEXT_F(i) (((i)+1)%3)
 #define NEXT_T(i) (((i)+1)%4)
 #define SQRTF_2 REAL(1.41422)
 
+namespace ODER {
 	using DelVector = VectorBase<REAL>;
 
 	class Labeler {

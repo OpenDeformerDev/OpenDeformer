@@ -32,7 +32,8 @@ namespace ODER{
 
 	class SparseMatrix{
 	public:
-		SparseMatrix(const SparseMatrixAssembler& assembler);
+		using Assembler = SparseMatrixAssembler;
+		SparseMatrix(const Assembler& assembler);
 		SparseMatrix(const SparseMatrix&) = delete;
 		SparseMatrix& operator=(const SparseMatrix&) = delete;
 		SparseMatrix(SparseMatrix&& mat) noexcept{
@@ -183,7 +184,8 @@ namespace ODER{
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
-		BlockedSymSparseMatrix(const BlockedSymSparseMatrixAssembler<blockLength, blockWidth>& assembler){
+		using Assembler = BlockedSymSparseMatrixAssembler<blockLength, blockWidth>;
+		BlockedSymSparseMatrix(const Assembler& assembler){
 			numColumns = assembler.numColumn;
 			numBlockColumn = assembler.numBlockColumn;
 			numRemainedColumn = assembler.numRemainedColumn;

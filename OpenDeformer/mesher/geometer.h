@@ -25,7 +25,7 @@ namespace ODER {
 			FT rhs[3];
 			rhs[0] = (ca.length2())*FT(0.5);
 			rhs[1] = (cb.length2())*FT(0.5);
-			rhs[2] = 0.0;
+			rhs[2] = FT(0);
 
 			VectorBase<FT> rr;
 			gaussianElimination3x3(A, rhs, &rr[0]);
@@ -77,7 +77,7 @@ namespace ODER {
 			FT rhs[3];
 			rhs[0] = (ca.length2() + cWeight - aWeight)*FT(0.5);
 			rhs[1] = (cb.length2() + cWeight - bWeight)*FT(0.5);
-			rhs[2] = FT(0.0);
+			rhs[2] = FT(0);
 
 			VectorBase<FT> rr;
 			gaussianElimination3x3(A, rhs, &rr[0]);
