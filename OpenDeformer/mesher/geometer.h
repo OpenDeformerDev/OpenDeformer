@@ -8,6 +8,7 @@
 #include "oder.h"
 #include "latool.h"
 #include "numerMethod.h"
+#include "predicate.h"
 
 namespace ODER {
 	namespace Geometer {
@@ -141,7 +142,7 @@ namespace ODER {
 			return acos(Clamp((oa * ob) / len, FT(-1), FT(1)));
 		}
 
-		template<class FT> inline VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
+		template<class FT> VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
 			const VectorBase<FT>& b, const VectorBase<FT>& c) {
 			VectorBase<FT> ab = b - a;
 			VectorBase<FT> ac = c - a;
@@ -162,6 +163,27 @@ namespace ODER {
 			else if (bcLen2 < acLen2) v = &bc;
 
 			return *u % *v;
+		}
+
+		template<class FT> FT dihedralAngle(const VectorBase<FT>& a, const VectorBase<FT>& b,
+			const VectorBase<FT>& c, const VectorBase<FT>& d) {
+			constexpr FT pi = M_PI;
+			VectorBase<FT> nc = triangleNormal(a, b, d);
+			VectorBase<FT> nd = triangleNormal(b, a, c);
+			FT abLen = (b - a).length();
+
+			const Predicator<FT> predicator;
+			FT ori = predicator.orient3d(d, a, b, c);
+
+			FT theta = pi * FT(0.5);
+			FT dot = nc * nd;
+			if (dot != 0) {
+				theta = atan(-ori * abLen / dot);
+				if (dot > 0) theta += ori > 0 ? pi : -pi;
+				theta = fabs(theta);
+			}
+			
+			return theta;
 		}
 	}
 }

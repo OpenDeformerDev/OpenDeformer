@@ -511,13 +511,10 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 		oriVertices.push_back(vert);
 	}
 
-	oriSegments.reserve(numseg);
 	for (int i = 0; i < numseg; i++){
 		Segment s = Segment(oriVertices[segis[2 * i]], oriVertices[segis[2 * i + 1]], true);
 		oriVertices[segis[2 * i]]->type = VertexType(oriVertices[segis[2 * i]]->type | VertexType::Vertex_Segment);
 		oriVertices[segis[2 * i]]->type = VertexType(oriVertices[segis[2 * i + 1]]->type | VertexType::Vertex_Segment);
-		//record orgin sgments
-		oriSegments.push_back(s);
 		//recorded
 		segments.insert(s);
 		mayEncroachedSegs.push_back(s);
@@ -534,6 +531,39 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 		t.outPut(this);
 		subpolygons += numsubpol[i];
 		polygonVerts.clear();
+	}
+
+	constrainedTriangulation();
+}
+
+DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL maxR, REAL maxRa) {
+	maxRatio = maxRa;
+	maxRadius = maxR;
+	Tetrahedron::maxREration = maxRa;
+
+	//init ghost vertex
+	ghost = allocVertex();
+	ghost->setGhost();
+	//insert every vertex
+	oriVertices.reserve(numv);
+	for (int i = 0; i < numv; i++) {
+		Vertex *vert = allocVertex(DelVector{ surfvs[i].x, surfvs[i].y, surfvs[i].z }, REAL(0), 
+			VertexType(VertexType::Vertex_FixedVolume | VertexType::Vertex_Facet));
+		boundBox.Insert(surfvs[i]);
+		oriVertices.push_back(vert);
+	}
+
+	for (int i = 0; i < numtri; i++) {
+		surfaceRep.addTriangle(oriVertices[triangles[3 * i]], oriVertices[triangles[3 * i + 1]], oriVertices[triangles[3 * i + 2]]);
+		for (int j = 0; j < 3; j++) {
+			int segEnd0 = triangles[3 * i + j], segEnd1 = triangles[3 * i + NEXT_F(j)];
+			Segment seg(oriVertices[segEnd0], oriVertices[segEnd1], true);
+			oriVertices[segEnd0]->type = VertexType(oriVertices[segEnd0]->type | VertexType::Vertex_Segment);
+			oriVertices[segEnd1]->type = VertexType(oriVertices[segEnd1]->type | VertexType::Vertex_Segment);
+			//recorded
+			segments.insert(seg);
+			mayEncroachedSegs.push_back(seg);
+		}
 	}
 
 	constrainedTriangulation();
@@ -1122,7 +1152,7 @@ Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron
 					}
 				}
 				else {
-					bool found = meshRep.Adjacent(Face(a, b, c), &d);
+					found = meshRep.Adjacent(Face(a, b, c), &d);
 					Assert(found);
 				}
 			} while (!hasIntersect);
@@ -1143,21 +1173,15 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 	DelVector aa = a->vert, bb = b->vert;
 	DelVector ab = bb - aa;
 	REAL invabLen = REAL(1) / ab.length();
+
 	//calulate steiner point
-	auto oriSegFound = vorisHash.find(a);
-	Assert(oriSegFound != vorisHash.end());
-	int oriSegIndex = oriSegFound->second;
 	DelVector steinerPoint;
+	if (matchVertexFlag(ref->type, VertexType::Vertex_FreeSegment)) {
+		auto refOriSegFound = vertSegHash.find(ref);
+		Assert(refOriSegFound != vertSegHash.end());
+		Segment refOriSeg = refOriSegFound->second;
 
-	if (matchVertexFlag(ref->type, VertexType::Vertex_Segment)) {
-		auto refOriSegFound = vorisHash.find(ref);
-		Assert(refOriSegFound != vorisHash.end());
-		int refOriSegIndex = refOriSegFound->second;
-
-		Segment oriSeg = oriSegments[oriSegIndex];
-		Segment refOriSeg = oriSegments[refOriSegIndex];
-
-		Vertex *oriSegStart = oriSeg.v[0], *oriSegEnd = oriSeg.v[1];
+		Vertex *oriSegStart = a, *oriSegEnd = b;
 		Vertex *refOriSegStart = refOriSeg.v[0], *refOriSegEnd = refOriSeg.v[1];
 
 		if (oriSegStart == refOriSegStart || oriSegStart == refOriSegEnd) {
@@ -1193,7 +1217,7 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 	segments.insert(s1);
 	mayEncroachedSegs.push_back(s0);
 	mayEncroachedSegs.push_back(s1);
-	vorisHash.insert(std::pair<Vertex *, int>(steinerVert, oriSegIndex));
+	vertSegHash.insert(std::make_pair(steinerVert, Segment(a, b)));
 
 	Tetrahedron toBeDeleted;
 	meshRep.adjacent2Vertex(a, &toBeDeleted);
@@ -1222,7 +1246,7 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 
 void DelMesher::splitSubSegment(const Segment &s){
 	Vertex *a = s.v[0], *b = s.v[1];
-	Vertex *mid = Cover(s);
+	Vertex *mid = allocVertex((a->vert + b->vert) * REAL(0.5), REAL(0), VertexType::Vertex_FreeSegment);
 
 	Vertex *c = NULL, *d = NULL;
 	//should be orient inward
@@ -2013,9 +2037,7 @@ void DelMesher::refineRegion(const Face& regionFace) {
 		mayEncroachedSegs.push_back(s0);
 		mayEncroachedSegs.push_back(s1);
 
-		auto oriSegIndexFound = vorisHash.find(encrochedSeg.v[0]);
-		Assert(oriSegIndexFound != vorisHash.end());
-		vorisHash.insert(std::make_pair(newVert, oriSegIndexFound->second));
+		vertSegHash.insert(std::make_pair(newVert, encrochedSeg));
 
 		bool found = findIntersectedTetrahedron(encrochedSeg.v[0], encrochedSeg.v[1]->vert, &toBeDeleted);
 		Assert(found);
@@ -2139,98 +2161,6 @@ bool DelMesher::Encroached(const Face &f, const Vertex &v) const{
 	REAL r2 = r*r;
 
 	return ((v.vert - center.vert).length2() - v.weight) <= r2;
-}
-
-void DelMesher::Protect(){
-	int size = oriVertices.size();
-	REAL maxRadius2 = maxRadius*maxRadius;
-	REAL *lfses = new REAL[size];
-	for (int i = 0; i < size; i++){
-		lfses[i] = FLT_MAX;
-	}
-	for (int i = 0; i < size; i++){
-		Vertex *v = oriVertices[i];
-		for (int j = i + 1; j < size; j++){
-			REAL lfs = (v->vert - oriVertices[j]->vert).length2();
-			if (lfs < lfses[i]) lfses[i] = lfs;
-			if (lfs < lfses[j]) lfses[j] = lfs;
-		}
-		v->weight = std::min(maxRadius2, lfses[i] * REAL(0.125));
-	}
-	delete[] lfses;
-}
-
-//segment s should not in DelMesher::segments before calling Cover
-Vertex* DelMesher::Cover(const Segment &s){
-	DelVector a = s.v[0]->vert;
-	DelVector b = s.v[1]->vert;
-	REAL aWeight = s.v[0]->weight, bWeight = s.v[1]->weight;
-	REAL maxRadius2 = maxRadius*maxRadius;
-	//compute the center on s of the ball orthogonal to both end
-	REAL weight = 0;
-	DelVector v;
-	Geometer::Orthocenter(a, aWeight, b, bWeight, &v, &weight);
-	weight *= weight;
-
-	REAL localGapSize2 = estimateLocalGapSize2(v);
-
-	Segment s0, s1;
-	Vertex *newVert = NULL;
-	//determine whether the protection ends here
-	if (weight <= std::min(maxRadius2, localGapSize2*REAL(0.25))){
-		newVert = allocVertex(v, weight, VertexType::Vertex_FreeSegment);
-		s0 = Segment(newVert, s.v[0], true);
-		s1 = Segment(newVert, s.v[1], true);
-	}
-	//add weighted point to protect
-	else{
-		DelVector ab = b - a;
-		REAL abLen = ab.length();
-		REAL ra = sqrt(aWeight);
-		REAL rb = sqrt(bWeight);
-		REAL extraLength = (ra - rb) / (REAL(2.0) * abLen);
-		REAL gapLength = abLen - ra - rb;
-		newVert = allocVertex(a + (REAL(0.5) + extraLength)*ab, 
-			std::min(maxRadius2, std::min(localGapSize2 * REAL(0.25), gapLength*gapLength / (REAL(36.0) - REAL(16.0)*SQRTF_2))),
-			VertexType::Vertex_FreeSegment);
-		s0 = Segment(newVert, s.v[0], true);
-		s1 = Segment(newVert, s.v[1], true);
-	}
-
-	segments.erase(s);
-	segments.insert(s0);
-	segments.insert(s1);
-	mayEncroachedSegs.push_back(s0);
-	mayEncroachedSegs.push_back(s1);
-
-	return newVert;
-}
-
-REAL DelMesher::estimateLocalGapSize2(const DelVector &c) const{
-	REAL localGapSize2 = FLT_MAX;
-	int oriSegmentCounts = oriSegments.size();
-	for (int i = 0; i < oriSegments.size();i++){
-		Segment segment = oriSegments[i];
-		DelVector a = segment.v[0]->vert, b = segment.v[1]->vert;
-		REAL size = FLT_MAX;
-		if (predicator.fastCoLine(a, b, c)){
-			size = std::max((c - a).length2(), (c - b).length2());
-		}
-		else{
-			DelVector ab = b - a;
-			REAL t = (c - a)*ab / ab.length2();
-			if (t <= 0) size = (c - a).length2();
-			else if (t >= 1.f) size = (c - b).length2();
-			else{
-				DelVector d = a + t*ab;
-				size = (c - d).length2();
-			}
-		}
-		if (size < localGapSize2){
-			localGapSize2 = size;
-		}
-	}
-	return localGapSize2;
 }
 
 Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){

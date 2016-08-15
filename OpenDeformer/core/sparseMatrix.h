@@ -11,6 +11,7 @@
 #include <map>
 #include <vector>
 #include <unordered_map>
+#include <array>
 
 namespace ODER{
 	class SparseMatrixAssembler{

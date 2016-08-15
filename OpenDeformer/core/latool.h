@@ -7,7 +7,6 @@
 
 #include "oder.h"
 #include "datastructure.h"
-#include <array>
 
 namespace ODER{
 	template<class FT> struct VectorBase{

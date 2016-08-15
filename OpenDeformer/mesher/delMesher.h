@@ -74,7 +74,8 @@ namespace ODER{
 
 	class DelMesher :public Mesher{
 	public:
-		DelMesher(Vector *survs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL minRation, REAL minRadius);
+		DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL maxRation, REAL maxRadius);
+		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius);
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
 		~DelMesher() = default;
@@ -133,10 +134,6 @@ namespace ODER{
 		bool Encroached(const Segment &s, const Vertex &v) const;
 		bool Encroached(const Face &f, const Vertex &v) const;
 
-		void Protect();
-		Vertex* Cover(const Segment &s);
-		REAL estimateLocalGapSize2(const DelVector &c) const;
-
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
@@ -145,8 +142,7 @@ namespace ODER{
 		static Predicator<REAL> predicator;
 
 		std::unordered_set<Segment, segment_hash> segments;
-		std::vector<Segment> oriSegments;
-		std::unordered_map<Vertex *, int, vertex_hash> vorisHash;
+		std::unordered_map<Vertex *, Segment, vertex_hash> vertSegHash;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
 

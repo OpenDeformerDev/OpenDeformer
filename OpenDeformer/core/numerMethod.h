@@ -282,7 +282,7 @@ namespace ODER{
 
 	template<class FT> void eigenSym3x3(const FT *triMat, FT *eigenvalues, FT *eigenvectors) {
 		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::eigenSym3x3 support IEEE 754-1985 floating point only");
-		constexpr FT pi = FT(3.141592653589793238462643383279502884197169399375105820974944592308);
+		constexpr FT pi = M_PI;
 		const FT aveTrace = (triMat[0] + triMat[3] + triMat[5]) / FT(3.0);
 		const FT deviatoricDiag0 = triMat[0] - aveTrace;
 		const FT deviatoricDiag1 = triMat[3] - aveTrace;

@@ -5,22 +5,13 @@
 #ifndef ODER_CORE_ODER_H
 #define ODER_CORE_ODER_H
 
+#include <math.h>
 #include <algorithm>
 #include <functional>
 #include <assert.h>
 
-#define ODER_L1_CACHE_LINE_SIZE 64
-#define ODER_DEFAULT_ARENA_OBJ_SIZE 1024
-#define ODER_DEFAULT_POOL_OBJ_COUNT 128
-
 #ifndef NDEBUG
 #define ODER_DEBUG
-#endif
-
-#ifdef ODER_DEBUG
-#define Assert(expr) assert(expr)
-#else
-#define Assert(expr) ((void)0)
 #endif
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -36,6 +27,21 @@
 #if defined(_MSC_VER)
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX
 #endif
+
+#ifdef ODER_DEBUG
+#define Assert(expr) assert(expr)
+#else
+#define Assert(expr) ((void)0)
+#endif
+
+#define ODER_L1_CACHE_LINE_SIZE 64
+#define ODER_DEFAULT_ARENA_OBJ_SIZE 1024
+#define ODER_DEFAULT_POOL_OBJ_COUNT 128
+
+#ifdef M_PI
+#undef M_PI
+#endif
+#define M_PI 3.141592653589793238462643383279502884197169399375105820974944592308
 
 namespace ODER{
 	static unsigned int randomSeed = 23;

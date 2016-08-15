@@ -20,15 +20,13 @@
 #define ODER_MESHER_PREDICATE_H
 
 #include "oder.h"
+#include "latool.h"
 #include "arithmetic.h"
 
 #if defined(_MSC_VER)
 #pragma float_control(precise, on, push)
 #pragma fp_contract(off)
 #endif
-
-#include "latool.h"
-#include "geometer.h"
 
 namespace ODER{
 template<class FT> class Predicator{
@@ -114,6 +112,8 @@ private:
 
 	bool intersectionTriSegCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
 		const VectorBase<FT>& p, const VectorBase<FT>& q, Plane hint) const;
+
+	VectorBase<FT> triangleNormal(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 	static const ExactArthmeticer<FT> arthemetricer;
 	static const FT epsilon;
@@ -201,7 +201,7 @@ template<class FT> FT Predicator<FT>::orient2dAdaptive(FT ax, FT ay, FT bx, FT b
 	FT cbxError = arthemetricer.twoDiffError(bx, cx, cbx);
 	FT cbyError = arthemetricer.twoDiffError(by, cy, cby);
 
-	if (caxError == 0.0 && cayError == 0.0 && cbxError == 0.0 && cbyError == 0.0)
+	if (caxError == 0 && cayError == 0 && cbxError == 0 && cbyError == 0)
 		return det;
 
 	errorBound = o2dErrorBoundC*norm + commonBound*fabs(det);
@@ -235,20 +235,19 @@ template<class FT> FT Predicator<FT>::orient2d(const VectorBase<FT>& a, const Ve
 	return orient3d(above, a, b, c);
 }
 
-
 template<class FT> FT Predicator<FT>::inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const{
 	return inSphere(above, a, b, c, d);
 }
 
 template<class FT> FT Predicator<FT>::inOrthoCircle(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
-	return inOrthoSphere(above, 0.0, a, aWeight, b, bWeight, c, cWeight, d, dWeight);
+	return inOrthoSphere(above, FT(0), a, aWeight, b, bWeight, c, cWeight, d, dWeight);
 }
 
 template<class FT> FT Predicator<FT>::orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const{
-	VectorBase<FT> da = a - d;
-	VectorBase<FT> db = b - d;
-	VectorBase<FT> dc = c - d;
+	VectorBase<FT> da(a.x - d.x, a.y - d.y, a.z - d.z);
+	VectorBase<FT> db(b.x - d.x, b.y - d.y, b.z - d.z);
+	VectorBase<FT> dc(c.x - d.x, c.y - d.y, c.z - d.z);
 
 	FT daxdby = da.x*db.y;
 	FT daydbx = da.y*db.x;
@@ -277,9 +276,9 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 	int finLength;
 	FT det, errorBound;
 	FT fin0[196];
-	VectorBase<FT> da = a - d;
-	VectorBase<FT> db = b - d;
-	VectorBase<FT> dc = c - d;
+	VectorBase<FT> da(a.x - d.x, a.y - d.y, a.z - d.z);
+	VectorBase<FT> db(b.x - d.x, b.y - d.y, b.z - d.z);
+	VectorBase<FT> dc(c.x - d.x, c.y - d.y, c.z - d.z);
 
 	//Adaptivly approach
 	FT dbxdcy1, dbxdcy0, dbydcx1, dbydcx0;
@@ -330,9 +329,9 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 	dcyError = arthemetricer.twoDiffError(c.y, d.y, dc.y);
 	dczError = arthemetricer.twoDiffError(c.z, d.z, dc.z);
 
-	if (daxError == 0.0 && dayError == 0.0 && dazError == 0.0
-		&& dbxError == 0.0 && dbyError == 0.0 && dbzError == 0.0
-		&& dcxError == 0.0 && dcyError == 0.0 && dczError == 0.0)
+	if (daxError == 0 && dayError == 0 && dazError == 0
+		&& dbxError == 0 && dbyError == 0 && dbzError == 0
+		&& dcxError == 0 && dcyError == 0 && dczError == 0)
 		return det;
 
 	errorBound = commonBound * fabs(det) + o3dErrorBoundC * norm;
@@ -354,23 +353,23 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 	FT *finNow = fin0;
 	FT *finOther = fin1;
 
-	bool daxErrorZeroTest = (daxError == 0.0);
-	bool dayErrorZeroTest = (dayError == 0.0);
-	bool dazErrorZeroTest = (dazError == 0.0);
-	bool dbxErrorZeroTest = (dbxError == 0.0);
-	bool dbyErrorZeroTest = (dbyError == 0.0);
-	bool dbzErrorZeroTest = (dbzError == 0.0);
-	bool dcxErrorZeroTest = (dcxError == 0.0);
-	bool dcyErrorZeroTest = (dcyError == 0.0);
-	bool dczErrorZeroTest = (dczError == 0.0);
+	bool daxErrorZeroTest = (daxError == 0);
+	bool dayErrorZeroTest = (dayError == 0);
+	bool dazErrorZeroTest = (dazError == 0);
+	bool dbxErrorZeroTest = (dbxError == 0);
+	bool dbyErrorZeroTest = (dbyError == 0);
+	bool dbzErrorZeroTest = (dbzError == 0);
+	bool dcxErrorZeroTest = (dcxError == 0);
+	bool dcyErrorZeroTest = (dcyError == 0);
+	bool dczErrorZeroTest = (dczError == 0);
 
 	FT a_tb[4], a_tc[4], b_ta[4], b_tc[4], c_ta[4], c_tb[4];
 	int a_tbLen, a_tcLen, b_taLen, b_tcLen, c_taLen, c_tbLen;
 	if (daxErrorZeroTest){
 		if (dayErrorZeroTest){
-			a_tb[0] = 0.0;
+			a_tb[0] = 0;
 			a_tbLen = 1;
-			a_tc[0] = 0.0;
+			a_tc[0] = 0;
 			a_tcLen = 1;
 		}
 		else{
@@ -404,9 +403,9 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 
 	if (dbxErrorZeroTest){
 		if (dbyErrorZeroTest){
-			b_ta[0] = 0.0;
+			b_ta[0] = 0;
 			b_taLen = 1;
-			b_tc[0] = 0.0;
+			b_tc[0] = 0;
 			b_tcLen = 1;
 		}
 		else{
@@ -440,9 +439,9 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 
 	if (dcxErrorZeroTest){
 		if (dcyErrorZeroTest){
-			c_ta[0] = 0.0;
+			c_ta[0] = 0;
 			c_taLen = 1;
-			c_tb[0] = 0.0;
+			c_tb[0] = 0;
 			c_tbLen = 1;
 		}
 		else{
@@ -634,10 +633,10 @@ template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, con
 }
 
 template<class FT> FT Predicator<FT>::inSphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const{
-	VectorBase<FT> ea = a - e;
-	VectorBase<FT> eb = b - e;
-	VectorBase<FT> ec = c - e;
-	VectorBase<FT> ed = d - e;
+	VectorBase<FT> ea(a.x - e.x, a.y - e.y, a.z - e.z);
+	VectorBase<FT> eb(b.x - e.x, b.y - e.y, b.z - e.z);
+	VectorBase<FT> ec(c.x - e.x, c.y - e.y, c.z - e.z);
+	VectorBase<FT> ed(d.x - e.x, d.y - e.y, d.z - e.z);
 
 	FT eaxeby = ea.x*eb.y;
 	FT eayebx = ea.y*eb.x;
@@ -668,10 +667,10 @@ template<class FT> FT Predicator<FT>::inSphere(const VectorBase<FT>& a, const Ve
 	FT cda = ec.z*da + ed.z*ac + ea.z*cd;
 	FT dab = ed.z*ab + ea.z*bd + eb.z*da;
 
-	FT aLift = ea.length2();
-	FT bLift = eb.length2();
-	FT cLift = ec.length2();
-	FT dLift = ed.length2();
+	FT aLift = ea.x * ea.x + ea.y * ea.y + ea.z * ea.z;
+	FT bLift = eb.x * eb.x + eb.y * eb.y + eb.z * eb.z;
+	FT cLift = ec.x * ec.x + ec.y * ec.y + ec.z * ec.z;
+	FT dLift = ed.x * ed.x + ed.y * ed.y + ed.z * ed.z;
 
 	FT det = -aLift*bcd + bLift*cda - cLift*dab + dLift*abc;
 
@@ -710,10 +709,10 @@ template<class FT> FT Predicator<FT>::inSphereAdaptive(const VectorBase<FT>& a, 
 	int finLength;
 	FT det, errorBound;
 
-	VectorBase<FT> ea = a - e;
-	VectorBase<FT> eb = b - e;
-	VectorBase<FT> ec = c - e;
-	VectorBase<FT> ed = d - e;
+	VectorBase<FT> ea(a.x - e.x, a.y - e.y, a.z - e.z);
+	VectorBase<FT> eb(b.x - e.x, b.y - e.y, b.z - e.z);
+	VectorBase<FT> ec(c.x - e.x, c.y - e.y, c.z - e.z);
+	VectorBase<FT> ed(d.x - e.x, d.y - e.y, d.z - e.z);
 
 	FT eaxeby1, eaxeby0, eayebx1, eayebx0, ab[4];
 	arthemetricer.twoProduct(ea.x, eb.y, eaxeby1, eaxeby0);
@@ -847,10 +846,10 @@ template<class FT> FT Predicator<FT>::inSphereAdaptive(const VectorBase<FT>& a, 
 	FT edyError = arthemetricer.twoDiffError(d.y, e.y, ed.y);
 	FT edzError = arthemetricer.twoDiffError(d.z, e.z, ed.z);
 
-	if (eaxError == 0.0 && eayError == 0.0 && eazError == 0.0
-		&& ebxError == 0.0 && ebyError == 0.0 && ebzError == 0.0
-		&& ecxError == 0.0 && ecyError == 0.0 && eczError == 0.0
-		&& edxError == 0.0 && edyError == 0.0 && edzError == 0.0)
+	if (eaxError == 0 && eayError == 0 && eazError == 0
+		&& ebxError == 0 && ebyError == 0 && ebzError == 0
+		&& ecxError == 0 && ecyError == 0 && eczError == 0
+		&& edxError == 0 && edyError == 0 && edzError == 0)
 		return det;
 
 	FT abError = (ea.x*ebyError + eb.y*eaxError) - (ea.y*ebxError + eb.x*eayError);
@@ -870,13 +869,17 @@ template<class FT> FT Predicator<FT>::inSphereAdaptive(const VectorBase<FT>& a, 
 	FT cdaError = (ec.z*daError + ed.z*acError + ea.z*cdError) + (eczError*da[3] + edzError*ac[3] + eazError*cd[3]);
 	FT dabError = (ed.z*abError + ea.z*bdError + eb.z*daError) + (edzError*ab[3] + eazError*bd[3] + ebzError*da[3]);
 
+	FT eaLen2 = ea.x * ea.x + ea.y * ea.y + ea.z * ea.z;
+	FT ebLen2 = eb.x * eb.x + eb.y * eb.y + eb.z * eb.z;
+	FT ecLen2 = ec.x * ec.x + ec.y * ec.y + ec.z * ec.z;
+	FT edLen2 = ed.x * ed.x + ed.y * ed.y + ed.z * ed.z;
+
 	FT eaLength2ErrorOne = ea.x*eaxError + ea.y*eayError + ea.z*eazError;
 	FT ebLength2ErrorOne = eb.x*ebxError + eb.y*ebyError + eb.z*ebzError;
 	FT ecLength2ErrorOne = ec.x*ecxError + ec.y*ecyError + ec.z*eczError;
 	FT edLength2ErrorOne = ed.x*edxError + ed.y*edyError + ed.z*edzError;
 
-
-	det += (-ea.length2()*bcdError + eb.length2()*cdaError - ec.length2()*dabError + ed.length2()*abcError
+	det += (-eaLen2*bcdError + ebLen2*cdaError - ecLen2*dabError + edLen2*abcError
 		+ FT(2)*(-eaLength2ErrorOne*bcd + ebLength2ErrorOne*cda - ecLength2ErrorOne*dab + edLength2ErrorOne*abc));
 
 	errorBound = inSpeErrorBoundC*norm + commonBound*fabs(det);
@@ -1110,10 +1113,10 @@ template<class FT> FT Predicator<FT>::inSphereExact(const VectorBase<FT>& a, con
 
 template<class FT> FT Predicator<FT>::inOrthoSphere(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight) const{
-	VectorBase<FT> ea = a - e;
-	VectorBase<FT> eb = b - e;
-	VectorBase<FT> ec = c - e;
-	VectorBase<FT> ed = d - e;
+	VectorBase<FT> ea(a.x - e.x, a.y - e.y, a.z - e.z);
+	VectorBase<FT> eb(b.x - e.x, b.y - e.y, b.z - e.z);
+	VectorBase<FT> ec(c.x - e.x, c.y - e.y, c.z - e.z);
+	VectorBase<FT> ed(d.x - e.x, d.y - e.y, d.z - e.z);
 
 	FT eaxeby = ea.x*eb.y;
 	FT eayebx = ea.y*eb.x;
@@ -1144,10 +1147,10 @@ template<class FT> FT Predicator<FT>::inOrthoSphere(const VectorBase<FT> &a, FT 
 	FT cda = ec.z*da + ed.z*ac + ea.z*cd;
 	FT dab = ed.z*ab + ea.z*bd + eb.z*da;
 
-	FT aLift = ea.length2() + eWeight - aWeight;
-	FT bLift = eb.length2() + eWeight - bWeight;
-	FT cLift = ec.length2() + eWeight - cWeight;
-	FT dLift = ed.length2() + eWeight - dWeight;
+	FT aLift = ea.x * ea.x + ea.y * ea.y + ea.z * ea.z + eWeight - aWeight;
+	FT bLift = eb.x * eb.x + eb.y * eb.y + eb.z * eb.z + eWeight - bWeight;
+	FT cLift = ec.x * ec.x + ec.y * ec.y + ec.z * ec.z + eWeight - cWeight;
+	FT dLift = ed.x * ed.x + ed.y * ed.y + ed.z * ed.z + eWeight - dWeight;
 
 	FT det = -aLift*bcd + bLift*cda - cLift*dab + dLift*abc;
 
@@ -1187,10 +1190,10 @@ template<class FT> FT Predicator<FT>::inOrthoSphereAdaptive(const VectorBase<FT>
 	int finLength;
 	FT det, errorBound;
 
-	VectorBase<FT> ea = a - e;
-	VectorBase<FT> eb = b - e;
-	VectorBase<FT> ec = c - e;
-	VectorBase<FT> ed = d - e;
+	VectorBase<FT> ea(a.x - e.x, a.y - e.y, a.z - e.z);
+	VectorBase<FT> eb(b.x - e.x, b.y - e.y, b.z - e.z);
+	VectorBase<FT> ec(c.x - e.x, c.y - e.y, c.z - e.z);
+	VectorBase<FT> ed(d.x - e.x, d.y - e.y, d.z - e.z);
 
 	FT eaWeight = eWeight - aWeight;
 	FT ebWeight = eWeight - bWeight;
@@ -1341,10 +1344,10 @@ template<class FT> FT Predicator<FT>::inOrthoSphereAdaptive(const VectorBase<FT>
 	FT edzError = arthemetricer.twoDiffError(d.z, e.z, ed.z);
 	FT edwError = arthemetricer.twoDiffError(eWeight, dWeight, edWeight);
 
-	if (eaxError == 0.0 && eayError == 0.0 && eazError == 0.0 && eawError == 0.0
-		&& ebxError == 0.0 && ebyError == 0.0 && ebzError == 0.0 && ebwError == 0.0
-		&& ecxError == 0.0 && ecyError == 0.0 && eczError == 0.0 && ecwError == 0.0
-		&& edxError == 0.0 && edyError == 0.0 && edzError == 0.0 && edwError == 0.0)
+	if (eaxError == 0 && eayError == 0 && eazError == 0 && eawError == 0
+		&& ebxError == 0 && ebyError == 0 && ebzError == 0 && ebwError == 0
+		&& ecxError == 0 && ecyError == 0 && eczError == 0 && ecwError == 0
+		&& edxError == 0 && edyError == 0 && edzError == 0 && edwError == 0)
 		return det;
 
 	FT abError = (ea.x*ebyError + eb.y*eaxError) - (ea.y*ebxError + eb.x*eayError);
@@ -1364,14 +1367,19 @@ template<class FT> FT Predicator<FT>::inOrthoSphereAdaptive(const VectorBase<FT>
 	FT cdaError = (ec.z*daError + ed.z*acError + ea.z*cdError) + (eczError*da[3] + edzError*ac[3] + eazError*cd[3]);
 	FT dabError = (ed.z*abError + ea.z*bdError + eb.z*daError) + (edzError*ab[3] + eazError*bd[3] + ebzError*da[3]);
 
+	FT eaLen2 = ea.x * ea.x + ea.y * ea.y + ea.z * ea.z;
+	FT ebLen2 = eb.x * eb.x + eb.y * eb.y + eb.z * eb.z;
+	FT ecLen2 = ec.x * ec.x + ec.y * ec.y + ec.z * ec.z;
+	FT edLen2 = ed.x * ed.x + ed.y * ed.y + ed.z * ed.z;
+
 	FT eaLength2ErrorOne = ea.x*eaxError + ea.y*eayError + ea.z*eazError;
 	FT ebLength2ErrorOne = eb.x*ebxError + eb.y*ebyError + eb.z*ebzError;
 	FT ecLength2ErrorOne = ec.x*ecxError + ec.y*ecyError + ec.z*eczError;
 	FT edLength2ErrorOne = ed.x*edxError + ed.y*edyError + ed.z*edzError;
 
 
-	det += ((-(ea.length2() + eaWeight)*bcdError + (eb.length2() + ebWeight)*cdaError
-		- (ec.length2() + ecWeight)*dabError + (ed.length2() + edWeight)*abcError)
+	det += ((-(eaLen2 + eaWeight)*bcdError + (ebLen2 + ebWeight)*cdaError
+		- (ecLen2 + ecWeight)*dabError + (edLen2 + edWeight)*abcError)
 		+ (-(FT(2)*eaLength2ErrorOne + eawError)*bcd + (FT(2)*ebLength2ErrorOne + ebwError)*cda
 		- (FT(2)*ecLength2ErrorOne + ecwError)*dab + (FT(2)*edLength2ErrorOne + edwError)*abc));
 
@@ -1621,8 +1629,8 @@ template<class FT> FT Predicator<FT>::inOrthoSphereExact(const VectorBase<FT> &a
 }
 
 template<class FT> bool Predicator<FT>::inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const {
-	VectorBase<FT> ab = b - a;
-	VectorBase<FT> au = u - a;
+	VectorBase<FT> ab(b.x - a.x, b.y - a.y, b.z - a.z);
+	VectorBase<FT> au(u.x - a.x, u.y - a.y, u.z - a.z);
 
 	FT uabx = au.x * ab.x; FT uaby = au.y * ab.y; FT uabz = au.z * ab.z;
 	FT uabLen = uabx + uaby + uabz;
@@ -1780,8 +1788,11 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 	FT orient = orient3d(u, a, b, c);
 	if (orient > FT(0))
 		return true;
-	else if (orient == FT(0))
-		return inSphere(a + Geometer::triangleNormal(a, b, c), a, b, c, u) > FT(0);
+	else if (orient == FT(0)) {
+		VectorBase<FT> n = triangleNormal(a, b, c);
+		VectorBase<FT> above(a.x + n.x, a.y + n.y, a.z + n.z);
+		return inSphere(above, a, b, c, u) > FT(0);
+	}
 	else
 		return false;
 }
@@ -1791,8 +1802,11 @@ template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> 
 	FT orient = orient3d(u, a, b, c);
 	if (orient > FT(0))
 		return true;
-	else if (orient == FT(0))
-		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, a + Geometer::triangleNormal(a, b, c)) > FT(0);
+	else if (orient == FT(0)) {
+		VectorBase<FT> n = triangleNormal(a, b, c);
+		VectorBase<FT> above(a.x + n.x, a.y + n.y, a.z + n.z);
+		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, above) > FT(0);
+	}
 	else
 		return false;
 }
@@ -1842,7 +1856,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			break;
 		case 7:
 		{
-			VectorBase<FT> normal = Geometer::triangleNormal(a, b, c);
+			VectorBase<FT> normal = triangleNormal(a, b, c);
 			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 			Plane plane = Plane::Plane_Arbitary;
 			if (nx != 0 || ny != 0 || nz != 0)
@@ -1912,7 +1926,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			break;
 		case 7:
 		{
-			VectorBase<FT> normal = Geometer::triangleNormal(p, q, r);
+			VectorBase<FT> normal = triangleNormal(p, q, r);
 			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 			Plane plane = Plane::Plane_Arbitary;
 			if (nx != 0 || ny != 0 || nz != 0)
@@ -1955,10 +1969,10 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 			orient3d(*sMax1, *tMax1, *sMax2, *tMax2) <= 0;
 	}
 	else {
-		VectorBase<FT> normal = Geometer::triangleNormal(p, q, r);
+		VectorBase<FT> normal = triangleNormal(p, q, r);
 		bool zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
 		if (zeroTest) {
-			normal = Geometer::triangleNormal(a, b, c);
+			normal = triangleNormal(a, b, c);
 			zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
 		}
 
@@ -2062,7 +2076,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& a, co
 		return false;
 	}
 	else {
-		VectorBase<FT> normal = Geometer::triangleNormal(a, b, c);
+		VectorBase<FT> normal = triangleNormal(a, b, c);
 		FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 		Plane plane = Plane::Plane_Arbitary;
 		if(nx != 0 || ny != 0 || nz != 0)
@@ -2124,6 +2138,32 @@ template<class FT> bool Predicator<FT>::intersectionTriSegCoplane(const VectorBa
 		break;
 	}
 	return false; //never here
+}
+
+template<class FT> VectorBase<FT> Predicator<FT>::triangleNormal(const VectorBase<FT>& a,
+	const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+	VectorBase<FT> ab(b.x - a.x, b.y - a.y, b.z - a.z);
+	VectorBase<FT> ac(c.x - a.x, c.y - a.y, c.z - a.z);
+	VectorBase<FT> bc(c.x - b.x, c.y - b.y, c.z - b.z);
+	FT abLen2 = ab.x * ab.x + ab.y * ab.y + ab.z * ab.z;
+	FT acLen2 = ac.x * ac.x + ac.y * ac.y + ac.z * ac.z;
+	FT bcLen2 = bc.x * bc.x + bc.y * bc.y + bc.z * bc.z;
+
+	VectorBase<FT> *u = &ab;
+	VectorBase<FT> *v = &ac;
+
+	if (bcLen2 < abLen2) {
+		if (abLen2 < acLen2) v = &bc;
+		else {
+			u = &ac; v = &bc;
+		}
+	}
+	else if (bcLen2 < acLen2) v = &bc;
+
+	FT ux = u->x, uy = u->y, uz = u->z;
+	FT vx = v->x, vy = v->y, vz = v->z;
+	//cross
+	return VectorBase<FT>(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
 }
 
 }
