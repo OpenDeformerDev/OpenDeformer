@@ -68,6 +68,61 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 	if(boundaryOnly) cleanRigion(f);
 }
 
+void DelTriangulator::generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, bool boundaryOnly) {
+	meshRep.Clear();
+	this->segments.clear();
+	invertion = false;
+
+	Vertex *v0, *v1, *v2, *v3;
+
+#ifdef ODER_DEBUG
+	if (vertexCount < 3)
+		Severe("a subpolygon contains less than 3 vertices");
+#endif
+
+	//shuffle input segments
+	std::random_device rng;
+	std::default_random_engine randomEngine(rng());
+	std::shuffle(segments, segments + segmentCount, randomEngine);
+
+	for (int i = 0; i < segmentCount; i++) {
+		Segment s = segments[i];
+		this->segments.insert(Segment(s.v[0], s.v[1]));
+	}
+
+	calculateAbovePoint(vertexCount, vertices);
+	v0 = vertices[0];
+	v1 = vertices[1];
+	v2 = vertices[2];
+
+	Face f(v0, v1, v2);
+	//start
+	meshRep.addTriangle(v0, v1, v2);
+	meshRep.addTriangle(v1, v0, ghost);
+	meshRep.addTriangle(v2, v1, ghost);
+	meshRep.addTriangle(v0, v2, ghost);
+	for (int i = 3; i < vertexCount; i++) {
+		v3 = vertices[i];
+		f = findPosition(v3, f);
+		v0 = f.v[0]; v1 = f.v[1]; v2 = f.v[2];
+		meshRep.deleteTriangle(v0, v1, v2);
+		digCavity(v3, Segment(v1, v0), &f, 0);
+		digCavity(v3, Segment(v0, v2), NULL, 0);
+		digCavity(v3, Segment(v2, v1), NULL, 0);
+	}
+
+	//insert segments
+	for (auto s : this->segments) {
+		Vertex *x = NULL;
+		if (!meshRep.Contain(s))
+			insertSegment(s);
+	}
+
+	invertion = detectInversion(f);
+	//clean out of region triangles
+	if (boundaryOnly) cleanRigion(f);
+}
+
 bool DelTriangulator::detectInversion(Face& ghostFace) const {
 	Face f;
 	meshRep.adjacent2Vertex(ghost, &f);
@@ -427,7 +482,7 @@ void DelTriangulator::triangulateConvexPoly(Vertex *u, const std::vector<Vertex 
 
 void DelTriangulator::digCavity(Vertex *u, const Segment &s, Face *rf, int depth){
 	Vertex *x;
-	if (!meshRep.Adjacent(s, &x) || !x->isMarked())
+	if (!meshRep.Adjacent(s, &x))
 		return;
 
 	//Vertex *w = s.v[0], *v = s.v[1], *x;
@@ -506,37 +561,53 @@ DelMesher::DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int
 	//insert every vertex
 	oriVertices.reserve(numv);
 	for (int i = 0; i < numv; i++){
-		Vertex *vert = allocVertex(DelVector{surfvs[i].x, surfvs[i].y, surfvs[i].z}, REAL(0), VertexType::Vertex_FixedVolume);
 		boundBox.Insert(surfvs[i]);
+		Vertex *vert = allocVertex(DelVector{surfvs[i].x, surfvs[i].y, surfvs[i].z}, REAL(0), VertexType::Vertex_FixedVolume);
 		oriVertices.push_back(vert);
 	}
 
 	for (int i = 0; i < numseg; i++){
 		Segment s = Segment(oriVertices[segis[2 * i]], oriVertices[segis[2 * i + 1]], true);
 		oriVertices[segis[2 * i]]->type = VertexType(oriVertices[segis[2 * i]]->type | VertexType::Vertex_Segment);
-		oriVertices[segis[2 * i]]->type = VertexType(oriVertices[segis[2 * i + 1]]->type | VertexType::Vertex_Segment);
+		oriVertices[segis[2 * i + 1]]->type = VertexType(oriVertices[segis[2 * i + 1]]->type | VertexType::Vertex_Segment);
 		//recorded
 		segments.insert(s);
 		mayEncroachedSegs.push_back(s);
 	}
 	//triangluate every polygon
 	std::vector<Vertex *> polygonVerts;
+	std::vector<Segment> polygonBoundaries;
 	DelTriangulator t;
 	for (int i = 0; i < numpol; i++){
+		polygonBoundaries.reserve(numsubpol[i]);
 		for (int j = 0; j < numsubpol[i]; j++){
-			oriVertices[subpolygons[j]]->type = VertexType(oriVertices[subpolygons[j]]->type | VertexType::Vertex_Facet);
-			polygonVerts.push_back(oriVertices[subpolygons[j]]);
+			Vertex *a = oriVertices[segis[2 * subpolygons[j]]], *b = oriVertices[segis[2 * subpolygons[j] + 1]];
+			polygonBoundaries.push_back(Segment(a, b));
+			a->type = VertexType(a->type | VertexType::Vertex_Facet);
+			b->type = VertexType(b->type | VertexType::Vertex_Facet);
+			if (!a->isMarked()) {
+				a->setMark();
+				polygonVerts.push_back(a);
+			}
+			if (!b->isMarked()) {
+				b->setMark();
+				polygonVerts.push_back(b);
+			}
 		}
-		t.generateSubPolygons(&polygonVerts[0], NULL, numsubpol[i], 0, true);
+		for (auto v : polygonVerts) v->unSetMark();
+
+		t.generateSubPolygons(&polygonVerts[0], &polygonBoundaries[0], polygonVerts.size(), polygonBoundaries.size(), true);
 		t.outPut(this);
+
 		subpolygons += numsubpol[i];
 		polygonVerts.clear();
+		polygonBoundaries.clear();
 	}
 
 	constrainedTriangulation();
 }
 
-DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL maxR, REAL maxRa) {
+DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL maxR, REAL maxRa, REAL facetAngleTol) {
 	maxRatio = maxRa;
 	maxRadius = maxR;
 	Tetrahedron::maxREration = maxRa;
@@ -547,22 +618,46 @@ DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL 
 	//insert every vertex
 	oriVertices.reserve(numv);
 	for (int i = 0; i < numv; i++) {
+		boundBox.Insert(surfvs[i]);
 		Vertex *vert = allocVertex(DelVector{ surfvs[i].x, surfvs[i].y, surfvs[i].z }, REAL(0), 
 			VertexType(VertexType::Vertex_FixedVolume | VertexType::Vertex_Facet));
-		boundBox.Insert(surfvs[i]);
 		oriVertices.push_back(vert);
 	}
 
+	TriMeshDataStructure oriSurface;
+	std::vector<Face> oriTriangles;
+	oriTriangles.reserve(numtri);
 	for (int i = 0; i < numtri; i++) {
-		surfaceRep.addTriangle(oriVertices[triangles[3 * i]], oriVertices[triangles[3 * i + 1]], oriVertices[triangles[3 * i + 2]]);
-		for (int j = 0; j < 3; j++) {
-			int segEnd0 = triangles[3 * i + j], segEnd1 = triangles[3 * i + NEXT_F(j)];
-			Segment seg(oriVertices[segEnd0], oriVertices[segEnd1], true);
-			oriVertices[segEnd0]->type = VertexType(oriVertices[segEnd0]->type | VertexType::Vertex_Segment);
-			oriVertices[segEnd1]->type = VertexType(oriVertices[segEnd1]->type | VertexType::Vertex_Segment);
-			//recorded
-			segments.insert(seg);
-			mayEncroachedSegs.push_back(seg);
+		oriSurface.addTriangle(oriVertices[triangles[3 * i]], oriVertices[triangles[3 * i + 1]], oriVertices[triangles[3 * i + 2]]);
+		oriTriangles.push_back(Face(oriVertices[triangles[3 * i]], oriVertices[triangles[3 * i + 1]], oriVertices[triangles[3 * i + 2]]));
+	}
+
+	REAL facetRadianTol = facetAngleTol / REAL(180) * REAL(M_PI);
+	std::vector<Vertex *> coplanarVertices;
+	std::vector<Segment> boundaries;
+	DelTriangulator triangulator;
+
+	for (auto f : oriTriangles) {
+		if (oriSurface.Contain(f)) {
+			detectCoplanarFaces(f, facetRadianTol, coplanarVertices, boundaries, oriSurface);
+			for (auto s : boundaries) {
+				s.v[0]->type = VertexType(s.v[0]->type | VertexType::Vertex_Segment);
+				s.v[1]->type = VertexType(s.v[1]->type | VertexType::Vertex_Segment);
+				segments.insert(Segment(s.v[0], s.v[1], true));
+			}
+
+			//re-triangulation
+			if (coplanarVertices.size() > 3) {
+				triangulator.generateSubPolygons(&coplanarVertices[0], &boundaries[0], coplanarVertices.size(), boundaries.size(), true);
+				triangulator.outPut(this);
+			}
+			else {
+				surfaceRep.addTriangle(f.v[0], f.v[1], f.v[2]);
+				mayEncroachedFaces.push_back(f);
+			}
+
+			coplanarVertices.clear();
+			boundaries.clear();
 		}
 	}
 
@@ -857,14 +952,9 @@ void DelMesher::digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRe
 
 		if (encroachmentTest) {
 			for (int i = 0; i < 3; i++) {
-				if (!f.v[i]->isMarked() && !f.v[NEXT_F(i)]->isMarked()) {
-					Segment seg = Segment(f.v[i], f.v[NEXT_F(i)], true);
-					if (findSegment(seg)) {
-						mayEncroachedSegs.push_back(seg);
-						f.v[i]->setMark();
-						f.v[NEXT_F(i)]->setMark();
-					}
-				}
+				Segment seg = Segment(f.v[i], f.v[NEXT_F(i)], true);
+				if (findSegment(seg))
+					mayEncroachedSegsSet.insert(seg);
 			}
 
 			Face faceOut(b, c, d, true), faceIn(b, d, c, true);
@@ -2075,21 +2165,14 @@ void DelMesher::insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStruc
 	if(!trulyDeleteOrAdd) tobeDeletedTets.push_back(tet);
 	meshRep.deleteTetrahedron(a, b, c, d);
 
-	int initCount = 0;
-	if (encroachmentTest) initCount = mayEncroachedSegs.size();
-
 	digCavity(u, Face(b, d, c, true), meshRep, rt, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
 	digCavity(u, Face(a, c, d, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
 	digCavity(u, Face(a, d, b, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
 	digCavity(u, Face(a, b, c, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
 
 	if (encroachmentTest) {
-		int finalCount = mayEncroachedSegs.size();
-		for (int i = initCount; i < finalCount; i++) {
-			Segment seg = mayEncroachedSegs[i];
-			seg.v[0]->unSetMark();
-			seg.v[1]->unSetMark();
-		}
+		for (auto s : mayEncroachedSegsSet) mayEncroachedSegs.push_back(s);
+		mayEncroachedSegsSet.clear();
 	}
 }
 
@@ -2100,6 +2183,45 @@ void DelMesher::insertSurfaceVertex(Vertex *u, const Face& f, bool insertToQueue
 	digCavity(u, aboveVert, Segment(b, a), insertToQueue);
 	digCavity(u, aboveVert, Segment(c, b), insertToQueue);
 	digCavity(u, aboveVert, Segment(a, c), insertToQueue);
+}
+
+//Also mark all vertices
+void DelMesher::detectCoplanarFaces(const Face& f, REAL facetRadianTol,
+	std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep) const {
+	Vertex *a = f.v[0], *b = f.v[1], *c = f.v[2];
+	for (int i = 0; i < 3; i++) {
+		f.v[i]->setMark();
+		coplanarVertices.push_back(f.v[i]);
+	}
+	surfRep.deleteTriangle(a, b, c);
+
+	propagateDetectCoplanarFaces(c, Segment(b, a), facetRadianTol, coplanarVertices, boundaries, surfRep, 0);
+	propagateDetectCoplanarFaces(a, Segment(c, b), facetRadianTol, coplanarVertices, boundaries, surfRep, 0);
+	propagateDetectCoplanarFaces(b, Segment(a, c), facetRadianTol, coplanarVertices, boundaries, surfRep, 0);
+
+	for (auto v : coplanarVertices) v->unSetMark();
+}
+
+void DelMesher::propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL facetRadianTol,
+	std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep, int depth) const {
+	Vertex *u = s.v[0], *v = s.v[1], *w = NULL;
+	if (!surfRep.Adjacent(s, &w)) {
+		boundaries.push_back(Segment(v, u));
+		return;
+	}
+
+	if (Geometer::dihedralAngle(u->vert, v->vert, ref->vert, w->vert) > facetRadianTol) {
+		surfRep.deleteTriangle(u, v, w);
+		if (!w->isMarked()) {
+			w->setMark();
+			coplanarVertices.push_back(w);
+		}
+
+		propagateDetectCoplanarFaces(u, Segment(w, v), facetRadianTol, coplanarVertices, boundaries, surfRep, depth + 1);
+		propagateDetectCoplanarFaces(v, Segment(u, w), facetRadianTol, coplanarVertices, boundaries, surfRep, depth + 1);
+	}
+	else
+		boundaries.push_back(Segment(v, u));
 }
 
 bool DelMesher::Encroached(const Segment& s) const{

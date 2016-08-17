@@ -248,7 +248,7 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (!child->isPreFaceDeleted() &&
-						*center < *b && *center < *c)
+						center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
 						triangles.push_back(Face(center, b, c));
 
 					parent = child;
@@ -257,7 +257,7 @@ namespace ODER {
 				if (!entry.second->isPreFaceDeleted()) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = entry.second->getVertex();
-					if (*center < *b && *center < *c)
+					if (center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
 						triangles.push_back(Face(center, b, c));
 				}
 			}
@@ -924,9 +924,10 @@ namespace ODER {
 						if (!node->isPreFaceDeleted()) {
 							Vertex *c = parentNode->getVertex();
 							Vertex *d = node->getVertex();
-							if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
-								(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
-								(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
+							if ((!parityCheck(c, vert) || (vert->getLabel() < c->getLabel() && endVert->getLabel() < c->getLabel())) &&
+								(!parityCheck(d, vert) || (vert->getLabel() < d->getLabel() && endVert->getLabel() < d->getLabel())) &&
+								(!parityCheck(c, d) || (vert->getLabel() < c->getLabel() && vert->getLabel() < d->getLabel()) || 
+								(endVert->getLabel() < c->getLabel() && endVert->getLabel() < d->getLabel()))) {
 								if (ghost || (!c->isGhost() && !d->isGhost()))
 									tets.push_back(Tetrahedron(vert, endVert, c, d));
 							}
@@ -937,9 +938,10 @@ namespace ODER {
 					if (!head->isPreFaceDeleted()) {
 						Vertex *c = parentNode->getVertex();
 						Vertex *d = node->getVertex();
-						if ((!parityCheck(c, vert) || (*vert < *c && *endVert < *c)) &&
-							(!parityCheck(d, vert) || (*vert < *d && *endVert < *d)) &&
-							(!parityCheck(c, d) || (*vert < *c && *vert < *d) || (*endVert < *c && *endVert < *d))) {
+						if ((!parityCheck(c, vert) || (vert->getLabel() < c->getLabel() && endVert->getLabel() < c->getLabel())) &&
+							(!parityCheck(d, vert) || (vert->getLabel() < d->getLabel() && endVert->getLabel() < d->getLabel())) &&
+							(!parityCheck(c, d) || (vert->getLabel() < c->getLabel() && vert->getLabel() < d->getLabel()) ||
+							(endVert->getLabel() < c->getLabel() && endVert->getLabel() < d->getLabel()))) {
 							if (ghost || (!c->isGhost() && !d->isGhost()))
 								tets.push_back(Tetrahedron(vert, endVert, c, d));
 						}

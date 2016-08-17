@@ -106,12 +106,6 @@ namespace ODER {
 		bool hasList() const {
 			return (pointer & (~0x2)) != 0 && (pointer & 0x1) == 0;
 		}
-		bool operator<(const Vertex& v) const {
-			return label < v.label;
-		}
-		bool operator>(const Vertex& v) const {
-			return label > v.label;
-		}
 		DelVector vert;
 		REAL weight;
 		VertexType type;
@@ -292,18 +286,24 @@ namespace ODER {
 	struct face_hash {
 		size_t operator()(const Face& f) const {
 			size_t hashVal = 0;
-			hashCombine(hashVal, f.v[0]->getLabel());
-			hashCombine(hashVal, f.v[1]->getLabel());
-			hashCombine(hashVal, f.v[2]->getLabel());
+			hashCombine(hashVal, f.v[0]->getLabel(), f.v[1]->getLabel(), f.v[2]->getLabel());
 			return hashVal;
 		}
 	};
 
-	struct segment_hash {
+	struct segment_ordered_hash {
 		size_t operator()(const Segment &s) const {
 			int64_t smallerLable = s.v[0]->getLabel();
 			int64_t biggerLable = s.v[1]->getLabel();
 			return std::hash<int64_t>()(((biggerLable * (biggerLable + 1)) >> 1) + smallerLable);
+		}
+	};
+
+	struct segment_unordered_hash {
+		size_t operator()(const Segment &s) const {
+			size_t hashVal = 0;
+			hashCombine(hashVal, s.v[0]->getLabel(), s.v[1]->getLabel());
+			return hashVal;
 		}
 	};
 
@@ -316,10 +316,7 @@ namespace ODER {
 	struct tet_hash {
 		size_t operator()(const Tetrahedron &t) const {
 			size_t hashVal = 0;
-			hashCombine(hashVal, t.v[0]->getLabel());
-			hashCombine(hashVal, t.v[1]->getLabel());
-			hashCombine(hashVal, t.v[2]->getLabel());
-			hashCombine(hashVal, t.v[3]->getLabel());
+			hashCombine(hashVal, t.v[0]->getLabel(), t.v[1]->getLabel(), t.v[2]->getLabel(), t.v[3]->getLabel());
 			return hashVal;
 		}
 	};

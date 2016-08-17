@@ -32,6 +32,7 @@ namespace ODER{
 			freeAligned(ghost);
 		}
 		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, bool boundaryOnly);
+		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, bool boundaryOnly);
 		void outPut(DelMesher *mesher);
 	private:
 		void calculateAbovePoint(int vertexCount, Vertex** vertices);
@@ -67,7 +68,7 @@ namespace ODER{
 		Vertex *ghost;
 		bool invertion;
 
-		std::unordered_set<Segment, segment_hash> segments;
+		std::unordered_set<Segment, segment_unordered_hash> segments;
 
 		TriMeshDataStructure cavityRep;
 	};
@@ -75,7 +76,7 @@ namespace ODER{
 	class DelMesher :public Mesher{
 	public:
 		DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL maxRation, REAL maxRadius);
-		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius);
+		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius, REAL facetAngleTol = REAL(179));
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
 		~DelMesher() = default;
@@ -137,11 +138,16 @@ namespace ODER{
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
+		void detectCoplanarFaces(const Face& f, REAL facetRadianTol,
+			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep) const;
+		void propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL facetRadianTol,
+			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep, int depth) const;
+
 		REAL maxRatio;
 		REAL maxRadius;
 		static Predicator<REAL> predicator;
 
-		std::unordered_set<Segment, segment_hash> segments;
+		std::unordered_set<Segment, segment_ordered_hash> segments;
 		std::unordered_map<Vertex *, Segment, vertex_hash> vertSegHash;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
@@ -154,6 +160,7 @@ namespace ODER{
 		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>> skinnyTets;
 		std::deque<Face> mayEncroachedFaces;
 		std::deque<Segment> mayEncroachedSegs;
+		std::unordered_set<Segment, segment_ordered_hash> mayEncroachedSegsSet;
 
 		std::vector<Face> tobeDeletedFaces;
 		std::vector<Segment> newSegsOfFaces;
