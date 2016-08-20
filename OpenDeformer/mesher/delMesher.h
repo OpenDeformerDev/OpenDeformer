@@ -19,23 +19,20 @@
 #include <deque>
 
 namespace ODER{
-	class DelMesher;
-
 	class DelTriangulator{
 	public:
 		DelTriangulator(){
 			ghost = allocAligned<Vertex>();
 			ghost->setGhost();
-			invertion = false;
 		}
 		~DelTriangulator(){
 			freeAligned(ghost);
 		}
-		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, bool boundaryOnly);
-		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, bool boundaryOnly);
-		void outPut(DelMesher *mesher);
+		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
+		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
+		void outPut(TriMeshDataStructure& meshRep, std::deque<Face>& meshDeque);
 	private:
-		void calculateAbovePoint(int vertexCount, Vertex** vertices);
+		void calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
 		void insertSegment(const Segment& s);
 		void triangulateHalfHole(const std::vector<Vertex *>& vertices);
 		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
@@ -45,8 +42,6 @@ namespace ODER{
 		void triangulateConvexPoly(Vertex *u, const std::vector<Vertex *>& convexPoly);
 		Face findPosition(Vertex *u, const Face &f) const;
 		void digCavity(Vertex *u, const Segment &s, Face *rf, int depth);
-		bool detectInversion(Face &ghostFace) const;
-		void cleanRigion(const Face& ghostFace);
 		void propagateClean(const Segment& s, int depth);
 		inline int findGhost(const Face &f){
 			for (int i = 0; i < 3; i++){
@@ -66,7 +61,6 @@ namespace ODER{
 		static Predicator<REAL> predicator;
 		TriMeshDataStructure meshRep;
 		Vertex *ghost;
-		bool invertion;
 
 		std::unordered_set<Segment, segment_unordered_hash> segments;
 
@@ -75,7 +69,6 @@ namespace ODER{
 
 	class DelMesher :public Mesher{
 	public:
-		DelMesher(Vector *surfvs, int *segis, int *subpolygons, int numv, int numseg, int numpol, int *numsubpol, REAL maxRation, REAL maxRadius);
 		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius, REAL facetAngleTol = REAL(179));
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
@@ -85,7 +78,7 @@ namespace ODER{
 	private:
 		bool findSegment(const Segment& s) const{ return segments.find(s) != segments.end(); }
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
-		Face findPosition(Vertex *u, const Face& f) const;
+		Face findPosition(Vertex *u, const DelVector& above, const Face& f) const;
 
 		void constrainedTriangulation();
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
@@ -124,10 +117,11 @@ namespace ODER{
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
 			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
+		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, Face *inFace = NULL, bool insertToQueue = true);
 
 		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
 			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
-		void digCavity(Vertex *u, const Vertex& aboveVert, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
+		void digCavity(Vertex *u, const DelVector& above, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
 		bool Encroached(const Segment &s) const;
@@ -195,7 +189,8 @@ namespace ODER{
 	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
 		Vertex *newVertex = vertPool.Alloc();
 		*newVertex = vertex;
-		newVertex->setRawPointer(0);
+		newVertex->setListPointer(NULL);
+		newVertex->setVertexPointer(NULL);
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}

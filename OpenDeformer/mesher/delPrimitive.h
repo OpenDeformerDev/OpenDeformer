@@ -55,11 +55,11 @@ namespace ODER {
 	class EdgeListNode;
 
 	struct Vertex {
-		Vertex() : weight(0.0), label(-1), pointer(0), type(VertexType::Vertex_Undefined){}
+		Vertex() : weight(0.0), label(-1), listPointer(0), vertexPointer(NULL), type(VertexType::Vertex_Undefined){}
 		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
-			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), pointer(0), type(t) {}
+			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), listPointer(0), vertexPointer(NULL), type(t) {}
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: vert(vv), weight(w), label(-1), pointer(0), type(t) {}
+			: vert(vv), weight(w), label(-1), listPointer(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
 			constexpr REAL max = std::numeric_limits<REAL>::max();
 			vert.x = max; vert.y = max; vert.z = max;
@@ -77,41 +77,36 @@ namespace ODER {
 			return label;
 		}
 		void setListPointer(EdgeListNode *n) {
-			pointer = uintptr_t(n) | (pointer & 0x2);
+			listPointer = uintptr_t(n) | (listPointer & 0x1);
 		}
 		void setVertexPointer(Vertex *v) {
-			pointer = (uintptr_t(v) | 0x1) | (pointer & 0x2);
+			vertexPointer = v;
 		}
 		EdgeListNode *getListHead() {
-			return (EdgeListNode *)(pointer & (~0x2));
+			return (EdgeListNode *)(listPointer & (~0x1));
 		}
 		Vertex *getPointedVertex() const {
-			return (Vertex *)(pointer & (~0x3));
+			return vertexPointer;
 		}
 		void setMark() {
-			pointer |= 0x2;
+			listPointer |= 0x1;
 		}
 		void unSetMark() {
-			pointer &= (~0x2);
-		}
-		uintptr_t getRawPointer() const {
-			return pointer;
-		}
-		void setRawPointer(uintptr_t p) {
-			pointer = p;
+			listPointer &= (~0x1);
 		}
 		bool isMarked() const {
-			return (pointer & 0x2) == 0x2;
+			return (listPointer & 0x1) == 0x1;
 		}
 		bool hasList() const {
-			return (pointer & (~0x2)) != 0 && (pointer & 0x1) == 0;
+			return (listPointer & (~0x1)) != 0;
 		}
 		DelVector vert;
 		REAL weight;
 		VertexType type;
 	private:
 		int label;
-		uintptr_t pointer;//point to the adjaceny list or another vertex
+		uintptr_t listPointer;//point to the adjaceny list
+		Vertex *vertexPointer;//point to the vertex which has adjaceny list if listPoint is NULL (permit temporary hack)
 		static Labeler labeler;
 	};
 
@@ -407,7 +402,7 @@ namespace ODER {
 	inline bool TetMeshDataStructure::edgeOrderCheck(const Vertex *a, const Vertex *b) const {
 		constexpr int mask = 2;
 		int aLabel = a->getLabel(), bLabel = b->getLabel();
-		return b->isGhost() || ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask)));
+		return b->isGhost() || (!a->isGhost() && ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask))));
 	}
 
 	inline bool TriMeshDataStructure::Contain(Vertex *v) const {

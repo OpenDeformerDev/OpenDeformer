@@ -170,23 +170,39 @@ namespace ODER {
 		const Predicator<REAL> predicator;
 
 		VertexListNode *parent = entry->second;
-		VertexListNode *child = NULL;
+		VertexListNode *child = parent->getNextNode();
 		Vertex *c = NULL, *d = NULL;
 		
-		while (parent != NULL) {
-			child = parent->getNextNode();
+		while (child != NULL) {
 			if (child && !child->isPreFaceDeleted()) {
 				c = parent->getVertex();
 				d = child->getVertex();
 				if(!c->isGhost() && !d->isGhost()) break;
 			}
 			parent = child;
+			child = child->getNextNode();
 		}
-		if (parent == NULL) return false;
+		if (child == NULL) {
+			child = entry->second;
+			if (!child->isPreFaceDeleted()) {
+				c = parent->getVertex();
+				d = child->getVertex();
+				if (c->isGhost() || d->isGhost()) return false;
+			}
+			else 
+				return false;
+		}
 
 		REAL ori0 = predicator.orientCoplane(aa, bb, c->vert);
 		REAL ori1 = predicator.orientCoplane(aa, bb, d->vert);
-		while ((ori0 > 0) == (ori1 > 0) || ori1 == 0 || ori1 == 0) {
+		while (true) {
+			if ((ori0 > 0) != (ori1 > 0) || ori0 == 0 || ori1 == 0){
+				REAL ori2 = predicator.orientCoplane(aa, c->vert, d->vert);
+				REAL ori3 = predicator.orientCoplane(bb, c->vert, d->vert);
+				if ((ori2 > 0) != (ori3 > 0) || ori2 == 0 || ori3 == 0)
+					break;
+			}
+
 			bool nextSuccess = false;
 			parent = child;
 			child = parent->getNextNode();
@@ -202,18 +218,19 @@ namespace ODER {
 				}
 			}
 
-			if(!nextSuccess){
-				parent = child;
-				while (parent != NULL) {
+			if(!nextSuccess) {
+				child = child->getNextNode();
+				while (child != NULL) {
+					parent = child;
 					child = parent->getNextNode();
 					if (child && !child->isPreFaceDeleted()) {
 						c = parent->getVertex();
 						d = child->getVertex();
 						if (!c->isGhost() && !d->isGhost()) break;
 					}
-					parent = child;
 				}
-				if (parent != NULL) {
+
+				if (child != NULL) {
 					ori0 = predicator.orientCoplane(aa, bb, c->vert);
 					ori1 = predicator.orientCoplane(aa, bb, d->vert);
 				}
@@ -222,7 +239,26 @@ namespace ODER {
 			}
 		}
 
-		if (child == NULL) return false;
+		if (child == NULL) {
+			child = entry->second;
+			if (!child->isPreFaceDeleted()) {
+				c = parent->getVertex();
+				d = child->getVertex();
+				if (c->isGhost() || d->isGhost()) return false;
+
+				ori0 = predicator.orientCoplane(aa, bb, c->vert);
+				ori1 = predicator.orientCoplane(aa, bb, d->vert);
+
+				if ((ori0 > 0) == (ori1 > 0) && ori0 != 0 && ori1 != 0)
+					return false;
+				else {
+					REAL ori2 = predicator.orientCoplane(aa, c->vert, d->vert);
+					REAL ori3 = predicator.orientCoplane(bb, c->vert, d->vert);
+					if ((ori2 > 0) == (ori3 > 0) && ori2 != 0 && ori3 != 0)
+						return false;
+				}
+			}
+		}
 
 		*f = Face(a, c, d);
 
@@ -378,6 +414,7 @@ namespace ODER {
 				bool unoredered = (foundNode[0]->getVertex() == c);
 				if (unoredered) {
 					bNode = foundNode[1];  cNode = foundNode[0];
+					Assert(cNode->getNextNode() != bNode);
 				}
 				else {
 					bNode = foundNode[0];  cNode = foundNode[1];
@@ -768,13 +805,12 @@ namespace ODER {
 		bool ab = parityCheck(f.v[0], f.v[1]);
 		bool ac = parityCheck(f.v[0], f.v[2]);
 
-		VertexListNode *node = NULL;
 		if (ab)
-			found = getAdjacentListNode(f.v[0], f.v[1], f.v[2], &node);
+			found = getAdjacentListNode(f.v[0], f.v[1], f.v[2], z);
 		else if (ac)
-			found = getAdjacentListNode(f.v[2], f.v[0], f.v[1], &node);
+			found = getAdjacentListNode(f.v[2], f.v[0], f.v[1], z);
 		else
-			found = getAdjacentListNode(f.v[1], f.v[2], f.v[0], &node);
+			found = getAdjacentListNode(f.v[1], f.v[2], f.v[0], z);
 
 		return found;
 	}
@@ -878,28 +914,27 @@ namespace ODER {
 		else {
 			if (!hasList) {
 				Vertex *oppo = w->getPointedVertex();
+				Assert(oppo->hasList());
 				linkHead = oppo->getListHead();
 				while (linkHead && !found) {
 					VertexListNode *head = linkHead->getLink();
 					VertexListNode *parentLoop = head;
 					VertexListNode *loop = parentLoop->getNextNode();
-					while (loop->getVertex() != w) {
+					while (loop && loop->getVertex() != w) {
 						parentLoop = loop;
 						loop = loop->getNextNode();
 					}
-					if (loop == NULL && head->getVertex() == w) {
-						parentLoop = loop;
+					if (loop == NULL && head->getVertex() == w)
 						loop = head;
-					}
 					if (loop) {
 						VertexListNode *childLoop = loop->getNextNode();
 						if (childLoop == NULL) childLoop = head;
 						if (!loop->isPreFaceDeleted()) {
-							*t = Tetrahedron(w, parentLoop->getVertex(), oppo, linkHead->getEndVertex());
+							*t = Tetrahedron(w, parentLoop->getVertex(), linkHead->getEndVertex(), oppo);
 							found = true;
 						}
 						else if (!childLoop->isPreFaceDeleted()) {
-							*t = Tetrahedron(w, childLoop->getVertex(), linkHead->getEndVertex(), oppo);
+							*t = Tetrahedron(w, childLoop->getVertex(), oppo, linkHead->getEndVertex());
 							found = true;
 						}
 					}
@@ -1095,6 +1130,7 @@ namespace ODER {
 					bool unoredered = (foundNode[0]->getVertex() == d);
 					if (unoredered) {
 						cNode = foundNode[1];  dNode = foundNode[0];
+						Assert(dNode->getNextNode() != cNode);
 					}
 					else {
 						cNode = foundNode[0];  dNode = foundNode[1];
@@ -1323,22 +1359,22 @@ namespace ODER {
 	void TetMeshDataStructure::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode) {
 		switch (mode) {
 		case 0:
-			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
-			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(a);
-			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(d);
-			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(c);
+			a->setVertexPointer(b);
+			b->setVertexPointer(a);
+			c->setVertexPointer(d);
+			d->setVertexPointer(c);
 			break;
 		case 1:
-			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
-			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(c);
-			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(a);
-			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(a);
+			a->setVertexPointer(b);
+			b->setVertexPointer(c);
+			c->setVertexPointer(a);
+			d->setVertexPointer(edgeOrderCheck(a, b) ? a : b);
 			break;
 		case 2:
-			if (!a->hasList() && !a->isGhost()) a->setVertexPointer(b);
-			if (!b->hasList() && !b->isGhost()) b->setVertexPointer(c);
-			if (!c->hasList() && !c->isGhost()) c->setVertexPointer(d);
-			if (!d->hasList() && !d->isGhost()) d->setVertexPointer(a);
+			a->setVertexPointer(b);
+			b->setVertexPointer(c);
+			c->setVertexPointer(d);
+			d->setVertexPointer(a);
 			break;
 		default:
 			Severe("Unexpected mode in DelMesher::addSupplyVerts");

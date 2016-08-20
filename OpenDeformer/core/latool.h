@@ -10,7 +10,7 @@
 
 namespace ODER{
 	template<class FT> struct VectorBase{
-		VectorBase(){ x = y = z = FT(0.0); }
+		VectorBase(){ x = y = z = FT(0); }
 		VectorBase(FT xx, FT yy, FT zz) :x(xx), y(yy), z(zz){}
 
 		VectorBase operator+(const VectorBase &v) const{
@@ -106,7 +106,7 @@ namespace ODER{
 		}
 
 		bool hasNaNs() const{
-			return _isnan(x) || _isnan(y) || _isnan(z);
+			return isnan(x) || isnan(y) || isnan(z);
 		}
 		FT x, y, z;
 	};
@@ -115,7 +115,7 @@ namespace ODER{
 		Tensor2(){
 			m[0][0] = m[0][1] = m[0][2] =
 			m[1][0] = m[1][1] = m[1][2] = 
-			m[2][0] = m[2][1] = m[2][2] = 0.0;
+			m[2][0] = m[2][1] = m[2][2] = FT(0);
 		}
 		Tensor2(const FT *mat) {
 			memcpy(m, mat, 9 * sizeof(FT));

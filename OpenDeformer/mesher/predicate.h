@@ -114,6 +114,7 @@ private:
 		const VectorBase<FT>& p, const VectorBase<FT>& q, Plane hint) const;
 
 	VectorBase<FT> triangleNormal(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
+	VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 	static const ExactArthmeticer<FT> arthemetricer;
 	static const FT epsilon;
@@ -155,14 +156,14 @@ template<class FT> FT Predicator<FT>::orient2d(FT ax, FT ay, FT bx, FT by, FT cx
 	FT norm;
 	FT errorBound;
 
-	if (detLeft > 0.0){
-		if (detRight <= 0.0)
+	if (detLeft > 0){
+		if (detRight <= 0)
 			return det;
 		else
 			norm = detLeft + detRight;
 	}
-	else if (detLeft < 0.0){
-		if (detRight >= 0.0)
+	else if (detLeft < 0){
+		if (detRight >= 0)
 			return det;
 		else
 			norm = -detLeft - detRight;
@@ -1788,11 +1789,8 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 	FT orient = orient3d(u, a, b, c);
 	if (orient > FT(0))
 		return true;
-	else if (orient == FT(0)) {
-		VectorBase<FT> n = triangleNormal(a, b, c);
-		VectorBase<FT> above(a.x + n.x, a.y + n.y, a.z + n.z);
-		return inSphere(above, a, b, c, u) > FT(0);
-	}
+	else if (orient == FT(0))
+		return inSphere(calculateAbovePoint(a, b, c), a, b, c, u) > FT(0);
 	else
 		return false;
 }
@@ -1802,11 +1800,8 @@ template<class FT> bool Predicator<FT>::inOrthoHalfSpace3D(const VectorBase<FT> 
 	FT orient = orient3d(u, a, b, c);
 	if (orient > FT(0))
 		return true;
-	else if (orient == FT(0)) {
-		VectorBase<FT> n = triangleNormal(a, b, c);
-		VectorBase<FT> above(a.x + n.x, a.y + n.y, a.z + n.z);
-		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, above) > FT(0);
-	}
+	else if (orient == FT(0)) 
+		return inOrthoCirclePerturbed(a, aWeight, b, bWeight, c, cWeight, u, uWeight, calculateAbovePoint(a, b, c)) > FT(0);
 	else
 		return false;
 }
@@ -2164,6 +2159,48 @@ template<class FT> VectorBase<FT> Predicator<FT>::triangleNormal(const VectorBas
 	FT vx = v->x, vy = v->y, vz = v->z;
 	//cross
 	return VectorBase<FT>(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
+}
+
+template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const VectorBase<FT>& a,
+	const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+	VectorBase<FT> ab(b.x - a.x, b.y - a.y, b.z - a.z);
+	VectorBase<FT> ac(c.x - a.x, c.y - a.y, c.z - a.z);
+	VectorBase<FT> bc(c.x - b.x, c.y - b.y, c.z - b.z);
+	FT abLen2 = ab.x * ab.x + ab.y * ab.y + ab.z * ab.z;
+	FT acLen2 = ac.x * ac.x + ac.y * ac.y + ac.z * ac.z;
+	FT bcLen2 = bc.x * bc.x + bc.y * bc.y + bc.z * bc.z;
+	FT maxLen2 = bcLen2;
+
+	VectorBase<FT> *u = &ab;
+	VectorBase<FT> *v = &ac;
+	VectorBase<FT> corner = a;
+
+	if (bcLen2 < abLen2) {
+		if (abLen2 < acLen2) {
+			v = &bc;
+			maxLen2 = acLen2;
+		}
+		else {
+			u = &ac; v = &bc;
+			maxLen2 = abLen2;
+		}
+	}
+	else if (bcLen2 < acLen2) {
+		v = &bc;
+		maxLen2 = acLen2;
+	}
+	else corner = b;
+
+	FT ux = u->x, uy = u->y, uz = u->z;
+	FT vx = v->x, vy = v->y, vz = v->z;
+	//cross
+	VectorBase<FT> n(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
+
+	FT nLen = sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+	FT scale = sqrt(maxLen2) / nLen;
+	n.x *= scale; n.y *= scale; n.z *= scale;
+
+	return corner + n;
 }
 
 }

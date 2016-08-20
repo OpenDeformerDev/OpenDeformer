@@ -157,20 +157,50 @@ namespace ODER {
 			return *u % *v;
 		}
 
+		template<class FT> VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a,
+			const VectorBase<FT>& b, const VectorBase<FT>& c) {
+			VectorBase<FT> ab = b - a;
+			VectorBase<FT> ac = c - a;
+			VectorBase<FT> bc = c - b;
+			FT abLen2 = ab.length2();
+			FT acLen2 = ac.length2();
+			FT bcLen2 = bc.length2();
+			FT maxLen2 = bcLen2;
+
+			VectorBase<FT> *u = &ab;
+			VectorBase<FT> *v = &ac;
+			VectorBase<FT> corner = a;
+
+			if (bcLen2 < abLen2) {
+				if (abLen2 < acLen2) {
+					v = &bc; 
+					maxLen2 = acLen2;
+				}
+				else {
+					u = &ac; v = &bc; 
+					maxLen2 = abLen2;
+				}
+			}
+			else if (bcLen2 < acLen2) {
+				v = &bc;
+				maxLen2 = acLen2;
+			}
+			else corner = b;
+
+			VectorBase<FT> n = *u % *v;
+			FT scale = sqrt(maxLen2) / n.length();
+			return corner + (scale * n);
+		}
+
 		template<class FT> inline FT interiorAngle(const VectorBase<FT>& o, const VectorBase<FT>& a, const VectorBase<FT>& b) {
 			constexpr FT pi = M_PI;
 			VectorBase<FT> oa = a - o;
 			VectorBase<FT> ob = b - o;
-			FT areaDouble = (triangleNormal(o, a, b)).length();
 
-			FT theta = pi * FT(0.5);
-			FT dot = oa * ob;
-			if (dot != 0) {
-				theta = atan(areaDouble / dot);
-				if (theta < 0) theta += pi;
-			}
+			FT len = oa.length() * ob.length();
+			Assert(len != FT(0));
 
-			return theta;
+			return acos(Clamp((oa * ob) / len, FT(-1), FT(1)));
 		}
 
 		template<class FT> FT dihedralAngle(const VectorBase<FT>& a, const VectorBase<FT>& b,
@@ -187,9 +217,10 @@ namespace ODER {
 			FT dot = nc * nd;
 			if (dot != 0) {
 				theta = atan(-ori * abLen / dot);
-				if (theta < 0) theta += pi;
+				if (dot > 0) theta += (ori > 0 ? pi : -pi);
+				theta = fabs(theta);
 			}
-			
+
 			return theta;
 		}
 	}
