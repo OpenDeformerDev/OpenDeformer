@@ -167,7 +167,7 @@ namespace ODER {
 		Assert(entry != topology.end());
 
 		DelVector aa = a->vert;
-		const Predicator<REAL> predicator;
+		constexpr Predicator<REAL> predicator;
 
 		VertexListNode *parent = entry->second;
 		VertexListNode *child = parent->getNextNode();

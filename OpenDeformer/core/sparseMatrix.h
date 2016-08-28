@@ -81,7 +81,7 @@ namespace ODER{
 		friend class EigenSolver;
 	};
 
-	constexpr size_t diagIndicesGen(size_t length, size_t index){ return index * length - (((index - 1)*index) >> 1); }
+	constexpr size_t diagIndicesGen(size_t length, size_t index) noexcept { return index * length - (((index - 1)*index) >> 1); }
 	template<size_t... index> constexpr std::array<size_t, sizeof...(index)> getDiagIndices(std::index_sequence<index...>&& seqs) noexcept {
 		return { diagIndicesGen(sizeof...(index), index)... };
 	}
@@ -173,15 +173,11 @@ namespace ODER{
 		std::map<int, double> remainedEntries;
 		int *remainedEntryCount;
 
-		static const std::array<size_t, blockLength> diagIndices;
+		static constexpr std::array<size_t, blockLength> diagIndices = getDiagIndices(std::make_index_sequence<blockLength>());
 		MemoryArena<double> entryMem;
 
 		friend class BlockedSymSparseMatrix <blockLength, blockWidth>;
 	};
-
-	template<int blockLength, int blockWidth> 
-	const std::array<size_t, blockLength> BlockedSymSparseMatrixAssembler<blockLength, blockWidth>::diagIndices
-		= getDiagIndices(std::make_index_sequence<blockLength>());
 
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix{
 	public:
@@ -633,7 +629,7 @@ namespace ODER{
 		int *blockPcol;
 		int *blockColumnOris;
 
-		static const std::array<size_t, blockLength> diagIndices;
+		static constexpr std::array<size_t, blockLength> diagIndices = getDiagIndices(std::make_index_sequence<blockLength>());
 
 		template<int blockLength, int blockWidth>
 		friend void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
@@ -643,10 +639,6 @@ namespace ODER{
 			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
 			const SparseVector& src, double *dest);
 	};
-
-	template<int blockLength, int blockWidth>
-	const std::array<size_t, blockLength> BlockedSymSparseMatrix<blockLength, blockWidth>::diagIndices
-		= getDiagIndices(std::make_index_sequence<blockLength>());
 }
 
 #endif

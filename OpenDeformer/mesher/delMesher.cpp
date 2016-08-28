@@ -1386,11 +1386,11 @@ void DelMesher::findMissingRegion(const Face& missed, std::vector<Vertex *> &reg
 	}
 	regionFaces.push_back(missed);
 	surfaceRep.setDeletedMark(missed.v[0], missed.v[1], missed.v[2]);
-	propagateFindRegion(Segment(missed.v[0], missed.v[1]),
+	propagateFindRegion(Segment(missed.v[1], missed.v[0]),
 		regionVertices, regionBoundary, regionFaces, 0);
-	propagateFindRegion(Segment(missed.v[1], missed.v[2]),
+	propagateFindRegion(Segment(missed.v[2], missed.v[1]),
 		regionVertices, regionBoundary, regionFaces, 0);
-	propagateFindRegion(Segment(missed.v[2], missed.v[0]),
+	propagateFindRegion(Segment(missed.v[0], missed.v[2]),
 		regionVertices, regionBoundary, regionFaces, 0);
 
 	for (auto f : regionFaces) surfaceRep.unSetDeletedMark(f.v[0], f.v[1], f.v[2]);
@@ -1555,6 +1555,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, const s
 							break;
 						}
 					}
+					Assert(hasIntersection);
+
 					if (d != intersected.v[0] && d != intersected.v[1] && d != intersected.v[2]) {
 						if (hasIntersection) {
 							if (!d->isMarked()) {
@@ -1593,6 +1595,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, const s
 							break;
 						}
 					}
+					Assert(hasIntersection);
+
 					if (d != intersected.v[0] && d != intersected.v[1] && d != intersected.v[2]) {
 						if (hasIntersection) {
 							if (!d->isMarked()) {
@@ -1658,8 +1662,10 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, const s
 						Assert(d->isMarked());
 						//two vertices on face, check encroachment
 						if (surfaceRep.Contain(Segment(d, c))) {
-							surfaceRep.setMark(d, c);
-							markedSegments.push_back(Segment(d, c));
+							if (!surfaceRep.isMarked(d, c)) {
+								surfaceRep.setMark(d, c);
+								markedSegments.push_back(Segment(d, c));
+							}
 							positiveFaces.push_back(Face(a, c, d));
 							negativeFaces.push_back(Face(c, b, d));
 						}
@@ -1710,8 +1716,10 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, const s
 						Assert(d->isMarked());
 						//two vertices on face, check encroachment
 						if (surfaceRep.Contain(Segment(c, d))) {
-							surfaceRep.setMark(c, d);
-							markedSegments.push_back(Segment(c, d));
+							if (!surfaceRep.isMarked(c, d)) {
+								surfaceRep.setMark(c, d);
+								markedSegments.push_back(Segment(c, d));
+							}
 							negativeFaces.push_back(Face(a, c, d));
 							positiveFaces.push_back(Face(c, b, d));
 						}
@@ -1746,7 +1754,7 @@ bool DelMesher::faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
 	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted) {
 
 	Face seed = f;
-	regionFaces.clear(); regionVertices.clear();
+	regionFaces.clear(); regionVertices.clear(); regionBoundaries.clear();
 	positiveVertices.clear(); positiveFaces.clear();
 	negativeVertices.clear(); negativeFaces.clear();
 	deleted.clear(); inserted.clear();

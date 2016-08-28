@@ -210,7 +210,7 @@ namespace ODER {
 			VectorBase<FT> nd = triangleNormal(b, a, c);
 			FT abLen = (b - a).length();
 
-			const Predicator<FT> predicator;
+			constexpr Predicator<FT> predicator;
 			FT ori = predicator.orient3d(d, a, b, c);
 
 			FT theta = pi * FT(0.5);

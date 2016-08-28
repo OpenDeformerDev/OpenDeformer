@@ -113,41 +113,32 @@ private:
 	bool intersectionTriSegCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
 		const VectorBase<FT>& p, const VectorBase<FT>& q, Plane hint) const;
 
+	bool intersectionTestAllNonnegtive(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
+		FT da, FT db, FT dc, Plane hint) const;
+
+	bool intersectionTestAllCoplanar(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
+
+	Plane getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 	VectorBase<FT> triangleNormal(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 	VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
-	static const ExactArthmeticer<FT> arthemetricer;
-	static const FT epsilon;
-	static const FT commonBound;
-	static const FT o2dErrorBoundA;
-	static const FT o2dErrorBoundB;
-	static const FT o2dErrorBoundC;
-	static const FT o3dErrorBoundA;
-	static const FT o3dErrorBoundB;
-	static const FT o3dErrorBoundC;
-	static const FT inSpeErrorBoundA;
-	static const FT inSpeErrorBoundB;
-	static const FT inSpeErrorBoundC;
-	static const FT inSegRangeErrorBoundA;
-	static const FT inSegRangeErrorBoundB;
-	static const FT inSegRangeErrorBoundC;
+	static constexpr ExactArthmeticer<FT> arthemetricer{};
+	static constexpr FT commonBound = (FT(3.0) + FT(8.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o2dErrorBoundA = (FT(3.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o2dErrorBoundB = (FT(2.0) + FT(12.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o2dErrorBoundC = (FT(9.0) + FT(64.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o3dErrorBoundA = (FT(7.0) + FT(56.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o3dErrorBoundB = (FT(3.0) + FT(28.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT o3dErrorBoundC = (FT(26.0) + FT(288.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSpeErrorBoundA = (FT(16.0) + FT(224.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSpeErrorBoundB = (FT(5.0) + FT(72.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSpeErrorBoundC = (FT(71.0) + FT(1408.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSegRangeErrorBoundA = (FT(5.0) + FT(24.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSegRangeErrorBoundB = (FT(2.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
+	static constexpr FT inSegRangeErrorBoundC = (FT(11.0) + FT(80.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 };
-
-template<class FT> const ExactArthmeticer<FT> Predicator<FT>::arthemetricer;
-template<class FT> const FT Predicator<FT>::epsilon = FT(1e-8);
-template<class FT> const FT Predicator<FT>::commonBound = (FT(3.0) + FT(8.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o2dErrorBoundA = (FT(3.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o2dErrorBoundB = (FT(2.0) + FT(12.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o2dErrorBoundC = (FT(9.0) + FT(64.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o3dErrorBoundA = (FT(7.0) + FT(56.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o3dErrorBoundB = (FT(3.0) + FT(28.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::o3dErrorBoundC = (FT(26.0) + FT(288.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSpeErrorBoundA = (FT(16.0) + FT(224.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSpeErrorBoundB = (FT(5.0) + FT(72.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSpeErrorBoundC = (FT(71.0) + FT(1408.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundA = (FT(5.0) + FT(24.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundB = (FT(2.0) + FT(16.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon;
-template<class FT> const FT Predicator<FT>::inSegRangeErrorBoundC = (FT(11.0) + FT(80.0) * ExactArthmeticer<FT>::epsilon) * ExactArthmeticer<FT>::epsilon * ExactArthmeticer<FT>::epsilon;
 
 template<class FT> FT Predicator<FT>::orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const{
 	FT detLeft = (ax - cx)*(by - cy);
@@ -1824,181 +1815,153 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 	FT dq = orient3d(q, a, b, c);
 	FT dr = orient3d(r, a, b, c);
 
-	if (dp != 0 || dq != 0 || dr != 0) {
-		const VectorBase<FT> *sMin1 = NULL, *sMax1 = NULL, *tMin1 = NULL, *tMax1 = NULL;
-		int condition = (dp >= 0) + ((dq >= 0) << 1) + ((dr >= 0) << 2);
+	const VectorBase<FT> *sMin1 = NULL, *sMax1 = NULL, *tMin1 = NULL, *tMax1 = NULL;
+	int condition = (dp >= 0) + ((dq >= 0) << 1) + ((dr >= 0) << 2);
 
-		switch (condition) {
-		case 0:
-			return false;
-		case 1: //positive p
-			sMin1 = &p; tMin1 = &q; sMax1 = &r; tMax1 = &p;
-			break;
-		case 2: //positive q
-			sMin1 = &q; tMin1 = &r; sMax1 = &p; tMax1 = &q;
-			break;
-		case 3: //negative r
-			sMin1 = &q; tMin1 = &r; sMax1 = &r; tMax1 = &p;
-			break;
-		case 4: //positive r
-			sMin1 = &r; tMin1 = &p; sMax1 = &q; tMax1 = &r;
-			break;
-		case 5: //negative q
-			sMin1 = &p; tMin1 = &q; sMax1 = &q; tMax1 = &r;
-			break;
-		case 6: //negative p
-			sMin1 = &r; tMin1 = &p; sMax1 = &p; tMax1 = &q;
-			break;
-		case 7:
-		{
-			VectorBase<FT> normal = triangleNormal(a, b, c);
-			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
-			Plane plane = Plane::Plane_Arbitary;
-			if (nx != 0 || ny != 0 || nz != 0)
-				plane = nz > ny ? (nz > nx ? Plane::Plane_XY : Plane::Plane_YZ) : (ny > nx ? Plane::Plane_XZ : Plane::Plane_YZ);
-
-			int zeroCondition = (dp == 0) + ((dq == 0) << 1) + ((dr == 0) << 2);
-			switch (zeroCondition) {
-			case 0:
-				return false;
-			case 1:
-				return orientCoplane(p, a, b, plane) >= 0 &&
-					orientCoplane(p, b, c, plane) >= 0 &&
-					orientCoplane(p, c, a, plane) >= 0;
-			case 2:
-				return orientCoplane(q, a, b, plane) >= 0 &&
-					orientCoplane(q, b, c, plane) >= 0 &&
-					orientCoplane(q, c, a, plane) >= 0;
-			case 3:
-				return intersectionTriSegCoplane(a, b, c, p, q, plane);
-			case 4:
-				return orientCoplane(r, a, b, plane) >= 0 &&
-					orientCoplane(r, b, c, plane) >= 0 &&
-					orientCoplane(r, c, a, plane) >= 0;
-			case 5:
-				return intersectionTriSegCoplane(a, b, c, r, p, plane);
-			case 6:
-				return intersectionTriSegCoplane(a, b, c, q, r, plane);
-			default:
-				Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
-				break;
-			}
-			break;
-		}
-		default:
-			Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
-			break;
-		}
-
-		FT da = orient3d(a, p, q, r);
-		FT db = orient3d(b, p, q, r);
-		FT dc = orient3d(c, p, q, r);
-		Assert(da != 0 || db != 0 || dc != 0);
-
-		const VectorBase<FT> *sMin2 = NULL, *sMax2 = NULL, *tMin2 = NULL, *tMax2 = NULL;
-		condition = (da >= 0) + ((db >= 0) << 1) + ((dc >= 0) << 2);
-
-		switch (condition) {
-		case 0:
-			return false;
-		case 1: //positive a
-			sMin2 = &a; tMin2 = &b; sMax2 = &c; tMax2 = &a;
-			break;
-		case 2: //positive b
-			sMin2 = &b; tMin2 = &c; sMax2 = &a; tMax2 = &b;
-			break;
-		case 3: //negative c
-			sMin2 = &b; tMin2 = &c; sMax2 = &c; tMax2 = &a;
-			break;
-		case 4: //positive c
-			sMin2 = &c; tMin2 = &a; sMax2 = &b; tMax2 = &c;
-			break;
-		case 5: //negative b
-			sMin2 = &a; tMin2 = &b; sMax2 = &b; tMax2 = &c;
-			break;
-		case 6: //negative a
-			sMin2 = &c; tMin2 = &a; sMax2 = &a; tMax2 = &b;
-			break;
-		case 7:
-		{
-			VectorBase<FT> normal = triangleNormal(p, q, r);
-			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
-			Plane plane = Plane::Plane_Arbitary;
-			if (nx != 0 || ny != 0 || nz != 0)
-				plane = nz > ny ? (nz > nx ? Plane::Plane_XY : Plane::Plane_YZ) : (ny > nx ? Plane::Plane_XZ : Plane::Plane_YZ);
-
-			int zeroCondition = (da == 0) + ((db == 0) << 1) + ((dc == 0) << 2);
-			switch (zeroCondition) {
-			case 0:
-				return false;
-			case 1:
-				return orientCoplane(a, p, q, plane) >= 0 &&
-					orientCoplane(a, q, r, plane) >= 0 &&
-					orientCoplane(a, r, p, plane) >= 0;
-			case 2:
-				return orientCoplane(b, p, q, plane) >= 0 &&
-					orientCoplane(b, q, r, plane) >= 0 &&
-					orientCoplane(b, r, p, plane) >= 0;
-			case 3:
-				return intersectionTriSegCoplane(p, q, r, a, b, plane);
-			case 4:
-				return orientCoplane(c, p, q, plane) >= 0 &&
-					orientCoplane(c, q, r, plane) >= 0 &&
-					orientCoplane(c, r, p, plane) >= 0;
-			case 5:
-				return intersectionTriSegCoplane(p, q, r, c, a, plane);
-			case 6: 
-				return intersectionTriSegCoplane(p, q, r, b, c, plane);
-			default:
-				Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
-				break;
-			}
-			break;
-		}
-		default:
-			Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
-			break;
-		}
-
-		return orient3d(*sMin1, *tMin1, *tMin2, *sMin2) <= 0 &&
-			orient3d(*sMax1, *tMax1, *sMax2, *tMax2) <= 0;
+	switch (condition) {
+	case 0:
+		return false;
+	case 1: //positive p
+		sMin1 = &p; tMin1 = &q; sMax1 = &r; tMax1 = &p;
+		break;
+	case 2: //positive q
+		sMin1 = &q; tMin1 = &r; sMax1 = &p; tMax1 = &q;
+		break;
+	case 3: //negative r
+		sMin1 = &q; tMin1 = &r; sMax1 = &r; tMax1 = &p;
+		break;
+	case 4: //positive r
+		sMin1 = &r; tMin1 = &p; sMax1 = &q; tMax1 = &r;
+		break;
+	case 5: //negative q
+		sMin1 = &p; tMin1 = &q; sMax1 = &q; tMax1 = &r;
+		break;
+	case 6: //negative p
+		sMin1 = &r; tMin1 = &p; sMax1 = &p; tMax1 = &q;
+		break;
+	case 7:
+	{
+		Plane plane = getProjectingPlane(a, b, c);
+		if (orientCoplane(a, b, c) > 0)
+			return intersectionTestAllNonnegtive(a, b, c, p, q, r, dp, dq, dr, plane);
+		else
+			return intersectionTestAllNonnegtive(a, c, b, p, q, r, dp, dq, dr, plane);
+		break;
 	}
-	else {
-		VectorBase<FT> normal = triangleNormal(p, q, r);
-		bool zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
-		if (zeroTest) {
-			normal = triangleNormal(a, b, c);
-			zeroTest = (normal.x == 0 && normal.y == 0 && normal.z == 0);
-		}
-
-		Plane plane = Plane::Plane_Arbitary;
-		if (!zeroTest) {
-			FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
-			plane = nz > ny ? (nz > nx ? Plane::Plane_XY : Plane::Plane_YZ) : (ny > nx ? Plane::Plane_XZ : Plane::Plane_YZ);
-		}
-
-		if (orientCoplane(p, b, a, plane) > 0) {
-			if (orientCoplane(p, c, a, plane) > 0) {
-				if (orientCoplane(p, b, c, plane) > 0)
-					return intersectionTestEdge(p, q, r, a, b, plane);
-				
-				return intersectionTestVertex(p, q, r, b, c, a, plane);
-			}
-			return intersectionTestVertex(p, q, r, a, b, c, plane);
-		}
-
-		if (orientCoplane(p, c, b, plane) > 0) {
-			if (orientCoplane(p, c, a, plane) > 0)
-				return intersectionTestEdge(p, q, r, b, c, plane);
-
-			return intersectionTestVertex(p, q, r, c, a, b, plane);
-		}
-
-		if (orientCoplane(p, a, c, plane) > 0)
-			return intersectionTestEdge(p, q, r, c, a, plane);
-
-		return true;
+	default:
+		Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+		break;
 	}
+
+	FT da = orient3d(a, p, q, r);
+	FT db = orient3d(b, p, q, r);
+	FT dc = orient3d(c, p, q, r);
+	Assert(da != 0 || db != 0 || dc != 0);
+
+	const VectorBase<FT> *sMin2 = NULL, *sMax2 = NULL, *tMin2 = NULL, *tMax2 = NULL;
+	condition = (da >= 0) + ((db >= 0) << 1) + ((dc >= 0) << 2);
+
+	switch (condition) {
+	case 0:
+		return false;
+	case 1: //positive a
+		sMin2 = &a; tMin2 = &b; sMax2 = &c; tMax2 = &a;
+		break;
+	case 2: //positive b
+		sMin2 = &b; tMin2 = &c; sMax2 = &a; tMax2 = &b;
+		break;
+	case 3: //negative c
+		sMin2 = &b; tMin2 = &c; sMax2 = &c; tMax2 = &a;
+		break;
+	case 4: //positive c
+		sMin2 = &c; tMin2 = &a; sMax2 = &b; tMax2 = &c;
+		break;
+	case 5: //negative b
+		sMin2 = &a; tMin2 = &b; sMax2 = &b; tMax2 = &c;
+		break;
+	case 6: //negative a
+		sMin2 = &c; tMin2 = &a; sMax2 = &a; tMax2 = &b;
+		break;
+	case 7:
+	{
+		Plane plane = getProjectingPlane(p, q, r);
+		if (orientCoplane(p, q, r) > 0)
+			return intersectionTestAllNonnegtive(p, q, r, a, b, c, da, db, dc, plane);
+		else
+			return intersectionTestAllNonnegtive(p, r, q, a, b, c, da, db, dc, plane);
+		break;
+	}
+	default:
+		Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+		break;
+	}
+
+	return orient3d(*sMin1, *tMin1, *tMin2, *sMin2) <= 0 &&
+		orient3d(*sMax1, *tMax1, *sMax2, *tMax2) <= 0;
+}
+
+template<class FT> bool Predicator<FT>::intersectionTestAllNonnegtive(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+	const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c,
+	FT da, FT db, FT dc, Plane hint) const {
+
+	int zeroCondition = (da == 0) + ((db == 0) << 1) + ((dc == 0) << 2);
+	switch (zeroCondition) {
+	case 0:
+		return false;
+	case 1:
+		return orientCoplane(a, p, q, hint) >= 0 &&
+			orientCoplane(a, q, r, hint) >= 0 &&
+			orientCoplane(a, r, p, hint) >= 0;
+	case 2:
+		return orientCoplane(b, p, q, hint) >= 0 &&
+			orientCoplane(b, q, r, hint) >= 0 &&
+			orientCoplane(b, r, p, hint) >= 0;
+	case 3:
+		return intersectionTriSegCoplane(p, q, r, a, b, hint);
+	case 4:
+		return orientCoplane(c, p, q, hint) >= 0 &&
+			orientCoplane(c, q, r, hint) >= 0 &&
+			orientCoplane(c, r, p, hint) >= 0;
+	case 5:
+		return intersectionTriSegCoplane(p, q, r, c, a, hint);
+	case 6:
+		return intersectionTriSegCoplane(p, q, r, b, c, hint);
+	case 7:
+		if (orientCoplane(a, b, c, hint) > 0)
+			intersectionTestAllCoplanar(p, q, r, a, b, c, hint);
+		else
+			intersectionTestAllCoplanar(p, q, r, a, c, b, hint);
+	default:
+		Severe("Unexpected Case Triangle-Triangle Predicator::Intersection");
+		break;
+	}
+
+	return false; //never here
+}
+
+template<class FT> bool Predicator<FT>::intersectionTestAllCoplanar(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
+	const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const {
+	if (orientCoplane(p, b, a, hint) > 0) {
+		if (orientCoplane(p, c, a, hint) > 0) {
+			if (orientCoplane(p, b, c, hint) > 0)
+				return intersectionTestEdge(p, q, r, a, b, hint);
+
+			return intersectionTestVertex(p, q, r, b, c, a, hint);
+		}
+		return intersectionTestVertex(p, q, r, a, b, c, hint);
+	}
+
+	if (orientCoplane(p, c, b, hint) > 0) {
+		if (orientCoplane(p, c, a, hint) > 0)
+			return intersectionTestEdge(p, q, r, b, c, hint);
+
+		return intersectionTestVertex(p, q, r, c, a, b, hint);
+	}
+
+	if (orientCoplane(p, a, c, hint) > 0)
+		return intersectionTestEdge(p, q, r, c, a, hint);
+
+	return true;
 }
 
 template<class FT> bool Predicator<FT>::intersectionTestEdge(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
@@ -2071,13 +2034,11 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& a, co
 		return false;
 	}
 	else {
-		VectorBase<FT> normal = triangleNormal(a, b, c);
-		FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
-		Plane plane = Plane::Plane_Arbitary;
-		if(nx != 0 || ny != 0 || nz != 0)
-			plane = nz > ny ? (nz > nx ? Plane::Plane_XY : Plane::Plane_YZ) : (ny > nx ? Plane::Plane_XZ : Plane::Plane_YZ);
-
-		return intersectionTriSegCoplane(a, b, c, p, q, plane);
+		Plane plane = getProjectingPlane(a, b, c);
+		if (orientCoplane(a, b, c, plane) > 0)
+			return intersectionTriSegCoplane(a, b, c, p, q, plane);
+		else
+			return intersectionTriSegCoplane(a, c, b, p, q, plane);
 	}
 }
 
@@ -2133,6 +2094,16 @@ template<class FT> bool Predicator<FT>::intersectionTriSegCoplane(const VectorBa
 		break;
 	}
 	return false; //never here
+}
+
+template<class FT> inline typename Predicator<FT>::Plane Predicator<FT>::getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+	VectorBase<FT> normal = triangleNormal(a, b, c);
+	FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
+	Plane plane = Plane::Plane_Arbitary;
+	if (nx != 0 || ny != 0 || nz != 0)
+		plane = nz > ny ? (nz > nx ? Plane::Plane_XY : Plane::Plane_YZ) : (ny > nx ? Plane::Plane_XZ : Plane::Plane_YZ);
+
+	return plane;
 }
 
 template<class FT> VectorBase<FT> Predicator<FT>::triangleNormal(const VectorBase<FT>& a,
@@ -2200,7 +2171,7 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	FT scale = sqrt(maxLen2) / nLen;
 	n.x *= scale; n.y *= scale; n.z *= scale;
 
-	return corner + n;
+	return VectorBase<FT>(corner.x + n.x, corner.y + n.y, corner.z + n.z);
 }
 
 }

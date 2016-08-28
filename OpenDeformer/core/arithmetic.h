@@ -253,9 +253,6 @@ namespace ODER{
 			return hi;
 		}
 
-		static const FT epsilon;
-		static const FT splitter;
-
 		private:
 			template<class FT> static constexpr FT getEpsilon() noexcept{
 				static_assert(false, "ODER::ExactArthmeticer support IEEE 754-1985 floating point only");
@@ -284,11 +281,11 @@ namespace ODER{
 				return const_pow(2.0, 27) + 1.0;
 				//return 134217729.0; 
 			}
-	};
 
-	//constexpr
-	template<class FT> const FT ExactArthmeticer<FT>::epsilon = ExactArthmeticer<FT>::getEpsilon<FT>();
-	template<class FT> const FT ExactArthmeticer<FT>::splitter = ExactArthmeticer<FT>::getSplitter<FT>();
+			public:
+				static constexpr FT epsilon = getEpsilon<FT>();
+				static constexpr FT splitter = getSplitter<FT>();
+	};
 
 }
 
