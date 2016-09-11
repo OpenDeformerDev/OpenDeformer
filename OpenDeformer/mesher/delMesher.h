@@ -30,7 +30,9 @@ namespace ODER{
 		}
 		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
 		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
+		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount);
 		void outPut(TriMeshDataStructure& meshRep, std::deque<Face>& meshDeque);
+		void outPut(std::vector<Face> meshVec) { meshRep.getTriangles(false, meshVec); }
 	private:
 		void calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
 		void insertSegment(const Segment& s);
@@ -99,10 +101,10 @@ namespace ODER{
 			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces);
 		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
 			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces, int depth);
-		bool findCavity(const std::vector<Segment>& regionBoundary, const std::vector<Face>& regionFaces,
+		bool findCavity(const std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
-			std::vector<Tetrahedron>& deleted, Face& encroached);
+			std::vector<Tetrahedron>& deleted);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
 		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
 			std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,

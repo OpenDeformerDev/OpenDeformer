@@ -258,6 +258,8 @@ namespace ODER {
 						return false;
 				}
 			}
+			else
+				return false;
 		}
 
 		*f = Face(a, c, d);
@@ -972,7 +974,7 @@ namespace ODER {
 					}
 					if (!head->isPreFaceDeleted()) {
 						Vertex *c = parentNode->getVertex();
-						Vertex *d = node->getVertex();
+						Vertex *d = head->getVertex();
 						if ((!parityCheck(c, vert) || (vert->getLabel() < c->getLabel() && endVert->getLabel() < c->getLabel())) &&
 							(!parityCheck(d, vert) || (vert->getLabel() < d->getLabel() && endVert->getLabel() < d->getLabel())) &&
 							(!parityCheck(c, d) || (vert->getLabel() < c->getLabel() && vert->getLabel() < d->getLabel()) ||

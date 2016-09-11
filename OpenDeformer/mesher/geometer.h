@@ -203,6 +203,7 @@ namespace ODER {
 			return acos(Clamp((oa * ob) / len, FT(-1), FT(1)));
 		}
 
+		//a and b are common edge vertices
 		template<class FT> FT dihedralAngle(const VectorBase<FT>& a, const VectorBase<FT>& b,
 			const VectorBase<FT>& c, const VectorBase<FT>& d) {
 			constexpr FT pi = M_PI;
