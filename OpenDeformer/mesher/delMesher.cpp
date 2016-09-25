@@ -668,6 +668,7 @@ start:
 	}
 	while (!mayEncroachedFaces.empty()) {
 		Face f = mayEncroachedFaces.front();
+		mayEncroachedFaces.pop_front();
 		if (surfaceRep.Contain(f) && !meshRep.Contain(f)) {
 			if (!faceRecovery(f, regionVertices, regionBoundaries, regionFaces,
 				positiveVertices, positiveFaces, negativeVertices, negativeFaces,
@@ -675,11 +676,7 @@ start:
 				refineRegion(f);
 				goto start;
 			}
-			else
-				mayEncroachedFaces.pop_front();
 		}
-		else
-			mayEncroachedFaces.pop_front();
 	}
 }
 
@@ -1468,39 +1465,24 @@ bool DelMesher::findCrossEdge(const Segment& boundary, const std::vector<Face>& 
 
 	if (b != boundary.v[1]) return false;
 
-	for (auto f : regionFaces) {
-		if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, c->vert, d->vert)) {
-			if (predicator.orient3d(c->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) < 
-				predicator.orient3d(d->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert))
-				std::swap(c, d);
-			cross = Segment(c, d);
-			return true;
-		}
-	}
-	if (!surfaceRep.Adjacent(boundary, &e)) return false;
-	if (predicator.orient3d(c->vert, a->vert, b->vert, e->vert) < 0) {
-		std::swap(c, d);
-		std::swap(a, b);
-	}
-
-	Vertex *anchor = d;
+	bool hasIntersection = false;
+	Vertex *anchor = c;
 	do {
-		meshRep.Adjacent(Face(a, b, c), &d);
-		std::swap(c, d);
-		if (!c->isGhost()) {
+		if (!c->isGhost() && !d->isGhost()) {
 			for (auto f : regionFaces) {
-				if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, c->vert, d->vert)) {
-					if (predicator.orient3d(c->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) <
-						predicator.orient3d(d->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert))
-						std::swap(c, d);
+				if (predicator.Intersection(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, d->vert, c->vert) &&
+					predicator.orient3d(c->vert, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert) > REAL(0)) {
+					hasIntersection = true;
 					cross = Segment(c, d);
-					return true;
+					break;
 				}
 			}
 		}
+		meshRep.Adjacent(Face(a, b, c), &d);
+		std::swap(c, d);
 	} while (c != anchor);
 
-	return false;
+	return hasIntersection;
 }
 
 //require: all region vertices are marked
@@ -1524,10 +1506,7 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 	bool found = findCrossEdge(seg, regionFaces, cross);
 	Assert(found);
 	//detect whether one of the vertex of the cross edge is on face
-	Vertex *onFace = NULL;
-	if (cross.v[0]->isMarked()) onFace = cross.v[0];
-	else if (cross.v[1]->isMarked()) onFace = cross.v[1];
-	if (onFace == NULL) {
+	if (!cross.v[1]->isMarked()) {
 		//normal routine
 		deleted.push_back(Tetrahedron(cross.v[1], seg.v[0], seg.v[1], cross.v[0]));
 		meshRep.deleteTetrahedron(cross.v[1], seg.v[0], seg.v[1], cross.v[0]);
@@ -1545,41 +1524,20 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 		cross.v[0]->setMark(); cross.v[1]->setMark();
 	}
 	else {
+		Vertex *onFace = cross.v[1];
 		toBeErased.push_back(Face(seg.v[0], seg.v[1], onFace));
 
-		Vertex *posi = NULL, *negi = NULL;
-		if (onFace == cross.v[0]) {
-			negi = cross.v[1];
-			meshRep.Adjacent(Face(onFace, seg.v[0], seg.v[1]), &posi);
-			Assert(posi != NULL);
-		}
-		else {
-			posi = cross.v[0];
-			meshRep.Adjacent(Face(onFace, seg.v[1], seg.v[0]), &negi);
-			Assert(negi != NULL);
-		}
+		Vertex *posi = cross.v[0], *negi = NULL;
+		meshRep.Adjacent(Face(onFace, seg.v[0], seg.v[1]), &negi);
+		Assert(negi != NULL);
 
-		if (!posi->isMarked()) {
-			if (!surfaceRep.isMarked(onFace, seg.v[0])) {
-				newSegments.push_back(Segment(onFace, seg.v[0]));
-				triangleStack.push(std::make_pair(Face(onFace, seg.v[0], posi), CavityTriangleType::TwoCoplanar));
-			}
-			if (!surfaceRep.isMarked(seg.v[1], onFace)) {
-				newSegments.push_back(Segment(seg.v[1], onFace));
-				triangleStack.push(std::make_pair(Face(seg.v[1], onFace, posi), CavityTriangleType::TwoCoplanar));
-			}
+		if (!surfaceRep.isMarked(onFace, seg.v[0])) {
+			newSegments.push_back(Segment(seg.v[0], onFace));
+			triangleStack.push(std::make_pair(Face(seg.v[0], onFace, negi), CavityTriangleType::TwoCoplanar));
 		}
-		else {
-			Assert(!negi->isMarked());
-			if (!surfaceRep.isMarked(onFace, seg.v[0])) {
-				newSegments.push_back(Segment(seg.v[0], onFace));
-				triangleStack.push(std::make_pair(Face(seg.v[0], onFace, negi), CavityTriangleType::TwoCoplanar));
-			}
-			if (!surfaceRep.isMarked(seg.v[1], onFace)) {
-				newSegments.push_back(Segment(seg.v[1], onFace));
-				triangleStack.push(std::make_pair(Face(onFace, seg.v[1], negi), CavityTriangleType::TwoCoplanar));
-			}
-			positive = false;
+		if (!surfaceRep.isMarked(seg.v[1], onFace)) {
+			newSegments.push_back(Segment(seg.v[1], onFace));
+			triangleStack.push(std::make_pair(Face(onFace, seg.v[1], negi), CavityTriangleType::TwoCoplanar));
 		}
 	}
 
@@ -1701,57 +1659,28 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 				if (d != intersected.v[0] && d != intersected.v[1] && d != intersected.v[2]) {
 					deleted.push_back(Tetrahedron(d, a, b, c));
 					meshRep.deleteTetrahedron(d, a, b, c);
-					if (positive) {
-						if (!d->isMarked()) {
-							negativeVertices.push_back(d);
-							d->setMark();
-						}
-						if (!c->isMarked()) {
-							positiveVertices.push_back(c);
-							c->setMark();
-						}
-						negativeFaces.push_back(Face(d, b, a));
-						positiveFaces.push_back(Face(c, a, b));
-						triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::NegativePositiveCoplanar));
-						triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::PositiveNegativeCoplanar));
+					if (!d->isMarked()) {
+						positiveVertices.push_back(d);
+						d->setMark();
 					}
-					else {
-						if (!d->isMarked()) {
-							positiveVertices.push_back(d);
-							d->setMark();
-						}
-						if (!c->isMarked()) {
-							negativeVertices.push_back(c);
-							c->setMark();
-						}
-						positiveFaces.push_back(Face(d, b, a));
-						negativeFaces.push_back(Face(c, a, b));
-						triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::PositiveNegativeCoplanar));
-						triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::NegativePositiveCoplanar));
+					if (!c->isMarked()) {
+						negativeVertices.push_back(c);
+						c->setMark();
 					}
+					positiveFaces.push_back(Face(d, b, a));
+					negativeFaces.push_back(Face(c, a, b));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::PositiveNegativeCoplanar));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::NegativePositiveCoplanar));
 				}
 				else {
-					if (positive) {
-						toBeErased.push_back(Face(b, a, d));
-						if (!surfaceRep.isMarked(a, d)) {
-							newSegments.push_back(Segment(a, d));
-							triangleStack.push(std::make_pair(Face(a, d, c), CavityTriangleType::TwoCoplanar));
-						}
-						if (!surfaceRep.isMarked(d, b)) {
-							newSegments.push_back(Segment(d, b));
-							triangleStack.push(std::make_pair(Face(d, b, c), CavityTriangleType::TwoCoplanar));
-						}
+					toBeErased.push_back(Face(a, b, d));
+					if (!surfaceRep.isMarked(d, a)) {
+						newSegments.push_back(Segment(d, a));
+						triangleStack.push(std::make_pair(Face(a, d, c), CavityTriangleType::TwoCoplanar));
 					}
-					else {
-						toBeErased.push_back(Face(a, b, d));
-						if (!surfaceRep.isMarked(d, a)) {
-							newSegments.push_back(Segment(d, a));
-							triangleStack.push(std::make_pair(Face(a, d, c), CavityTriangleType::TwoCoplanar));
-						}
-						if (!surfaceRep.isMarked(b, d)) {
-							newSegments.push_back(Segment(b, d));
-							triangleStack.push(std::make_pair(Face(d, b, c), CavityTriangleType::TwoCoplanar));
-						}
+					if (!surfaceRep.isMarked(b, d)) {
+						newSegments.push_back(Segment(b, d));
+						triangleStack.push(std::make_pair(Face(d, b, c), CavityTriangleType::TwoCoplanar));
 					}
 				}
 			}
@@ -1798,9 +1727,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 				//two vertices on face
 				triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::PositiveNegativeCoplanar));
 				if (!surfaceRep.isMarked(d, c)) {
-					newSegments.push_back(Segment(d, c));
-					if (positive) triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoCoplanar));
-					else triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoCoplanar));
+					if (!surfaceRep.Contain(Segment(d, c))) newSegments.push_back(Segment(d, c));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoCoplanar));
 				}
 				positiveFaces.push_back(Face(a, c, d));
 				negativeFaces.push_back(Face(c, b, d));
@@ -1847,10 +1775,9 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 				Assert(d->isMarked());
 				//two vertices on face
 				triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::NegativePositiveCoplanar));
-				if (!surfaceRep.isMarked(d, c)) {
-					newSegments.push_back(Segment(d, c));
-					if (positive) triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoCoplanar));
-					else triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoCoplanar));
+				if (!surfaceRep.isMarked(c, d)) {
+					if(!surfaceRep.Contain(Segment(c, d))) newSegments.push_back(Segment(c, d));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoCoplanar));
 				}
 				negativeFaces.push_back(Face(a, c, d));
 				positiveFaces.push_back(Face(c, b, d));
@@ -2052,7 +1979,10 @@ bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, c
 							Face(cavityOppo, pair.second.v[2], pair.second.v[1])));
 				}
 
+				//enlarge process may eliminate previous recovered faces, insert it to queue for later recovery.
 				if (surfaceRep.Contain(pair.first)) mayEncroachedFaces.push_back(pair.first);
+				Face backPairFirst(pair.first.v[0], pair.first.v[2], pair.first.v[1]);
+				if (surfaceRep.Contain(backPairFirst)) mayEncroachedFaces.push_back(backPairFirst);
 			}
 			else
 				shellPairs.push_back(pair);

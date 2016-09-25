@@ -32,7 +32,7 @@ namespace ODER{
 		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
 		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount);
 		void outPut(TriMeshDataStructure& meshRep, std::deque<Face>& meshDeque);
-		void outPut(std::vector<Face> meshVec) { meshRep.getTriangles(false, meshVec); }
+		void outPut(std::vector<Face> &meshVec) { meshRep.getTriangles(false, meshVec); }
 	private:
 		void calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
 		void insertSegment(const Segment& s);
