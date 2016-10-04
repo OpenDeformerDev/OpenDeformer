@@ -106,7 +106,8 @@ namespace ODER{
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool triangulateCavity(const std::vector<Face>& regionFaces, const std::vector<Face>& boundaryFaces, std::vector<Vertex *>& cavityVertices,
+		bool triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
+			std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
 		void propagateCleanCavity(const Face& f, int depth);
 		void refineRegion(const Face& regionFace);
@@ -115,23 +116,13 @@ namespace ODER{
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type);
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
-
-		struct VertexInsertionFlags {
-			VertexInsertionFlags() {
-				cdt = false;
-				encroachSegTest = false;
-				encroachFaceTest = false;
-				skinnyTetTest = false;
-				trueInsetion = true;
-			}
-			bool cdt, encroachSegTest, encroachFaceTest, skinnyTetTest, trueInsetion;
-		};
-		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep, 
-			const VertexInsertionFlags& vifs = VertexInsertionFlags(), Tetrahedron *rt = NULL);
+		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
+			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, Face *inFace = NULL, bool insertToQueue = true);
+
 		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
-			const VertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
+			Tetrahedron *rt = NULL, bool encroachmentTest = false, bool insertToSkinny = false, bool trulyDeleteOrAdd = true);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
@@ -147,8 +138,6 @@ namespace ODER{
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep) const;
 		void propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL facetRadianTol,
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep, int depth) const;
-
-		void propagateClean(const Face &f, int depth);
 
 		REAL maxRatio;
 		REAL maxRadius;
@@ -184,7 +173,7 @@ namespace ODER{
 
 		Vertex *ghost;
 		AABB<REAL> boundBox;
-		VertexLabeler labeler;
+		friend class DelTriangulator;
 	};
 
 	inline Vertex* DelMesher::allocVertex() { return vertPool.Alloc(); }
@@ -194,7 +183,7 @@ namespace ODER{
 		newVertex->vert = vert;
 		newVertex->weight = weight;
 		newVertex->type = type;
-		newVertex->setLabel(labeler.getLabel());
+		newVertex->setLabel();
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}
@@ -202,6 +191,7 @@ namespace ODER{
 	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
 		Vertex *newVertex = vertPool.Alloc();
 		*newVertex = vertex;
+		newVertex->setListPointer(NULL);
 		newVertex->setVertexPointer(NULL);
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;

@@ -2167,14 +2167,8 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	//cross
 	VectorBase<FT> n(uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx);
 
-	FT nLen2 = n.x * n.x + n.y * n.y + n.z * n.z;
-	if (nLen2 == FT(0)) {
-		n.x = orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
-		n.y = orient2d(a.z, a.x, b.z, b.x, c.z, c.x);
-		n.z = orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
-		nLen2 = n.x * n.x + n.y * n.y + n.z * n.z;
-	}
-	FT scale = sqrt(maxLen2) / sqrt(nLen2);
+	FT nLen = sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+	FT scale = sqrt(maxLen2) / nLen;
 	n.x *= scale; n.y *= scale; n.z *= scale;
 
 	return VectorBase<FT>(corner.x + n.x, corner.y + n.y, corner.z + n.z);

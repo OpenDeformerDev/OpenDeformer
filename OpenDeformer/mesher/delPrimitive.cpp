@@ -6,6 +6,7 @@
 #include <numeric>
 
 namespace ODER {
+	Labeler Vertex::labeler;
 
 	REAL Tetrahedron::maxREration = std::numeric_limits<REAL>::max();
 
@@ -266,38 +267,6 @@ namespace ODER {
 		return true;
 	}
 
-	Face TriMeshDataStructure::getAnArbitraryTriangle(bool ghost) const {
-		VertexListNode *parent = NULL;
-		VertexListNode *child = NULL;
-
-		for (auto entry : topology) {
-			Vertex *center = entry.first;
-			if ((ghost || !center->isGhost()) && entry.second) {
-				parent = entry.second;
-				child = parent->getNextNode();
-				while (child != NULL) {
-					if (!child->isPreFaceDeleted()) {
-						Vertex *b = parent->getVertex();
-						Vertex *c = child->getVertex();
-						if (ghost || (!b->isGhost() && !c->isGhost()))
-							return Face(center, b, c);
-					}
-
-					parent = child;
-					child = child->getNextNode();
-				}
-				if (!entry.second->isPreFaceDeleted()) {
-					Vertex *b = parent->getVertex();
-					Vertex *c = entry.second->getVertex();
-					if(ghost || (!b->isGhost() && !c->isGhost()))
-						return Face(center, b, c);
-				}
-			}
-		}
-
-		return Face(NULL, NULL, NULL);
-	}
-
 	std::vector<Face> TriMeshDataStructure::getTriangles(bool ghost) const {
 		std::vector<Face> output;
 		getTriangles(ghost, output);
@@ -314,12 +283,11 @@ namespace ODER {
 				parent = entry.second;
 				child = parent->getNextNode();
 				while (child != NULL) {
-					if (!child->isPreFaceDeleted()) {
-						Vertex *b = parent->getVertex();
-						Vertex *c = child->getVertex();
-						if (center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
-							triangles.push_back(Face(center, b, c));
-					}
+					Vertex *b = parent->getVertex();
+					Vertex *c = child->getVertex();
+					if (!child->isPreFaceDeleted() &&
+						center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
+						triangles.push_back(Face(center, b, c));
 
 					parent = child;
 					child = child->getNextNode();
@@ -852,9 +820,8 @@ namespace ODER {
 	bool TetMeshDataStructure::getAdjacentListNode(Vertex *w, Vertex *x, Vertex *y, VertexListNode **z) const {
 		bool found = false;
 		if (edgeOrderCheck(x, w)) {
-			auto pair = topology.find(x);
-			if (pair != topology.end()) {
-				EdgeListNode *linkHead = pair->second;
+			if (x->hasList()) {
+				EdgeListNode *linkHead = x->getListHead();
 				while (linkHead != NULL && linkHead->getEndVertex() != w) {
 					linkHead = linkHead->getNextNode();
 				}
@@ -876,9 +843,8 @@ namespace ODER {
 			}
 		}
 		else {
-			auto pair = topology.find(w);
-			if (pair != topology.end()) {
-				EdgeListNode *linkHead = pair->second;
+			if (w->hasList()) {
+				EdgeListNode *linkHead = w->getListHead();
 				while (linkHead != NULL && linkHead->getEndVertex() != x) {
 					linkHead = linkHead->getNextNode();
 				}
@@ -912,11 +878,10 @@ namespace ODER {
 	bool TetMeshDataStructure::adjacent2Vertex(Vertex *w, Tetrahedron *t) const {
 		bool found = false;
 		EdgeListNode *linkHead = NULL;
-		auto pair = topology.find(w);
-		bool hasList = (pair != topology.end() && pair->second != NULL);
+		bool hasList = w->hasList();
 		if (!hasList) {
 			Vertex *end = w->getPointedVertex();
-			linkHead = topology.find(end)->second;
+			linkHead = end->getListHead();
 			bool foundHead = false;
 			while (linkHead != NULL && !foundHead) {
 				if (linkHead->getEndVertex() == w)
@@ -926,7 +891,7 @@ namespace ODER {
 			}
 		}
 		else
-			linkHead = pair->second;
+			linkHead = w->getListHead();
 
 		if (linkHead != NULL) {
 			VertexListNode *head = linkHead->getLink();
@@ -951,7 +916,8 @@ namespace ODER {
 		else {
 			if (!hasList) {
 				Vertex *oppo = w->getPointedVertex();
-				linkHead = topology.find(oppo)->second;
+				Assert(oppo->hasList());
+				linkHead = oppo->getListHead();
 				while (linkHead && !found) {
 					VertexListNode *head = linkHead->getLink();
 					VertexListNode *parentLoop = head;
@@ -982,44 +948,9 @@ namespace ODER {
 		return found;
 	}
 
-	Tetrahedron TetMeshDataStructure::getAnArbitaryTetrahedron(bool ghost) const {
-		for (auto pair : topology) {
-			Vertex *vert = pair.first;
-			EdgeListNode *linkHead = pair.second;
-			while (linkHead) {
-				Vertex *endVert = linkHead->getEndVertex();
-				if (ghost || !endVert->isGhost()) {
-					VertexListNode *head = linkHead->getLink();
-					VertexListNode *parentNode = head;
-					VertexListNode *node = parentNode->getNextNode();
-					while (node) {
-						if (!node->isPreFaceDeleted()) {
-							Vertex *c = parentNode->getVertex();
-							Vertex *d = node->getVertex();
-							if (ghost || (!c->isGhost() && !d->isGhost()))
-								return Tetrahedron(vert, endVert, c, d);
-						}
-						parentNode = node;
-						node = node->getNextNode();
-					}
-					if (!head->isPreFaceDeleted()) {
-						Vertex *c = parentNode->getVertex();
-						Vertex *d = head->getVertex();
-						if (ghost || (!c->isGhost() && !d->isGhost()))
-							return Tetrahedron(vert, endVert, c, d);
-					}
-				}
-				linkHead = linkHead->getNextNode();
-			}
-		}
-
-		return Tetrahedron(NULL, NULL, NULL, NULL);
-	}
-
 	void TetMeshDataStructure::getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const {
-		for (auto pair : topology) {
-			Vertex *vert = pair.first;
-			EdgeListNode *linkHead = pair.second;
+		for (auto vert : vertices) {
+			EdgeListNode *linkHead = vert->getListHead();
 			while (linkHead) {
 				Vertex *endVert = linkHead->getEndVertex();
 				if (ghost || !endVert->isGhost()) {
@@ -1065,7 +996,7 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::Clear() {
-		topology.clear();
+		vertices.clear();
 		nodePool->freeAll();
 		edgeNodePool->freeAll();
 	}
@@ -1077,8 +1008,8 @@ namespace ODER {
 			std::swap(c, d);
 		}
 
-		auto pair = topology.find(a);
-		if (pair == topology.end()) {
+		if (!a->hasList()) {
+			vertices.push_back(a);
 			//init link
 			VertexListNode *node = nodePool->Alloc();
 			node->setVertex(c);
@@ -1090,11 +1021,11 @@ namespace ODER {
 			EdgeListNode *newNode = edgeNodePool->Alloc();
 			newNode->setEndVertex(b);
 			newNode->setLink(node);
-			topology.insert(std::make_pair(a, newNode));
+			a->setListPointer(newNode);
 		}
 
 		else {
-			EdgeListNode *linkHead = pair->second;
+			EdgeListNode *linkHead = a->getListHead();
 			bool foundHead = false;
 			while (linkHead != NULL && !foundHead) {
 				if (linkHead->getEndVertex() == b)
@@ -1114,8 +1045,8 @@ namespace ODER {
 				EdgeListNode *newNode = edgeNodePool->Alloc();
 				newNode->setEndVertex(b);
 				newNode->setLink(node);
-				newNode->setNextNode(pair->second);
-				pair->second = newNode;
+				newNode->setNextNode(a->getListHead());
+				a->setListPointer(newNode);
 			}
 			else {
 				VertexListNode *head = linkHead->getLink();
@@ -1301,10 +1232,9 @@ namespace ODER {
 			std::swap(c, d);
 		}
 
-		auto pair = topology.find(a);
-		Assert(pair != topology.end());
+		Assert(a->hasList());
 		EdgeListNode *parentLinkHead = NULL;
-		EdgeListNode *linkHead = pair->second;
+		EdgeListNode *linkHead = a->getListHead();
 		bool foundHead = false;
 		while (linkHead != NULL && !foundHead) {
 			if (linkHead->getEndVertex() == b)
@@ -1422,7 +1352,7 @@ namespace ODER {
 				if (parentLinkHead != NULL)
 					parentLinkHead->setNextNode(linkHead->getNextNode());
 				else
-					pair->second = linkHead->getNextNode();
+					a->setListPointer(linkHead->getNextNode());
 				edgeNodePool->Dealloc(linkHead);
 			}
 		}

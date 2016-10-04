@@ -188,15 +188,7 @@ namespace ODER {
 			else corner = b;
 
 			VectorBase<FT> n = *u % *v;
-			FT nLen2 = n.length2();
-			if (nLen2 == FT(0)) {
-				constexpr Predicator<FT> predicator;
-				n.x = predicator.orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
-				n.y = predicator.orient2d(a.z, a.x, b.z, b.x, c.z, c.x);
-				n.z = predicator.orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
-				nLen2 = n.length2();
-			}
-			FT scale = sqrt(maxLen2) / sqrt(nLen2);
+			FT scale = sqrt(maxLen2) / n.length();
 			return corner + (scale * n);
 		}
 
