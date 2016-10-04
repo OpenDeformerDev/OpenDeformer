@@ -2328,7 +2328,7 @@ start:
 	int i = 0;
 	for (auto pair : vi){
 		Vertex *vertex = pair.first;
-		mesh->setVertex(vertIndices[pair.second], Vector{ float(vertex->vert.x), float(vertex->vert.y), float(vertex->vert.z) });
+		mesh->setVertex(vertIndices[pair.second], Vector{ float(vertex->vert.x * 10e6), float(vertex->vert.y * 10e6), float(vertex->vert.z * 10e6) });
 	}
 
 	i = 0;
