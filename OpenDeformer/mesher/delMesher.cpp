@@ -12,6 +12,7 @@ Predicator<REAL> DelTriangulator::predicator;
 
 void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly){
 	meshRep.Clear();
+	meshRep.Reserve(vertexCount);
 	this->segments.clear();
 
 	Vertex *v0, *v1, *v2, *v3;
@@ -73,6 +74,7 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, int *segments, int 
 
 void DelTriangulator::generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly) {
 	meshRep.Clear();
+	meshRep.Reserve(vertexCount);
 	this->segments.clear();
 
 	Vertex *v0, *v1, *v2, *v3;
@@ -129,6 +131,7 @@ void DelTriangulator::generateSubPolygons(Vertex **vertices, Segment *segments, 
 
 void DelTriangulator::insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount) {
 	meshRep.Clear();
+	meshRep.Reserve(triangleCount * 3);
 	this->segments.clear();
 
 	REAL maxArea2 = 0;
@@ -602,6 +605,7 @@ DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL 
 }
 
 void DelMesher::triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny){
+	meshRep.Reserve(vertices.size());
 	Vertex *a = vertices[0], *b = vertices[1];
 	Vertex *c = NULL, *d = NULL;
 	for (int i = 2; i < vertices.size(); i++) {
@@ -634,11 +638,13 @@ void DelMesher::triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStru
 	meshRep.addTetrahedron(ghost, a, b, c);
 	meshRep.addTetrahedron(ghost, a, d, b);
 
+	VertexInsertionFlags vifs;
+	vifs.skinnyTetTest = insertToSkinny;
 	Tetrahedron rt = t;
 	for (int i = 4; i < vertices.size(); i++){
 		Vertex *v = vertices[i];
 		t = findPosition(v, rt, meshRep);
-		insertVertex(v, t, meshRep, &rt, false, insertToSkinny);
+		insertVertex(v, t, meshRep, vifs, &rt);
 	}
 }
 
@@ -666,6 +672,7 @@ start:
 				Assert(false);
 		}
 	}
+
 	while (!mayEncroachedFaces.empty()) {
 		Face f = mayEncroachedFaces.front();
 		mayEncroachedFaces.pop_front();
@@ -678,6 +685,8 @@ start:
 			}
 		}
 	}
+
+	propagateClean(surfaceRep.getAnArbitraryTriangle(false), 0);
 }
 
 Tetrahedron DelMesher::findPosition(Vertex *u, const Tetrahedron &t, const TetMeshDataStructure& meshRep) const{
@@ -865,7 +874,7 @@ Face DelMesher::findPosition(Vertex *u, const DelVector& above, const Face& f) c
 }
 
 void DelMesher::digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
-	Tetrahedron *rt, bool encroachmentTest, bool insertToSkinny, bool trulyDeleteOrAdd){
+	const VertexInsertionFlags& vifs, Tetrahedron *rt){
 	Vertex *a;
 	if (!meshRep.Adjacent(f, &a))
 		return;
@@ -875,25 +884,30 @@ void DelMesher::digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRe
 	Vertex *d = f.v[2];
 
 	bool deleted = false;
-	if (a->isGhost())
-	    deleted = predicator.inOrthoHalfSpace3D(u->vert, u->weight, b->vert, b->weight, c->vert, c->weight, d->vert, d->weight);
-	else if (b->isGhost())
-		deleted = predicator.inOrthoHalfSpace3D(u->vert, u->weight, a->vert, a->weight, d->vert, d->weight, c->vert, c->weight);
-	else
-		deleted = predicator.inOrthoSpherePerturbed(u->vert, u->weight, b->vert, b->weight, d->vert, d->weight, c->vert, c->weight, a->vert, a->weight) > 0;
+	if (!vifs.cdt || (!surfaceRep.Contain(f) && !surfaceRep.Contain(Face(b, d, c)))) {
+		if (a->isGhost())
+			deleted = predicator.inOrthoHalfSpace3D(u->vert, u->weight, b->vert, b->weight, c->vert, c->weight, d->vert, d->weight);
+		else if (b->isGhost())
+			deleted = predicator.inOrthoHalfSpace3D(u->vert, u->weight, a->vert, a->weight, d->vert, d->weight, c->vert, c->weight);
+		else
+			deleted = predicator.inOrthoSpherePerturbed(u->vert, u->weight, b->vert, b->weight, d->vert, d->weight, c->vert, c->weight, a->vert, a->weight) > 0;
+	}
 
 	if (deleted){
-		if (!trulyDeleteOrAdd)
+		if (!vifs.trueInsetion)
 			tobeDeletedTets.push_back(Tetrahedron(a, b, c, d));
 		meshRep.deleteTetrahedron(a, b, c, d);
 
-		if (encroachmentTest) {
-			for (int i = 0; i < 3; i++) {
-				Segment seg = Segment(f.v[i], f.v[NEXT_F(i)], true);
-				if (findSegment(seg))
-					mayEncroachedSegsSet.insert(seg);
-			}
-
+		if (vifs.encroachSegTest) {
+			Segment ab(a, b, true), ac(a, c, true), ad(a, d, true), bc(b, c, true), bd(b, d, true), cd(c, d, true);
+			if (findSegment(ab)) mayEncroachedSegsSet.insert(ab);
+			if (findSegment(ac)) mayEncroachedSegsSet.insert(ac);
+			if (findSegment(ad)) mayEncroachedSegsSet.insert(ad);
+			if (findSegment(bc)) mayEncroachedSegsSet.insert(bc);
+			if (findSegment(bd)) mayEncroachedSegsSet.insert(bd);
+			if (findSegment(cd)) mayEncroachedSegsSet.insert(cd);
+		}
+		if(vifs.encroachFaceTest){
 			Face faceOut(b, c, d), faceIn(b, d, c);
 			if (surfaceRep.Contain(faceOut))
 				mayEncroachedFaces.push_back(faceOut);
@@ -901,18 +915,18 @@ void DelMesher::digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRe
 				mayEncroachedFaces.push_back(faceIn);
 		}
 
-		digCavity(u, Face(a, c, d, true), meshRep, rt, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
-		digCavity(u, Face(a, b, c, true), meshRep, rt, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
-		digCavity(u, Face(a, d, b, true), meshRep, rt, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
+		digCavity(u, Face(a, c, d, true), meshRep, vifs, rt);
+		digCavity(u, Face(a, b, c, true), meshRep, vifs, rt);
+		digCavity(u, Face(a, d, b, true), meshRep, vifs, rt);
 	}
 	else{
-		if (trulyDeleteOrAdd)
+		if (vifs.trueInsetion)
 			meshRep.addTetrahedron(u, b, d, c);
 		else
 			newFacesOfTets.push_back(Face(b, d, c));
 		if (rt)
 			*rt = Tetrahedron(u, b, d, c, true);
-		if (insertToSkinny){
+		if (vifs.skinnyTetTest){
 			Tetrahedron t(u, b, d, c, true);
 			t.setRationAndRadius();
 			if (t.getREration() > maxRatio || t.getRadius() > maxRadius)
@@ -1274,7 +1288,10 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 	Tetrahedron toBeDeleted;
 	meshRep.adjacent2Vertex(a, &toBeDeleted);
 	toBeDeleted = findPosition(steinerVert, toBeDeleted, meshRep);
-	insertVertex(steinerVert, toBeDeleted, meshRep, NULL, true);
+
+	VertexInsertionFlags vifs;
+	vifs.encroachSegTest = true;
+	insertVertex(steinerVert, toBeDeleted, meshRep, vifs);
 
 	//inserte it to surface
 	insertSurfaceSegmentVertex(steinerVert, s);
@@ -1297,7 +1314,9 @@ void DelMesher::splitSubSegment(const Segment &s){
 		meshRep.adjacent2Vertex(s.v[0], &toBeDeleted);
 		toBeDeleted = findPosition(mid, toBeDeleted, meshRep);
 	}
-	insertVertex(mid, toBeDeleted, meshRep, NULL, true);
+	VertexInsertionFlags vifs;
+	vifs.encroachSegTest = true;
+	insertVertex(mid, toBeDeleted, meshRep, vifs);
 }
 
 void DelMesher::splitSubPolygon(const Face &f){
@@ -1340,7 +1359,9 @@ void DelMesher::splitSubPolygon(const Face &f){
 			meshRep.adjacent2Vertex(a, &toBeDeleted);
 			toBeDeleted = findPosition(newPoint, toBeDeleted, meshRep);
 		}
-		insertVertex(newPoint, toBeDeleted, meshRep, NULL, true);
+		VertexInsertionFlags vifs;
+		vifs.encroachSegTest = true; vifs.encroachFaceTest = true;
+		insertVertex(newPoint, toBeDeleted, meshRep, vifs);
 	}
 	else{
 		for (auto i : tobeDeletedFaces){
@@ -1361,10 +1382,12 @@ void DelMesher::splitTetrahedron(const Tetrahedron& tet){
 	tobeDeletedTets.push_back(tet);
 	meshRep.deleteTetrahedron(a, b, c, d);
 
-	digCavity(&center, Face(b, d, c, true), meshRep, NULL, false, false, false);
-	digCavity(&center, Face(a, c, d, true), meshRep, NULL, false, false, false);
-	digCavity(&center, Face(a, d, b, true), meshRep, NULL, false, false, false);
-	digCavity(&center, Face(a, b, c, true), meshRep, NULL, false, false, false);
+	VertexInsertionFlags vifs;
+	vifs.trueInsetion = false;
+	digCavity(&center, Face(b, d, c, true), meshRep, vifs, NULL);
+	digCavity(&center, Face(a, c, d, true), meshRep, vifs, NULL);
+	digCavity(&center, Face(a, d, b, true), meshRep, vifs, NULL);
+	digCavity(&center, Face(a, b, c, true), meshRep, vifs, NULL);
 
 	bool encrochment = false;
 	Face encrocachedFace;
@@ -1478,7 +1501,7 @@ bool DelMesher::findCrossEdge(const Segment& boundary, const std::vector<Face>& 
 				}
 			}
 		}
-		meshRep.Adjacent(Face(a, b, c), &d);
+		Assert(meshRep.Adjacent(Face(a, b, c), &d));
 		std::swap(c, d);
 	} while (c != anchor);
 
@@ -1524,20 +1547,16 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 		cross.v[0]->setMark(); cross.v[1]->setMark();
 	}
 	else {
-		Vertex *onFace = cross.v[1];
+		Vertex *posi = cross.v[0], *onFace = cross.v[1];
 		toBeErased.push_back(Face(seg.v[0], seg.v[1], onFace));
 
-		Vertex *posi = cross.v[0], *negi = NULL;
-		meshRep.Adjacent(Face(onFace, seg.v[0], seg.v[1]), &negi);
-		Assert(negi != NULL);
-
 		if (!surfaceRep.isMarked(onFace, seg.v[0])) {
-			newSegments.push_back(Segment(seg.v[0], onFace));
-			triangleStack.push(std::make_pair(Face(seg.v[0], onFace, negi), CavityTriangleType::TwoCoplanar));
+			newSegments.push_back(Segment(onFace, seg.v[0]));
+			triangleStack.push(std::make_pair(Face(onFace, seg.v[0], posi), CavityTriangleType::TwoCoplanar));
 		}
 		if (!surfaceRep.isMarked(seg.v[1], onFace)) {
 			newSegments.push_back(Segment(seg.v[1], onFace));
-			triangleStack.push(std::make_pair(Face(onFace, seg.v[1], negi), CavityTriangleType::TwoCoplanar));
+			triangleStack.push(std::make_pair(Face(seg.v[1], onFace, posi), CavityTriangleType::TwoCoplanar));
 		}
 	}
 
@@ -1576,8 +1595,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 						d->setMark();
 					}
 					triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::TwoPositive));
-					triangleStack.push(std::make_pair(Face(c, d, a), CavityTriangleType::TwoNegative));
-					triangleStack.push(std::make_pair(Face(d, c, b), CavityTriangleType::TwoNegative));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoNegative));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoNegative));
 				}
 				else {
 					if (!d->isMarked()) {
@@ -1618,8 +1637,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 						d->setMark();
 					}
 					triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::TwoNegative));
-					triangleStack.push(std::make_pair(Face(c, d, a), CavityTriangleType::TwoPositive));
-					triangleStack.push(std::make_pair(Face(d, c, b), CavityTriangleType::TwoPositive));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoPositive));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoPositive));
 				}
 				else {
 					if (!d->isMarked()) {
@@ -1660,26 +1679,26 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 					deleted.push_back(Tetrahedron(d, a, b, c));
 					meshRep.deleteTetrahedron(d, a, b, c);
 					if (!d->isMarked()) {
-						positiveVertices.push_back(d);
+						negativeVertices.push_back(d);
 						d->setMark();
 					}
 					if (!c->isMarked()) {
-						negativeVertices.push_back(c);
+						positiveVertices.push_back(c);
 						c->setMark();
 					}
-					positiveFaces.push_back(Face(d, b, a));
-					negativeFaces.push_back(Face(c, a, b));
-					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::PositiveNegativeCoplanar));
-					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::NegativePositiveCoplanar));
+					negativeFaces.push_back(Face(d, b, a));
+					positiveFaces.push_back(Face(c, a, b));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::NegativePositiveCoplanar));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::PositiveNegativeCoplanar));
 				}
 				else {
-					toBeErased.push_back(Face(a, b, d));
-					if (!surfaceRep.isMarked(d, a)) {
-						newSegments.push_back(Segment(d, a));
+					toBeErased.push_back(Face(b, a, d));
+					if (!surfaceRep.isMarked(a, d)) {
+						newSegments.push_back(Segment(a, d));
 						triangleStack.push(std::make_pair(Face(a, d, c), CavityTriangleType::TwoCoplanar));
 					}
-					if (!surfaceRep.isMarked(b, d)) {
-						newSegments.push_back(Segment(b, d));
+					if (!surfaceRep.isMarked(d, b)) {
+						newSegments.push_back(Segment(d, b));
 						triangleStack.push(std::make_pair(Face(d, b, c), CavityTriangleType::TwoCoplanar));
 					}
 				}
@@ -1728,7 +1747,7 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 				triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::PositiveNegativeCoplanar));
 				if (!surfaceRep.isMarked(d, c)) {
 					if (!surfaceRep.Contain(Segment(d, c))) newSegments.push_back(Segment(d, c));
-					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoCoplanar));
+					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoCoplanar));
 				}
 				positiveFaces.push_back(Face(a, c, d));
 				negativeFaces.push_back(Face(c, b, d));
@@ -1776,8 +1795,8 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 				//two vertices on face
 				triangleStack.push(std::make_pair(Face(a, b, d), CavityTriangleType::NegativePositiveCoplanar));
 				if (!surfaceRep.isMarked(c, d)) {
-					if(!surfaceRep.Contain(Segment(c, d))) newSegments.push_back(Segment(c, d));
-					triangleStack.push(std::make_pair(Face(d, c, a), CavityTriangleType::TwoCoplanar));
+					if (!surfaceRep.Contain(Segment(c, d))) newSegments.push_back(Segment(c, d));
+					triangleStack.push(std::make_pair(Face(c, d, b), CavityTriangleType::TwoCoplanar));
 				}
 				negativeFaces.push_back(Face(a, c, d));
 				positiveFaces.push_back(Face(c, b, d));
@@ -1842,101 +1861,49 @@ bool DelMesher::faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
 	if (findCavity(regionBoundaries, regionFaces, 
 		positiveVertices, positiveFaces, negativeVertices, negativeFaces,
 		deleted)) {
-		//alloc seperated region vertices and faces
-		int regionVertCount = regionVertices.size();
-		int regionFaceCount = regionFaces.size();
-		std::vector<Vertex *> newRegionVertices(regionVertCount);
-		std::vector<Face> newRegionFaces(regionFaceCount);
-
-		for (int i = 0; i < regionVertCount; i++) {
-			newRegionVertices[i] = allocVertex(*regionVertices[i]);
-			//temporary hack
-			newRegionVertices[i]->setVertexPointer(regionVertices[i]->getPointedVertex());
-			regionVertices[i]->setVertexPointer(newRegionVertices[i]);
-		}
-		for (int i = 0; i < regionFaceCount; i++) {
-			Face face = regionFaces[i];
-			newRegionFaces[i] = Face(face.v[0]->getPointedVertex(), face.v[1]->getPointedVertex(), face.v[2]->getPointedVertex());
-		}
-
 		bool posSuccess = false, negSuccess = false;
-
-		posSuccess = triangulateCavity(newRegionVertices, newRegionFaces, positiveVertices, positiveFaces, deleted, inserted, f);
+		positiveVertices.reserve(positiveVertices.size() + regionVertices.size());
+		for (auto v : regionVertices) positiveVertices.push_back(v);
+		posSuccess = triangulateCavity(regionFaces, positiveFaces, positiveVertices, deleted, inserted, f);
 		if (posSuccess) {
-			for (auto& face : newRegionFaces) 
-				std::swap(face.v[1], face.v[2]);
-			for (int i = 0; i < regionVertCount; i++) regionVertices[i]->setVertexPointer(newRegionVertices[i]);
-			negSuccess = triangulateCavity(newRegionVertices, newRegionFaces, negativeVertices, negativeFaces, deleted, inserted, f);
+			for (auto& face : regionFaces) std::swap(face.v[1], face.v[2]);
+			negativeVertices.reserve(negativeVertices.size() + regionVertices.size());
+			for (auto v : regionVertices) negativeVertices.push_back(v);
+			negSuccess = triangulateCavity(regionFaces, negativeFaces, negativeVertices, deleted, inserted, f);
 		}
 
 		success = posSuccess & negSuccess;
 
 		if (success) {
-			for (int i = 0; i < regionVertCount; i++)
-				newRegionVertices[i]->setVertexPointer(regionVertices[i]);
-			for (auto t : inserted)
-				meshRep.addTetrahedron(t.v[0]->getPointedVertex(), t.v[1]->getPointedVertex(),
-					t.v[2]->getPointedVertex(), t.v[3]->getPointedVertex());
-
-			for (auto v : positiveVertices) deallocVertex(v);
-			for (auto v : negativeVertices) deallocVertex(v);
+			for (auto t : inserted) 
+				meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
 		}
 		else {
 			for (auto t : deleted)
 				meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
-
-			if (posSuccess)
-				for (auto v : positiveVertices) deallocVertex(v);
 		}
-
-		for (int i = 0; i < regionVertCount; i++)
-			deallocVertex(newRegionVertices[i]);
 	}
 
-	for (auto v : regionVertices) v->unSetMark();
+	for (auto v : positiveVertices) v->unSetMark();
+	for (auto v : negativeVertices) v->unSetMark();
 
 	return success;
 }
 
-//require: all vertices in boundaryVertices are marked and original region vertices pointed to the region vertices in original mesh
+//require: all vertices in boundaryVertices are marked
 //ensure: all vertices in boundaryVertices are unmarked
-bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, const std::vector<Face>& regionFaces,
-	std::vector<Vertex *>& boundaryVertices, std::vector<Face>& boundaryFaces,
+bool DelMesher::triangulateCavity(const std::vector<Face>& regionFaces, const std::vector<Face>& boundaryFaces, std::vector<Vertex *>& cavityVertices,
 	std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached) {
 
-	std::vector<Vertex *> newBoundaryVertices;
-	std::vector<Vertex *> cavityVertices;
-	//pair.first <- faces in mesh, pair.second <- faces in cavity
-	std::vector<std::pair<Face, Face>> facePairs;
-	//pair.first <- faces in mesh, pair.second <- faces in cavity
-	std::vector<std::pair<Face, Face>> shellPairs;
-	std::vector<Face> boundaryShell;
+	std::vector<Face> shellFaces;
+	std::vector<Face> newShellFaces;
 
-	newBoundaryVertices.reserve(boundaryVertices.size());
-	cavityVertices.reserve(boundaryVertices.size() + regionVertices.size());
-	boundaryShell.reserve(boundaryFaces.size());
-	facePairs.reserve(boundaryFaces.size());
+	shellFaces.reserve(boundaryFaces.size());
+	newShellFaces.reserve(boundaryFaces.size());
 
-	for (auto v : boundaryVertices) {
-		Vertex *cavityVert = allocVertex(*v);
-		newBoundaryVertices.push_back(cavityVert);
-		cavityVertices.push_back(cavityVert);
-		//temporary hack
-		cavityVert->setVertexPointer(v->getPointedVertex());
-		v->setVertexPointer(cavityVert);
-	}
 	for (auto f : boundaryFaces) {
 		meshRep.setMark(f.v[0], f.v[2], f.v[1]);
-		facePairs.push_back(std::make_pair(f, 
-			Face(f.v[0]->getPointedVertex(), f.v[1]->getPointedVertex(), f.v[2]->getPointedVertex())));
-	}
-	for (int i = 0; i < boundaryVertices.size(); i++) {
-		boundaryVertices[i]->setVertexPointer(newBoundaryVertices[i]->getPointedVertex());
-		newBoundaryVertices[i]->setListPointer(NULL);
-	}
-	for (auto v : regionVertices) {
-		v->setListPointer(NULL);
-		cavityVertices.push_back(v);
+		shellFaces.push_back(f);
 	}
 
 	//construct triangulation
@@ -1948,44 +1915,38 @@ bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, c
 	do {
 		bool enlarged = false;
 		int initCount = deleted.size();
-		for (auto pair : facePairs) {
-			if (!cavityRep.Contain(pair.second)) {
+		for (auto face : shellFaces) {
+			if (!cavityRep.Contain(face)) {
 				Vertex *oppo = NULL;
-				if (meshRep.Adjacent(pair.first, &oppo)) {
+				if (meshRep.Adjacent(face, &oppo)) {
 					enlarged = true;
-					deleted.push_back(Tetrahedron(oppo, pair.first.v[0], pair.first.v[1], pair.first.v[2]));
-					Vertex *cavityOppo = allocVertex(*oppo);
+					deleted.push_back(Tetrahedron(oppo, face.v[0], face.v[1], face.v[2]));
 					if (!oppo->isMarked()) {
 						Tetrahedron hint;
-						bool found = cavityRep.adjacent2Vertex(pair.second.v[0], &hint);
-						Assert(found);
-						hint = findPosition(cavityOppo, hint, cavityRep);
-						insertVertex(cavityOppo, hint, cavityRep);
+						Assert(cavityRep.adjacent2Vertex(face.v[0], &hint));
+						hint = findPosition(oppo, hint, cavityRep);
+						insertVertex(oppo, hint, cavityRep);
 						oppo->setMark();
 
-						boundaryVertices.push_back(oppo);
-						newBoundaryVertices.push_back(cavityOppo);
+						cavityVertices.push_back(oppo);
 					}
-					if (!meshRep.testAndMark(oppo, pair.first.v[2], pair.first.v[0]))
-						shellPairs.push_back(std::make_pair(Face(oppo, pair.first.v[0], pair.first.v[2]),
-							Face(cavityOppo, pair.second.v[0], pair.second.v[2])));
+					if (!meshRep.testAndMark(oppo, face.v[2], face.v[0]))
+						newShellFaces.push_back(Face(oppo, face.v[0], face.v[2]));
 
-					if (!meshRep.testAndMark(oppo, pair.first.v[0], pair.first.v[1])) 
-						shellPairs.push_back(std::make_pair(Face(oppo, pair.first.v[1], pair.first.v[0]), 
-							Face(cavityOppo, pair.second.v[1], pair.second.v[0])));
+					if (!meshRep.testAndMark(oppo, face.v[0], face.v[1])) 
+						newShellFaces.push_back(Face(oppo, face.v[1], face.v[0]));
 
-					if (!meshRep.testAndMark(oppo, pair.first.v[1], pair.first.v[2]))
-						shellPairs.push_back(std::make_pair(Face(oppo, pair.first.v[2], pair.first.v[1]),
-							Face(cavityOppo, pair.second.v[2], pair.second.v[1])));
+					if (!meshRep.testAndMark(oppo, face.v[1], face.v[2]))
+						newShellFaces.push_back(Face(oppo, face.v[2], face.v[1]));
 				}
 
 				//enlarge process may eliminate previous recovered faces, insert it to queue for later recovery.
-				if (surfaceRep.Contain(pair.first)) mayEncroachedFaces.push_back(pair.first);
-				Face backPairFirst(pair.first.v[0], pair.first.v[2], pair.first.v[1]);
-				if (surfaceRep.Contain(backPairFirst)) mayEncroachedFaces.push_back(backPairFirst);
+				if (surfaceRep.Contain(face)) mayEncroachedFaces.push_back(face);
+				Face back(face.v[0], face.v[2], face.v[1]);
+				if (surfaceRep.Contain(back)) mayEncroachedFaces.push_back(back);
 			}
 			else
-				shellPairs.push_back(pair);
+				newShellFaces.push_back(face);
 		}
 		if (!enlarged) break;
 
@@ -1993,7 +1954,8 @@ bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, c
 			const Tetrahedron& t = deleted[i];
 			meshRep.deleteTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
 		}
-		std::swap(facePairs, shellPairs);
+		std::swap(newShellFaces, shellFaces);
+		newShellFaces.clear();
 	} while (true);
 
 	bool success = true;
@@ -2003,21 +1965,12 @@ bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, c
 			cavityRep.setMark(f.v[0], f.v[1], f.v[2]);
 		else {
 			//if not, find missing triangle edge put to v[1]-v[2]
+			if (!surfaceRep.Contain(f)) std::swap(f.v[1], f.v[2]);
 			for (int i = 0; i < 3; i++) {
 				Vertex *a = f.v[i], *b = f.v[NEXT_F(i)], *c = f.v[NEXT_F(NEXT_F(i))];
 				if (!findSegment(Segment(b, c, true))) {
-					Vertex *oppo = NULL;
-					bool found = surfaceRep.Adjacent(Segment(b, c), &oppo);
-					if (!found || oppo == a) {
-						std::swap(b, c);
-						found = surfaceRep.Adjacent(Segment(b, c), &oppo);
-					}
-					Assert(found && oppo == a);
-
-					if (!cavityRep.Contain(Face(oppo, b, c))) {
-						encroached = Face(a, b, c);
-						break;
-					}
+					encroached = Face(a, b, c);
+					break;
 				}
 			}
 			success = false;
@@ -2027,26 +1980,18 @@ bool DelMesher::triangulateCavity(const std::vector<Vertex *>& regionVertices, c
 
 	if (success) {
 		//mark shell
-		for (auto pair : shellPairs)
-			cavityRep.setMark(pair.second.v[0], pair.second.v[1], pair.second.v[2]);
+		for (auto f : shellFaces)
+			cavityRep.setMark(f.v[0], f.v[1], f.v[2]);
 		//clean tets out of cavity
-		for (auto pair : shellPairs)
-			propagateCleanCavity(Face(pair.second.v[0], pair.second.v[2], pair.second.v[1]), 0);
+		for (auto f : shellFaces) 
+			propagateCleanCavity(Face(f.v[0], f.v[2], f.v[1]), 0);
 		for(auto f : regionFaces)
 			propagateCleanCavity(Face(f.v[0], f.v[2], f.v[1]), 0);
-		
-		cavityRep.getTetrahedrons(false, inserted);
-		//vertex pointer point to mesh vertex
-		for (int i = 0; i < boundaryVertices.size(); i++) {
-			boundaryVertices[i]->unSetMark();
-			newBoundaryVertices[i]->setVertexPointer(boundaryVertices[i]);
-			boundaryVertices[i] = newBoundaryVertices[i];
-		}
-	}
-	else
-		for (auto vert : newBoundaryVertices) deallocVertex(vert);
 
-	for (auto pair : shellPairs) meshRep.unSetMark(pair.first.v[0], pair.first.v[2], pair.first.v[1]);
+		cavityRep.getTetrahedrons(false, inserted);
+	}
+
+	for (auto f : shellFaces) meshRep.unSetMark(f.v[0], f.v[2], f.v[1]);
 	cavityRep.Clear();
 
 	return success;
@@ -2074,7 +2019,9 @@ void DelMesher::refineRegion(const Face& regionFace) {
 
 	Assert(mayEncroachedSegs.size() == 0);
 	int initCount = mayEncroachedFaces.size();
-	insertVertex(&steinerVert, toBeDeleted, meshRep, NULL, true, false, false);
+	VertexInsertionFlags vifs;
+	vifs.encroachSegTest = true; vifs.encroachFaceTest = true; vifs.trueInsetion = false;
+	insertVertex(&steinerVert, toBeDeleted, meshRep, vifs);
 
 	//detect encroachment
 	bool encroach = false;
@@ -2119,7 +2066,9 @@ void DelMesher::refineRegion(const Face& regionFace) {
 		bool found = findIntersectedTetrahedron(encrochedSeg.v[0], encrochedSeg.v[1]->vert, &toBeDeleted);
 		Assert(found);
 
-		insertVertex(newVert, toBeDeleted, meshRep, NULL, true);
+		VertexInsertionFlags svifs;
+		svifs.encroachSegTest = true;
+		insertVertex(newVert, toBeDeleted, meshRep, svifs);
 
 		//insert it to surface
 		insertSurfaceSegmentVertex(newVert, encrochedSeg);
@@ -2129,18 +2078,27 @@ void DelMesher::refineRegion(const Face& regionFace) {
 }
 
 void DelMesher::insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep,
-	Tetrahedron *rt, bool encroachmentTest, bool insertToSkinny, bool trulyDeleteOrAdd){
+	const VertexInsertionFlags& vifs, Tetrahedron *rt){
 	Vertex *a = tet.v[0], *b = tet.v[1], *c = tet.v[2], *d = tet.v[3];
 
-	if(!trulyDeleteOrAdd) tobeDeletedTets.push_back(tet);
+	if(!vifs.trueInsetion) tobeDeletedTets.push_back(tet);
 	meshRep.deleteTetrahedron(a, b, c, d);
+	if (vifs.encroachSegTest) {
+		Segment ab(a, b, true), ac(a, c, true), ad(a, d, true), bc(b, c, true), bd(b, d, true), cd(c, d, true);
+		if (findSegment(ab)) mayEncroachedSegsSet.insert(ab);
+		if (findSegment(ac)) mayEncroachedSegsSet.insert(ac);
+		if (findSegment(ad)) mayEncroachedSegsSet.insert(ad);
+		if (findSegment(bc)) mayEncroachedSegsSet.insert(bc);
+		if (findSegment(bd)) mayEncroachedSegsSet.insert(bd);
+		if (findSegment(cd)) mayEncroachedSegsSet.insert(cd);
+	}
 
-	digCavity(u, Face(b, d, c, true), meshRep, rt, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
-	digCavity(u, Face(a, c, d, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
-	digCavity(u, Face(a, d, b, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
-	digCavity(u, Face(a, b, c, true), meshRep, NULL, encroachmentTest, insertToSkinny, trulyDeleteOrAdd);
+	digCavity(u, Face(b, d, c, true), meshRep, vifs, rt);
+	digCavity(u, Face(a, c, d, true), meshRep, vifs, NULL);
+	digCavity(u, Face(a, d, b, true), meshRep, vifs, NULL);
+	digCavity(u, Face(a, b, c, true), meshRep, vifs, NULL);
 
-	if (encroachmentTest) {
+	if (vifs.encroachSegTest) {
 		for (auto s : mayEncroachedSegsSet) mayEncroachedSegs.push_back(s);
 		mayEncroachedSegsSet.clear();
 	}
@@ -2217,6 +2175,22 @@ void DelMesher::propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL
 	}
 	else
 		boundaries.push_back(Segment(v, u));
+}
+
+void DelMesher::propagateClean(const Face &f, int depth){
+	Vertex *a = NULL;
+	if (surfaceRep.Contain(Face(f.v[0], f.v[2], f.v[1])) || !meshRep.Adjacent(f, &a))
+		return;
+
+	Vertex *b = f.v[0];
+	Vertex *c = f.v[1];
+	Vertex *d = f.v[2];
+
+	meshRep.deleteTetrahedron(a, b, c, d);
+
+	propagateClean(Face(a, c, d), depth + 1);
+	propagateClean(Face(a, b, c), depth + 1);
+	propagateClean(Face(a, d, b), depth + 1); 
 }
 
 bool DelMesher::Encroached(const Segment& s) const{
@@ -2354,7 +2328,7 @@ start:
 	int i = 0;
 	for (auto pair : vi){
 		Vertex *vertex = pair.first;
-		mesh->setVertex(vertIndices[pair.second], Vector{ float(vertex->vert.x), float(vertex->vert.y), float(vertex->vert.z) });
+		mesh->setVertex(vertIndices[pair.second], Vector{ float(vertex->vert.x * 10e6), float(vertex->vert.y * 10e6), float(vertex->vert.z * 10e6) });
 	}
 
 	i = 0;

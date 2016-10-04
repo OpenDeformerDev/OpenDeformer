@@ -20,14 +20,17 @@
 namespace ODER {
 	using DelVector = VectorBase<REAL>;
 
-	class Labeler {
+	class VertexLabeler {
 	public:
-		Labeler() : label(1) {}
+		VertexLabeler() : label(1) {}
 		int getLabel() {
 			return label++;
 		}
-		int getSpecilGhostLabel() {
+		static constexpr int getSpecilGhostLabel() {
 			return 0;
+		}
+		void restartLable() {
+			label = 1;
 		}
 	private:
 		int label;
@@ -55,59 +58,49 @@ namespace ODER {
 	class EdgeListNode;
 
 	struct Vertex {
-		Vertex() : weight(0.0), label(-1), listPointer(0), vertexPointer(NULL), type(VertexType::Vertex_Undefined){}
+		Vertex() : weight(0.0), label(-1), vertexPointer(0), type(VertexType::Vertex_Undefined){}
 		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
-			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), listPointer(0), vertexPointer(NULL), type(t) {}
+			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), vertexPointer(0), type(t) {}
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: vert(vv), weight(w), label(-1), listPointer(0), vertexPointer(NULL), type(t) {}
+			: vert(vv), weight(w), label(-1), vertexPointer(0), type(t) {}
 		void setGhost() {
 			constexpr REAL max = std::numeric_limits<REAL>::max();
 			vert.x = max; vert.y = max; vert.z = max;
 			weight = -max;
-			label = labeler.getSpecilGhostLabel();
+			label = VertexLabeler::getSpecilGhostLabel();
+			vertexPointer = 0;
 			type = VertexType::Vertex_Undefined;
 		}
 		bool isGhost() const {
-			return label == labeler.getSpecilGhostLabel();
+			return label == VertexLabeler::getSpecilGhostLabel();
 		}
-		void setLabel() {
-			label = labeler.getLabel();
+		void setLabel(int label) {
+			this->label = label;
 		}
 		int getLabel() const {
 			return label;
 		}
-		void setListPointer(EdgeListNode *n) {
-			listPointer = uintptr_t(n) | (listPointer & 0x1);
-		}
 		void setVertexPointer(Vertex *v) {
-			vertexPointer = v;
-		}
-		EdgeListNode *getListHead() {
-			return (EdgeListNode *)(listPointer & (~0x1));
+			vertexPointer = uintptr_t(v) | (vertexPointer & 0x1);
 		}
 		Vertex *getPointedVertex() const {
-			return vertexPointer;
+			return (Vertex *)(vertexPointer & (~0x1));
 		}
 		void setMark() {
-			listPointer |= 0x1;
+			vertexPointer |= 0x1;
 		}
 		void unSetMark() {
-			listPointer &= (~0x1);
+			vertexPointer &= (~0x1);
 		}
 		bool isMarked() const {
-			return (listPointer & 0x1) == 0x1;
-		}
-		bool hasList() const {
-			return (listPointer & (~0x1)) != 0;
+			return (vertexPointer & 0x1) == 0x1;
 		}
 		DelVector vert;
 		REAL weight;
 		VertexType type;
 	private:
 		int label;
-		uintptr_t listPointer;//point to the adjaceny list
-		Vertex *vertexPointer;//point to the vertex which has adjaceny list if listPoint is NULL (permit temporary hack)
-		static Labeler labeler;
+		uintptr_t vertexPointer;//point to a vertex which is one of the vertices of latest inserted vertex
 	};
 
 
@@ -349,6 +342,8 @@ namespace ODER {
 		bool Contain(const Face &f) const;
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const;
 		void Clear();
+		void Reserve(size_t n) { topology.reserve(n); }
+		Face getAnArbitraryTriangle(bool ghost) const;
 		std::vector<Face> getTriangles(bool ghost) const;
 		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
 		~TriMeshDataStructure();
@@ -372,12 +367,14 @@ namespace ODER {
 		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
 		bool Adjacent(const Face &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
+		Tetrahedron getAnArbitaryTetrahedron(bool ghost) const;
 		std::vector<Tetrahedron> getTetrahedrons(bool ghost) const;
 		void getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Face &f) const;
 		bool Contain(const Tetrahedron& t) const;
 		void Clear();
+		void Reserve(size_t n) { topology.reserve(n); }
 		~TetMeshDataStructure();
 	private:
 		bool getAdjacentListNode(const Face& f, VertexListNode **z) const;
@@ -388,7 +385,7 @@ namespace ODER {
 		bool parityCheck(const Vertex *x, const Vertex *y) const;
 		bool edgeOrderCheck(const Vertex *a, const Vertex *b) const;
 
-		std::vector<Vertex *> vertices;
+		std::unordered_map<Vertex *, EdgeListNode *, vertex_hash> topology;
 		MemoryPool<VertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
 	};
