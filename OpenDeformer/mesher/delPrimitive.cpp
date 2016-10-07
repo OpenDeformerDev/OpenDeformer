@@ -307,6 +307,7 @@ namespace ODER {
 	void TriMeshDataStructure::getTriangles(bool ghost, std::vector<Face>& triangles) const {
 		VertexListNode *parent = NULL;
 		VertexListNode *child = NULL;
+		triangles.reserve(topology.size() * 2);
 
 		for (auto entry : topology) {
 			Vertex *center = entry.first;
@@ -804,17 +805,6 @@ namespace ODER {
 		VertexListNode *node = NULL;
 		if (getAdjacentListNode(f, &node))
 			node->unSetMark();
-	}
-
-	bool TetMeshDataStructure::testAndMark(Vertex *u, Vertex *v, Vertex *w) {
-		Face f(u, v, w, true);
-
-		VertexListNode *node = NULL;
-		if (getAdjacentListNode(f, &node)) {
-			if (node->isMarked()) return true;
-			node->setMark();
-		}
-		return false;
 	}
 
 	bool TetMeshDataStructure::isMarked(Vertex *u, Vertex *v, Vertex *w) const {

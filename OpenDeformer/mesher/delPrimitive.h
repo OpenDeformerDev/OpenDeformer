@@ -363,7 +363,6 @@ namespace ODER {
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void setMark(Vertex *u, Vertex *v, Vertex *w);
 		void unSetMark(Vertex *u, Vertex *v, Vertex *w);
-		bool testAndMark(Vertex *u, Vertex *v, Vertex *w);
 		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
 		bool Adjacent(const Face &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;

@@ -106,8 +106,8 @@ namespace ODER{
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool triangulateCavity(const std::vector<Face>& regionFaces, const std::vector<Face>& boundaryFaces, std::vector<Vertex *>& cavityVertices,
-			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
+		bool triangulateCavity(const std::vector<Face>& regionFaces, bool missingFaceTest, std::vector<Face>& boundaryFaces,
+			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
 		void propagateCleanCavity(const Face& f, int depth);
 		void refineRegion(const Face& regionFace);
 
@@ -119,12 +119,13 @@ namespace ODER{
 		struct VertexInsertionFlags {
 			VertexInsertionFlags() {
 				cdt = false;
-				encroachSegTest = false;
-				encroachFaceTest = false;
 				skinnyTetTest = false;
-				trueInsetion = true;
+				trueInsertion = true;
+				encroachSegTest = false;
+				encroachFaceTest = 0;
 			}
-			bool cdt, encroachSegTest, encroachFaceTest, skinnyTetTest, trueInsetion;
+			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest;
+			int encroachFaceTest; //1 for missing test only; 2 for full encroachment test
 		};
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep, 
 			const VertexInsertionFlags& vifs = VertexInsertionFlags(), Tetrahedron *rt = NULL);
