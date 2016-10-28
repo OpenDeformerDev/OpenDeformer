@@ -106,7 +106,7 @@ namespace ODER{
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool triangulateCavity(const std::vector<Face>& regionFaces, bool missingFaceTest, std::vector<Face>& boundaryFaces,
+		bool triangulateCavity(const std::vector<Face>& regionFaces, int encroachFaceTest, std::vector<Face>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
 		void propagateCleanCavity(const Face& f, int depth);
 		void refineRegion(const Face& regionFace);
@@ -131,7 +131,7 @@ namespace ODER{
 			const VertexInsertionFlags& vifs = VertexInsertionFlags(), Tetrahedron *rt = NULL);
 		void insertSurfaceVertex(Vertex *u, const Face &f, bool insertToQueue = true);
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, Face *inFace = NULL, bool insertToQueue = true);
-		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
+		bool digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
 			const VertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
@@ -174,7 +174,7 @@ namespace ODER{
 		std::vector<Segment> newSegsOfFaces;
 
 		std::vector<Tetrahedron> tobeDeletedTets;
-		std::vector<Face> newFacesOfTets;
+		std::vector<Tetrahedron> newTets;
 
 		std::vector<Vertex *> oriVertices;
 		MemoryPool<Vertex> vertPool;

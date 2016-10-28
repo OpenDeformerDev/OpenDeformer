@@ -343,14 +343,54 @@ namespace ODER {
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const;
 		void Clear();
 		void Reserve(size_t n) { topology.reserve(n); }
-		Face getAnArbitraryTriangle(bool ghost) const;
 		std::vector<Face> getTriangles(bool ghost) const;
 		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
 		~TriMeshDataStructure();
+
+		class TriMeshConstIterator {
+		public:
+			using iterator_category = std::input_iterator_tag;
+			using value_type = Face;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = const Face&;
+			using pointer = const Face *;
+
+			TriMeshConstIterator() : parent(NULL), child(NULL) {}
+			TriMeshConstIterator(const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& iter,
+				const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& end);
+			TriMeshConstIterator(const TriMeshConstIterator&) = default;
+			TriMeshConstIterator(TriMeshConstIterator&&) = default;
+			TriMeshConstIterator& operator=(const TriMeshConstIterator&) = default;
+			TriMeshConstIterator& operator=(TriMeshConstIterator&&) = default;
+
+			bool operator==(const TriMeshConstIterator& right) const;
+			bool operator!=(const TriMeshConstIterator& right) const;
+
+			TriMeshConstIterator& operator++();
+			TriMeshConstIterator operator++(int);
+
+			reference operator*() const { return current; }
+			pointer operator->() const { return &current; }
+
+		private:
+			void findNext();
+
+			Face current;
+			VertexListNode *parent, *child;
+			std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator topologyIter;
+			std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator topologyEnd;
+		};
+
+		using const_iterator = TriMeshConstIterator;
+		const_iterator begin() const { return const_iterator(topology.begin(), topology.end()); }
+		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
+
 	private:
 		bool getAdjacentListNode(Vertex* u, Vertex* v, VertexListNode **w) const;
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
 		void removeFromTopology(Vertex *a, Vertex *b, Vertex *c);
+		static bool verticesOrderCheck(const Vertex *a, const Vertex *b, const Vertex *c);
 
 		std::unordered_map<Vertex *, VertexListNode *, vertex_hash> topology;
 		MemoryPool<VertexListNode> *nodePool;
@@ -366,7 +406,6 @@ namespace ODER {
 		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
 		bool Adjacent(const Face &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
-		Tetrahedron getAnArbitaryTetrahedron(bool ghost) const;
 		std::vector<Tetrahedron> getTetrahedrons(bool ghost) const;
 		void getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const;
 		bool Contain(Vertex *v) const;
@@ -375,14 +414,54 @@ namespace ODER {
 		void Clear();
 		void Reserve(size_t n) { topology.reserve(n); }
 		~TetMeshDataStructure();
+
+		class TetMeshConstIterator {
+		public:
+			using iterator_category = std::input_iterator_tag;
+			using value_type = Tetrahedron;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = const Tetrahedron&;
+			using pointer = const Tetrahedron *;
+		
+			TetMeshConstIterator() : linkHead(NULL), parent(NULL), child(NULL) {}
+			TetMeshConstIterator(const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& iter,
+				const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& end);
+			TetMeshConstIterator(const TetMeshConstIterator&) = default;
+			TetMeshConstIterator(TetMeshConstIterator&&) = default;
+			TetMeshConstIterator& operator=(const TetMeshConstIterator&) = default;
+			TetMeshConstIterator& operator=(TetMeshConstIterator&&) = default;
+
+			bool operator==(const TetMeshConstIterator& right) const;
+			bool operator!=(const TetMeshConstIterator& right) const;
+
+			TetMeshConstIterator& operator++();
+			TetMeshConstIterator operator++(int);
+
+		private:
+			void findNext();
+
+			Tetrahedron current;
+			EdgeListNode *linkHead;
+			VertexListNode *parent, *child;
+
+			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyIter;
+			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyEnd;
+		};
+
+		using const_iterator = TetMeshConstIterator;
+		const_iterator begin() const { return const_iterator(topology.begin(), topology.end()); }
+		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
+
 	private:
 		bool getAdjacentListNode(const Face& f, VertexListNode **z) const;
 		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, VertexListNode **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
-		bool parityCheck(const Vertex *x, const Vertex *y) const;
-		bool edgeOrderCheck(const Vertex *a, const Vertex *b) const;
+		static bool parityCheck(const Vertex *x, const Vertex *y);
+		static bool edgeOrderCheck(const Vertex *a, const Vertex *b);
+		static bool verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d);
 
 		std::unordered_map<Vertex *, EdgeListNode *, vertex_hash> topology;
 		MemoryPool<VertexListNode> *nodePool;
@@ -390,12 +469,12 @@ namespace ODER {
 	};
 
 
-	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) const {
+	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) {
 		constexpr int odd_mark = 1;
 		return (std::hash<int>()(x->getLabel()) & odd_mark) == (std::hash<int>()(y->getLabel()) & odd_mark);
 	}
 
-	inline bool TetMeshDataStructure::edgeOrderCheck(const Vertex *a, const Vertex *b) const {
+	inline bool TetMeshDataStructure::edgeOrderCheck(const Vertex *a, const Vertex *b) {
 		constexpr int mask = 2;
 		int aLabel = a->getLabel(), bLabel = b->getLabel();
 		return b->isGhost() || (!a->isGhost() && ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask))));
@@ -419,6 +498,10 @@ namespace ODER {
 		return false;
 	}
 
+	inline bool TriMeshDataStructure::verticesOrderCheck(const Vertex *a, const Vertex *b, const Vertex *c) {
+		return a->getLabel() < b->getLabel() && a->getLabel() < c->getLabel();
+	}
+
 	inline bool TetMeshDataStructure::Contain(Vertex *v) const {
 		Tetrahedron t;
 		return adjacent2Vertex(v, &t);
@@ -435,10 +518,54 @@ namespace ODER {
 		return x == t.v[0];
 	}
 
+	inline bool TetMeshDataStructure::verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d) {
+		return (!parityCheck(c, ori) || (ori->getLabel() < c->getLabel() && end->getLabel() < c->getLabel())) &&
+			(!parityCheck(d, ori) || (ori->getLabel() < d->getLabel() && end->getLabel() < d->getLabel())) &&
+			(!parityCheck(c, d) || (ori->getLabel() < c->getLabel() && ori->getLabel() < d->getLabel()) ||
+			(end->getLabel() < c->getLabel() && end->getLabel() < d->getLabel()));
+	}
+
+	inline TriMeshDataStructure::TriMeshConstIterator& TriMeshDataStructure::TriMeshConstIterator::operator++() {
+		findNext();
+		return *this;
+	}
+
+	inline TriMeshDataStructure::TriMeshConstIterator TriMeshDataStructure::TriMeshConstIterator::operator++(int) {
+		TriMeshConstIterator temp = *this;
+		findNext();
+		return temp;
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstIterator::operator==(const TriMeshConstIterator& right) const {
+		return topologyIter == right.topologyIter && parent == right.parent && child == right.child;
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstIterator::operator!=(const TriMeshConstIterator& right) const {
+		return !(*this == right);
+	}
+
+	inline TetMeshDataStructure::TetMeshConstIterator& TetMeshDataStructure::TetMeshConstIterator::operator++() {
+		findNext();
+		return *this;
+	}
+
+	inline TetMeshDataStructure::TetMeshConstIterator TetMeshDataStructure::TetMeshConstIterator::operator++(int) {
+		TetMeshConstIterator temp = *this;
+		findNext();
+		return temp;
+	}
+
+	inline bool TetMeshDataStructure::TetMeshConstIterator::operator==(const TetMeshConstIterator& right) const {
+		return topologyIter == right.topologyIter && linkHead == right.linkHead && parent == right.parent && child == right.child;
+	}
+
+	inline bool TetMeshDataStructure::TetMeshConstIterator::operator!=(const TetMeshConstIterator& right) const {
+		return !(*this == right);
+	}
+
 	inline bool matchVertexFlag(VertexType type, VertexType flag) {
 		return (type & flag) == flag;
 	}
-
 }
 
 #endif

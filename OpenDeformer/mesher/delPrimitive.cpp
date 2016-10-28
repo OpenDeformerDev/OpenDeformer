@@ -266,36 +266,72 @@ namespace ODER {
 		return true;
 	}
 
-	Face TriMeshDataStructure::getAnArbitraryTriangle(bool ghost) const {
-		VertexListNode *parent = NULL;
-		VertexListNode *child = NULL;
-
-		for (auto entry : topology) {
-			Vertex *center = entry.first;
-			if ((ghost || !center->isGhost()) && entry.second) {
-				parent = entry.second;
-				child = parent->getNextNode();
-				while (child != NULL) {
-					if (!child->isPreFaceDeleted()) {
-						Vertex *b = parent->getVertex();
-						Vertex *c = child->getVertex();
-						if (ghost || (!b->isGhost() && !c->isGhost()))
-							return Face(center, b, c);
-					}
-
-					parent = child;
-					child = child->getNextNode();
-				}
-				if (!entry.second->isPreFaceDeleted()) {
+	TriMeshDataStructure::TriMeshConstIterator::TriMeshConstIterator(const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& iter,
+		const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& end) : topologyIter(iter), topologyEnd(end){
+		while (topologyIter != topologyEnd) {
+			Vertex *center = topologyIter->first;
+			parent = topologyIter->second;
+			child = parent->getNextNode();
+			while (child != NULL) {
+				if (!child->isPreFaceDeleted()) {
 					Vertex *b = parent->getVertex();
-					Vertex *c = entry.second->getVertex();
-					if(ghost || (!b->isGhost() && !c->isGhost()))
-						return Face(center, b, c);
+					Vertex *c = child->getVertex();
+					if (verticesOrderCheck(center, b, c)) {
+						current = Face(center, b, c);
+						return;
+					}
+				}
+
+				parent = child;
+				child = parent->getNextNode();
+			}
+
+			child = topologyIter->second;
+			if (!child->isPreFaceDeleted()) {
+				Vertex *b = parent->getVertex();
+				Vertex *c = child->getVertex();
+				if (verticesOrderCheck(center, b, c)) {
+					current = Face(center, b, c);
+					return;
 				}
 			}
-		}
 
-		return Face(NULL, NULL, NULL);
+			++topologyIter;
+		}
+		parent = NULL; child = NULL;
+	}
+
+	void TriMeshDataStructure::TriMeshConstIterator::findNext() {
+		do {
+			if (child != topologyIter->second) {
+				parent = child;
+				child = parent->getNextNode();
+				if (child == NULL) child = topologyIter->second;
+			}
+			else {
+				++topologyIter;
+
+				if (topologyIter != topologyEnd) {
+					parent = topologyIter->second;
+					child = parent->getNextNode();
+				}
+				else {
+					current = Face(NULL, NULL, NULL);
+					parent = NULL; child = NULL;
+					return;
+				}
+			}
+
+			if (!child->isPreFaceDeleted()) {
+				Vertex *center = topologyIter->first;
+				Vertex *b = parent->getVertex();
+				Vertex *c = child->getVertex();
+				if (verticesOrderCheck(center, b, c)) {
+					current =  Face(center, b, c);
+					return;
+				}
+			}
+		} while (true);
 	}
 
 	std::vector<Face> TriMeshDataStructure::getTriangles(bool ghost) const {
@@ -311,14 +347,14 @@ namespace ODER {
 
 		for (auto entry : topology) {
 			Vertex *center = entry.first;
-			if ((ghost || !center->isGhost()) && entry.second) {
+			if ((ghost || !center->isGhost())) {
 				parent = entry.second;
 				child = parent->getNextNode();
 				while (child != NULL) {
 					if (!child->isPreFaceDeleted()) {
 						Vertex *b = parent->getVertex();
 						Vertex *c = child->getVertex();
-						if (center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
+						if (verticesOrderCheck(center, b, c))
 							triangles.push_back(Face(center, b, c));
 					}
 
@@ -328,7 +364,7 @@ namespace ODER {
 				if (!entry.second->isPreFaceDeleted()) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = entry.second->getVertex();
-					if (center->getLabel() < b->getLabel() && center->getLabel() < c->getLabel())
+					if (verticesOrderCheck(center, b, c))
 						triangles.push_back(Face(center, b, c));
 				}
 			}
@@ -556,13 +592,15 @@ namespace ODER {
 					nodePool->Dealloc(grandparent);
 					//check the node behide parent
 					if (child && child->isPreFaceDeleted()) {
-						entry->second = child;
 						nodePool->Dealloc(parent);
+						entry->second = child;
+						head = child;
 					}
 					//normal case
 					else {
 						parent->setDeletedMark();
 						entry->second = parent;
+						head = parent;
 					}
 				}
 				//head case
@@ -645,10 +683,11 @@ namespace ODER {
 					}
 				}
 			}
+
 			//clean the deleted node
 			if (head->getNextNode() == NULL) {
 				nodePool->Dealloc(head);
-				entry->second = NULL;
+				topology.erase(entry);
 			}
 		}
 	}
@@ -972,38 +1011,80 @@ namespace ODER {
 		return found;
 	}
 
-	Tetrahedron TetMeshDataStructure::getAnArbitaryTetrahedron(bool ghost) const {
-		for (auto pair : topology) {
-			Vertex *vert = pair.first;
-			EdgeListNode *linkHead = pair.second;
+	TetMeshDataStructure::TetMeshConstIterator::TetMeshConstIterator(const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& iter,
+		const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& end) : topologyIter(iter), topologyEnd(end){
+		while (topologyIter != topologyEnd) {
+			Vertex *ori = topologyIter->first;
+			linkHead = topologyIter->second;
 			while (linkHead) {
-				Vertex *endVert = linkHead->getEndVertex();
-				if (ghost || !endVert->isGhost()) {
-					VertexListNode *head = linkHead->getLink();
-					VertexListNode *parentNode = head;
-					VertexListNode *node = parentNode->getNextNode();
-					while (node) {
-						if (!node->isPreFaceDeleted()) {
-							Vertex *c = parentNode->getVertex();
-							Vertex *d = node->getVertex();
-							if (ghost || (!c->isGhost() && !d->isGhost()))
-								return Tetrahedron(vert, endVert, c, d);
+				Vertex *end = linkHead->getEndVertex();
+				parent = linkHead->getLink();
+				child = parent->getNextNode();
+				while (child) {
+					if (!child->isPreFaceDeleted()) {
+						Vertex *c = parent->getVertex();
+						Vertex *d = child->getVertex();
+						if (verticesOrderCheck(ori, end, c, d)) {
+							current = Tetrahedron(ori, end, c, d);
+							return;
 						}
-						parentNode = node;
-						node = node->getNextNode();
 					}
-					if (!head->isPreFaceDeleted()) {
-						Vertex *c = parentNode->getVertex();
-						Vertex *d = head->getVertex();
-						if (ghost || (!c->isGhost() && !d->isGhost()))
-							return Tetrahedron(vert, endVert, c, d);
+
+					parent = child;
+					child = parent->getNextNode();
+				}
+				child = linkHead->getLink();
+				if (!child->isPreFaceDeleted()) {
+					Vertex *c = parent->getVertex();
+					Vertex *d = child->getVertex();
+					if (verticesOrderCheck(ori, end, c, d)) {
+						current = Tetrahedron(ori, end, c, d);
+						return;
 					}
 				}
 				linkHead = linkHead->getNextNode();
 			}
+			++topologyIter;
 		}
+		linkHead = NULL;
+		parent = NULL; child = NULL;
+	}
 
-		return Tetrahedron(NULL, NULL, NULL, NULL);
+	void TetMeshDataStructure::TetMeshConstIterator::findNext() {
+		do {
+			if (child != linkHead->getLink()) {
+				parent = child;
+				child = parent->getNextNode();
+				if (!child) child = linkHead->getLink();
+			}
+			else {
+				linkHead = linkHead->getNextNode();
+				if (!linkHead) {
+					++topologyIter;
+					if (topologyIter != topologyEnd)
+						linkHead = topologyIter->second;
+					else {
+						current = Tetrahedron(NULL, NULL, NULL, NULL);
+						linkHead = NULL;
+						parent = NULL; child = NULL;
+						return;
+					}
+				}
+				parent = linkHead->getLink();
+				child = parent->getNextNode();
+			}
+
+			if (!child->isPreFaceDeleted()) {
+				Vertex *ori = topologyIter->first;
+				Vertex *end = linkHead->getEndVertex();
+				Vertex *c = parent->getVertex();
+				Vertex *d = child->getVertex();
+				if (verticesOrderCheck(ori, end, c, d)) {
+					current = Tetrahedron(ori, end, c, d);
+					return;
+				}
+			}
+		} while (true);
 	}
 
 	void TetMeshDataStructure::getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const {
@@ -1020,10 +1101,7 @@ namespace ODER {
 						if (!node->isPreFaceDeleted()) {
 							Vertex *c = parentNode->getVertex();
 							Vertex *d = node->getVertex();
-							if ((!parityCheck(c, vert) || (vert->getLabel() < c->getLabel() && endVert->getLabel() < c->getLabel())) &&
-								(!parityCheck(d, vert) || (vert->getLabel() < d->getLabel() && endVert->getLabel() < d->getLabel())) &&
-								(!parityCheck(c, d) || (vert->getLabel() < c->getLabel() && vert->getLabel() < d->getLabel()) || 
-								(endVert->getLabel() < c->getLabel() && endVert->getLabel() < d->getLabel()))) {
+							if (verticesOrderCheck(vert, endVert, c, d)) {
 								if (ghost || (!c->isGhost() && !d->isGhost()))
 									tets.push_back(Tetrahedron(vert, endVert, c, d));
 							}
@@ -1034,10 +1112,7 @@ namespace ODER {
 					if (!head->isPreFaceDeleted()) {
 						Vertex *c = parentNode->getVertex();
 						Vertex *d = head->getVertex();
-						if ((!parityCheck(c, vert) || (vert->getLabel() < c->getLabel() && endVert->getLabel() < c->getLabel())) &&
-							(!parityCheck(d, vert) || (vert->getLabel() < d->getLabel() && endVert->getLabel() < d->getLabel())) &&
-							(!parityCheck(c, d) || (vert->getLabel() < c->getLabel() && vert->getLabel() < d->getLabel()) ||
-							(endVert->getLabel() < c->getLabel() && endVert->getLabel() < d->getLabel()))) {
+						if (verticesOrderCheck(vert, endVert, c, d)) {
 							if (ghost || (!c->isGhost() && !d->isGhost()))
 								tets.push_back(Tetrahedron(vert, endVert, c, d));
 						}
@@ -1372,7 +1447,7 @@ namespace ODER {
 								parent = NULL;
 							}
 						}
-						//child and grandchild are all deletd
+						//child and grandchild are all deleted
 						else if (grandchild && grandchild->isPreFaceDeleted()) {
 							parent->setNextNode(grandchild);
 							nodePool->Dealloc(child);
@@ -1411,8 +1486,11 @@ namespace ODER {
 				linkHead->setLink(NULL);
 				if (parentLinkHead != NULL)
 					parentLinkHead->setNextNode(linkHead->getNextNode());
-				else
-					pair->second = linkHead->getNextNode();
+				else {
+					EdgeListNode *newLinkHead = linkHead->getNextNode();
+					if (newLinkHead) pair->second = newLinkHead;
+					else topology.erase(pair);
+				}
 				edgeNodePool->Dealloc(linkHead);
 			}
 		}
