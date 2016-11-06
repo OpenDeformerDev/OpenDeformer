@@ -584,6 +584,7 @@ DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL 
 				segments.insert(Segment(s.v[0], s.v[1], true));
 			}
 
+
 			//re-triangulation
 			if (coplanarVertices.size() > 3) {
 				triangulator.generateSubPolygons(&coplanarVertices[0], &boundaries[0], coplanarVertices.size(), boundaries.size(), f, true);
@@ -599,6 +600,12 @@ DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL 
 		}
 	}	
 	for (auto s : this->segments) mayEncroachedSegs.push_back(s);
+
+	//allocate space
+	tobeDeletedFaces.reserve(16);
+	newSegsOfFaces.reserve(32);
+	tobeDeletedTets.reserve(16);
+	newTets.reserve(32);
 
 	constrainedTriangulation();
 }
@@ -691,6 +698,15 @@ start:
 Tetrahedron DelMesher::findPosition(Vertex *u, const Tetrahedron &t, const TetMeshDataStructure& meshRep) const{
 	size_t maxIter = std::numeric_limits<size_t>::max();
 	Vertex *a = t.v[0], *b = t.v[1], *c = t.v[2], *d = t.v[3];
+	if (b->isGhost()) {
+		std::swap(a, b); std::swap(c, d);
+	}
+	else if (c->isGhost()) {
+		std::swap(a, c); std::swap(b, d);
+	}
+	else if (d->isGhost()) {
+		std::swap(a, d); std::swap(b, c);
+	}
 
 	while (maxIter--){
 		Vertex *x = NULL;
@@ -1141,7 +1157,7 @@ Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron
 					break;
 				case 5:
 					intersect = Intersection::AcrossEdge;
-					std::swap(c, d); std::swap(b, c);
+					std::swap(c, d); std::swap(b, d);
 					break;
 				case 6:
 					intersect = Intersection::AcrossEdge;
@@ -1177,7 +1193,7 @@ Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron
 					std::swap(a, d);
 					bool dab = predicator.Intersection(d->vert, a->vert, b->vert, startVert, endVert);
 					bool dca = predicator.Intersection(d->vert, c->vert, a->vert, startVert, endVert);
-					bool coplane = predicator.orient3d(endVert, b->vert, c->vert, d->vert) == 0;
+					bool coplane = predicator.orient3d(endVert, b->vert, c->vert, d->vert) == REAL(0);
 					int condition = dab + (dca << 1);
 					switch (condition) {
 					case 0:
@@ -1193,7 +1209,6 @@ Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron
 						hasIntersect = true;
 						break;
 					case 3:
-						if (d == end) terminate = true;
 						std::swap(a, b); std::swap(c, d);
 						hasIntersect = true;
 						break;
@@ -1202,7 +1217,7 @@ Vertex* DelMesher::findSegmentEncroachedReference(Vertex *end, const Tetrahedron
 					}
 				}
 				else {
-					found = meshRep.Adjacent(Face(a, b, c), &d);
+					found = meshRep.Adjacent(Face(a, c, b), &d);
 					Assert(found);
 				}
 			} while (!hasIntersect);
@@ -1508,7 +1523,8 @@ bool DelMesher::findCrossEdge(const Segment& boundary, const std::vector<Face>& 
 				}
 			}
 		}
-		Assert(meshRep.Adjacent(Face(a, b, c), &d));
+		bool found = meshRep.Adjacent(Face(a, b, c), &d);
+		Assert(found);
 		std::swap(c, d);
 	} while (c != anchor);
 
@@ -1836,11 +1852,9 @@ bool DelMesher::findCavity(const std::vector<Segment>& regionBoundaries, std::ve
 			}
 		}
 		else {
-			regionFaces.clear();
-			for (auto f : toBeErased) {
-				regionFaces.push_back(f);
+			for (auto f : toBeErased) 
 				surfaceRep.addTriangle(f.v[0], f.v[1], f.v[2]);
-			}
+
 			return false;
 		}
 	}
@@ -1891,6 +1905,7 @@ bool DelMesher::faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
 		}
 	}
 
+	for (auto v : regionVertices) v->unSetMark();
 	for (auto v : positiveVertices) v->unSetMark();
 	for (auto v : negativeVertices) v->unSetMark();
 
@@ -1925,7 +1940,8 @@ bool DelMesher::triangulateCavity(const std::vector<Face>& regionFaces, int encr
 					deleted.push_back(Tetrahedron(oppo, face.v[0], face.v[1], face.v[2]));
 					if (!oppo->isMarked()) {
 						Tetrahedron hint;
-						Assert(cavityRep.adjacent2Vertex(face.v[0], &hint));
+						bool found = cavityRep.adjacent2Vertex(face.v[0], &hint);
+						Assert(found);
 						hint = findPosition(oppo, hint, cavityRep);
 						insertVertex(oppo, hint, cavityRep);
 						oppo->setMark();
@@ -2060,7 +2076,8 @@ void DelMesher::refineRegion(const Face& regionFace) {
 
 		vertSegHash.insert(std::make_pair(steinerVert, encrochedSeg));
 
-		Assert(findIntersectedTetrahedron(encrochedSeg.v[0], encrochedSeg.v[1]->vert, &toBeDeleted));
+		bool found = findIntersectedTetrahedron(encrochedSeg.v[0], encrochedSeg.v[1]->vert, &toBeDeleted);
+		Assert(found);
 
 		VertexInsertionFlags svifs;
 		svifs.cdt = true; svifs.encroachSegTest = true; svifs.encroachFaceTest = 1;
@@ -2242,19 +2259,39 @@ void DelMesher::propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL
 }
 
 void DelMesher::propagateClean(const Face &f, int depth){
-	Vertex *a = NULL;
-	if (surfaceRep.Contain(Face(f.v[0], f.v[2], f.v[1])) || !meshRep.Adjacent(f, &a))
-		return;
+	if (depth < 100) {
+		Vertex *a = NULL;
+		if (surfaceRep.Contain(Face(f.v[0], f.v[2], f.v[1])) || !meshRep.Adjacent(f, &a))
+			return;
 
-	Vertex *b = f.v[0];
-	Vertex *c = f.v[1];
-	Vertex *d = f.v[2];
+		Vertex *b = f.v[0], *c = f.v[1], *d = f.v[2];
 
-	meshRep.deleteTetrahedron(a, b, c, d);
+		meshRep.deleteTetrahedron(a, b, c, d);
 
-	propagateClean(Face(a, c, d), depth + 1);
-	propagateClean(Face(a, b, c), depth + 1);
-	propagateClean(Face(a, d, b), depth + 1); 
+		propagateClean(Face(a, c, d), depth + 1);
+		propagateClean(Face(a, b, c), depth + 1);
+		propagateClean(Face(a, d, b), depth + 1);
+	}
+	else {
+		std::stack<Face> workingStacks;
+		workingStacks.push(f);
+
+		while (!workingStacks.empty()) {
+			Face top = workingStacks.top();
+			workingStacks.pop();
+
+			Vertex *a = NULL;
+			if (!surfaceRep.Contain(Face(top.v[0], top.v[2], top.v[1])) && meshRep.Adjacent(top, &a)) {
+				Vertex *b = top.v[0], *c = top.v[1], *d = top.v[2];
+
+				meshRep.deleteTetrahedron(a, b, c, d);
+
+				workingStacks.push(Face(a, c, d));
+				workingStacks.push(Face(a, b, c));
+				workingStacks.push(Face(a, d, b));
+			}
+		}
+	}
 }
 
 bool DelMesher::Encroached(const Segment& s) const{
@@ -2319,11 +2356,6 @@ bool DelMesher::Encroached(const Face &f, const Vertex &v) const{
 }
 
 Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
-	tobeDeletedFaces.reserve(16);
-	newSegsOfFaces.reserve(32);
-	tobeDeletedTets.reserve(16);
-	newTets.reserve(32);
-
 start:
 	while (!mayEncroachedSegs.empty()){
 		Segment s = mayEncroachedSegs.front();
@@ -2414,4 +2446,3 @@ start:
 	return mesh;
 }
 }
-
