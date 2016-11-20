@@ -43,6 +43,7 @@ namespace ODER {
 		Vertex_Segment = 1 << 2, 
 		Vertex_Facet = 1 << 3,
 		Vertex_Volume = 1 << 4,
+		Vertex_Acute = 1 << 5,
 
 		Vertex_FixedSegment = Vertex_Fixed | Vertex_Segment,
 		Vertex_FixedFacet = Vertex_Fixed | Vertex_Facet,
@@ -51,16 +52,14 @@ namespace ODER {
 		Vertex_FreeSegment = Vertex_Free | Vertex_Segment,
 		Vertex_FreeFacet = Vertex_Free | Vertex_Facet,
 		Vertex_FreeVolume = Vertex_Free | Vertex_Facet,
-
-		Vertex_Low_Dimen = Vertex_Segment | Vertex_Facet
 	};
 
 	class EdgeListNode;
 
 	struct Vertex {
-		Vertex() : weight(0.0), label(-1), vertexPointer(0), type(VertexType::Vertex_Undefined){}
+		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), vertexPointer(0), type(VertexType::Vertex_Undefined){}
 		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
-			: vert{ vv.x, vv.y, vv.z }, weight(0), label(-1), vertexPointer(0), type(t) {}
+			: vert{ vv.x, vv.y, vv.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), vertexPointer(0), type(t) {}
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
 			: vert(vv), weight(w), label(-1), vertexPointer(0), type(t) {}
 		void setGhost() {
@@ -69,6 +68,7 @@ namespace ODER {
 			weight = -max;
 			label = VertexLabeler::getSpecilGhostLabel();
 			vertexPointer = 0;
+			relaxedInsetionRadius = max;
 			type = VertexType::Vertex_Undefined;
 		}
 		bool isGhost() const {
@@ -97,6 +97,7 @@ namespace ODER {
 		}
 		DelVector vert;
 		REAL weight;
+		REAL relaxedInsetionRadius;
 		VertexType type;
 	private:
 		int label;
@@ -246,15 +247,9 @@ namespace ODER {
 				v[2] != t.v[2] ||
 				v[3] != t.v[3];
 		}
-		bool operator<(const Tetrahedron& t) const {
-			if (reRation <= maxREration && t.reRation <= maxREration)
-				return r < t.r;
-			return reRation < t.reRation;
-		}
 		inline REAL getREration() const { return reRation; }
 		inline REAL getRadius() const { return r; }
 		Vertex *v[4];
-		static REAL maxREration;
 	private:
 		REAL reRation;
 		REAL r;
@@ -437,6 +432,9 @@ namespace ODER {
 
 			TetMeshConstIterator& operator++();
 			TetMeshConstIterator operator++(int);
+
+			reference operator*() const { return current; }
+			pointer operator->() const { return &current; }
 
 		private:
 			void findNext();

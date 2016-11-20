@@ -7,10 +7,8 @@
 
 namespace ODER {
 
-	REAL Tetrahedron::maxREration = std::numeric_limits<REAL>::max();
-
 	Tetrahedron::Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered) {
-		reRation = r = 0.0;
+		reRation = r = REAL(0);
 		v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
 		if (ordered)
 			sortVertices();
@@ -18,8 +16,8 @@ namespace ODER {
 
 	void Tetrahedron::setRationAndRadius() {
 		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost() || v[3]->isGhost()) {
-			reRation = 0.0;
-			r = 0.0;
+			reRation = REAL(0);
+			r = REAL(0);
 			return;
 		}
 
@@ -33,10 +31,13 @@ namespace ODER {
 		Geometer::Orthosphere(v[0]->vert, v[0]->weight, v[1]->vert, v[1]->weight, v[2]->vert, v[2]->weight, 
 			v[3]->vert, v[3]->weight, (DelVector *)NULL, &r);
 
-		REAL minEdgeLength = sqrt(std::min(da.length2(), std::min(db.length2(), 
-			std::min(dc.length2(), std::min(ca.length2(), std::min(cb.length2(), ba.length2()))))));
-		reRation = r / minEdgeLength;
+		REAL minEdgeLength = sqrt(std::min({da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2()}));
+		REAL relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,
+			v[2]->relaxedInsetionRadius, v[3]->relaxedInsetionRadius }));
+
+		reRation = r / relaxedLength;
 	}
+
 
 	void Tetrahedron::sortVertices() {
 		int min = 0, max = 0;

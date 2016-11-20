@@ -156,7 +156,7 @@ namespace ODER{
 		static Predicator<REAL> predicator;
 
 		std::unordered_set<Segment, segment_ordered_hash> segments;
-		std::unordered_map<Vertex *, Segment, vertex_hash> vertSegHash;
+		std::unordered_map<Vertex *, Segment, vertex_hash> vertSegMap;
 		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
 		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
 
@@ -165,7 +165,7 @@ namespace ODER{
 		//unordered_map<Vertex *, Segment, vertex_hash> vfHash;
 		//unordered_map<Vertex *, Vertex *, vertex_hash> vsHash;
 
-		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>> skinnyTets;
+		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>, std::function<bool(const Tetrahedron&, const Tetrahedron&)>> skinnyTets;
 		std::deque<Face> mayEncroachedFaces;
 		std::deque<Segment> mayEncroachedSegs;
 		std::unordered_set<Segment, segment_ordered_hash> mayEncroachedSegsSet;

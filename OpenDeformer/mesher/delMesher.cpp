@@ -548,7 +548,15 @@ Predicator<REAL> DelMesher::predicator;
 DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, REAL maxR, REAL maxRa, REAL facetAngleTol) {
 	maxRatio = maxRa;
 	maxRadius = maxR;
-	Tetrahedron::maxREration = maxRa;
+
+	REAL maxREration = maxRatio;
+	auto compare = [maxREration](const Tetrahedron& left, const Tetrahedron& right) {
+		if (left.getREration() <= maxREration && right.getREration() <= maxREration)
+			return left.getRadius() < right.getRadius();
+		return left.getREration() < right.getREration();
+	};
+	skinnyTets = std::priority_queue<Tetrahedron, std::vector<Tetrahedron>, 
+		std::function<bool(const Tetrahedron&, const Tetrahedron&)>>(compare, std::vector<Tetrahedron>());
 
 	//init ghost vertex
 	ghost = allocVertex();
@@ -1243,40 +1251,33 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 	//calulate steiner point
 	DelVector steinerPoint;
 	Segment oriSegment;
+	bool success = false;
 	if (matchVertexFlag(ref->type, VertexType::Vertex_FreeSegment)) {
-		auto refOriSegFound = vertSegHash.find(ref);
-		Assert(refOriSegFound != vertSegHash.end());
-		Segment refOriSeg = refOriSegFound->second;
+		auto refOriSegFound = vertSegMap.find(ref);
+		if (refOriSegFound != vertSegMap.end()) {
+			Segment refOriSeg = refOriSegFound->second;
 
-		Vertex *oriSegStart = a, *oriSegEnd = b;
-		Vertex *refOriSegStart = refOriSeg.v[0], *refOriSegEnd = refOriSeg.v[1];
+			Vertex *oriSegStart = a, *oriSegEnd = b;
+			Vertex *refOriSegStart = refOriSeg.v[0], *refOriSegEnd = refOriSeg.v[1];
 
-		if (oriSegStart == refOriSegStart || oriSegStart == refOriSegEnd) {
-			DelVector oriVec = oriSegEnd->vert - oriSegStart->vert;
-			REAL len0 = oriVec.length();
-			REAL len1 = (ref->vert - oriSegStart->vert).length();
-			steinerPoint = oriSegStart->vert + (len1 / len0) * oriVec;
-		}
-		else if (oriSegEnd == refOriSegStart || oriSegEnd == refOriSegEnd) {
-			DelVector oriVec = oriSegStart->vert - oriSegEnd->vert;
-			REAL len0 = oriVec.length();
-			REAL len1 = (ref->vert - oriSegEnd->vert).length();
-			steinerPoint = oriSegEnd->vert + (len1 / len0) * oriVec;
-		}
-		else {
-			DelVector ar = ref->vert - aa;
-			DelVector br = ref->vert - bb;
-			REAL arLen = ar.length();
-			REAL brLen = br.length();
-			if (arLen < REAL(0.5) * abLen)
-				steinerPoint = aa + (arLen * invabLen) * ab;
-			else if(brLen < REAL(0.5) * abLen)
-				steinerPoint = bb - (brLen * invabLen) * ab;
-			else
-				steinerPoint = REAL(0.5) * (aa + bb);
+			if (oriSegStart == refOriSegStart || oriSegStart == refOriSegEnd) {
+				DelVector oriVec = oriSegEnd->vert - oriSegStart->vert;
+				REAL len0 = oriVec.length();
+				REAL len1 = (ref->vert - oriSegStart->vert).length();
+				steinerPoint = oriSegStart->vert + (len1 / len0) * oriVec;
+				success = true;
+			}
+			else if (oriSegEnd == refOriSegStart || oriSegEnd == refOriSegEnd) {
+				DelVector oriVec = oriSegStart->vert - oriSegEnd->vert;
+				REAL len0 = oriVec.length();
+				REAL len1 = (ref->vert - oriSegEnd->vert).length();
+				steinerPoint = oriSegEnd->vert + (len1 / len0) * oriVec;
+				success = true;
+			}
 		}
 	}
-	else {
+
+	if(!success) {
 		DelVector ar = ref->vert - aa;
 		DelVector br = ref->vert - bb;
 		REAL arLen = ar.length();
@@ -1304,7 +1305,36 @@ void DelMesher::splitSubSegment(const Segment& s, Vertex* ref){
 	segments.insert(s1);
 	mayEncroachedSegs.push_back(s0);
 	mayEncroachedSegs.push_back(s1);
-	vertSegHash.insert(std::make_pair(steinerVert, Segment(a, b)));
+
+	if(matchVertexFlag(a->type, VertexType::Vertex_FixedSegment) 
+		|| matchVertexFlag(b->type, VertexType::Vertex_FixedSegment)) 
+		vertSegMap.insert(std::make_pair(steinerVert, s));
+
+	//modify two endpoints' vertSegMap
+	if (matchVertexFlag(a->type, VertexType::Vertex_FreeSegment)) {
+		auto oriSegFound = vertSegMap.find(a);
+		if (oriSegFound != vertSegMap.end()) {
+			Vertex *start = oriSegFound->second.v[0], *end = oriSegFound->second.v[1];
+			if (end != b) std::swap(start, end);
+			Assert(end == b);
+			if (matchVertexFlag(start->type, VertexType::Vertex_FixedSegment))
+				oriSegFound->second = Segment(start, steinerVert);
+			else
+				vertSegMap.erase(oriSegFound);
+		}
+	}
+	if (matchVertexFlag(b->type, VertexType::Vertex_FreeSegment)) {
+		auto oriSegFound = vertSegMap.find(b);
+		if (oriSegFound != vertSegMap.end()) {
+			Vertex *start = oriSegFound->second.v[0], *end = oriSegFound->second.v[1];
+			if (start != a) std::swap(start, end);
+			Assert(start == a);
+			if (matchVertexFlag(end->type, VertexType::Vertex_FixedSegment))
+				oriSegFound->second = Segment(steinerVert, end);
+			else
+				vertSegMap.erase(oriSegFound);
+		}
+	}
 
 	Tetrahedron toBeDeleted;
 	meshRep.adjacent2Vertex(a, &toBeDeleted);
@@ -2074,7 +2104,36 @@ void DelMesher::refineRegion(const Face& regionFace) {
 		mayEncroachedSegs.push_back(s0);
 		mayEncroachedSegs.push_back(s1);
 
-		vertSegHash.insert(std::make_pair(steinerVert, encrochedSeg));
+		Vertex *a = encrochedSeg.v[0], *b = encrochedSeg.v[1];
+		if (matchVertexFlag(a->type, VertexType::Vertex_FixedSegment)
+			|| matchVertexFlag(b->type, VertexType::Vertex_FixedSegment))
+			vertSegMap.insert(std::make_pair(steinerVert, encrochedSeg));
+
+		//modify two endpoints' vertSegMap
+		if (matchVertexFlag(a->type, VertexType::Vertex_FreeSegment)) {
+			auto oriSegFound = vertSegMap.find(a);
+			if (oriSegFound != vertSegMap.end()) {
+				Vertex *start = oriSegFound->second.v[0], *end = oriSegFound->second.v[1];
+				if (end != b) std::swap(start, end);
+				Assert(end == b);
+				if (matchVertexFlag(start->type, VertexType::Vertex_FixedSegment))
+					oriSegFound->second = Segment(start, steinerVert);
+				else
+					vertSegMap.erase(oriSegFound);
+			}
+		}
+		if (matchVertexFlag(b->type, VertexType::Vertex_FreeSegment)) {
+			auto oriSegFound = vertSegMap.find(b);
+			if (oriSegFound != vertSegMap.end()) {
+				Vertex *start = oriSegFound->second.v[0], *end = oriSegFound->second.v[1];
+				if (start != a) std::swap(start, end);
+				Assert(start == a);
+				if (matchVertexFlag(end->type, VertexType::Vertex_FixedSegment))
+					oriSegFound->second = Segment(steinerVert, end);
+				else
+					vertSegMap.erase(oriSegFound);
+			}
+		}
 
 		bool found = findIntersectedTetrahedron(encrochedSeg.v[0], encrochedSeg.v[1]->vert, &toBeDeleted);
 		Assert(found);
@@ -2356,37 +2415,23 @@ bool DelMesher::Encroached(const Face &f, const Vertex &v) const{
 }
 
 Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
-start:
-	while (!mayEncroachedSegs.empty()){
-		Segment s = mayEncroachedSegs.front();
-		if (!Encroached(s) || !findSegment(s)){
-			mayEncroachedSegs.pop_front();
-			continue;
-		}
-		splitSubSegment(s);
-		mayEncroachedSegs.pop_front();
-	}
-	while (!mayEncroachedFaces.empty()){
-		Face f = mayEncroachedFaces.front();
-		if (!surfaceRep.Contain(f) || !Encroached(f)){
-			mayEncroachedFaces.pop_front();
-			continue;
-		}
-		splitSubPolygon(f);
-		if (!mayEncroachedSegs.empty())
-			goto start;
-		mayEncroachedFaces.pop_front();
-	}
-	while (!skinnyTets.empty()){
-		Tetrahedron t = skinnyTets.top();
-		if (!meshRep.Contain(t)){
-			skinnyTets.pop();
-			continue;
-		}
-		splitTetrahedron(t);
-		if (!mayEncroachedSegs.empty() || !mayEncroachedFaces.empty())
-			goto start;
-		skinnyTets.pop();
+	for (auto t : meshRep) {
+		//set vertices relaxed insertion radius
+		Vertex *a = t.v[0], *b = t.v[1], *c = t.v[2], *d = t.v[3];
+		DelVector ab = b->vert - a->vert, ac = c->vert - a->vert, ad = d->vert - a->vert,
+			bc = c->vert - b->vert, bd = d->vert - b->vert, cd = d->vert - c->vert;
+		REAL abLen = ab.length(), acLen = ac.length(), adLen = ad.length(),
+			bcLen = bc.length(), bdLen = bd.length(), cdLen = cd.length();
+
+		a->relaxedInsetionRadius = std::min({ a->relaxedInsetionRadius, abLen, acLen, adLen });
+		b->relaxedInsetionRadius = std::min({ b->relaxedInsetionRadius, abLen, bcLen, bdLen });
+		c->relaxedInsetionRadius = std::min({ c->relaxedInsetionRadius, acLen, bcLen, cdLen });
+		d->relaxedInsetionRadius = std::min({ d->relaxedInsetionRadius, adLen, bdLen, cdLen });
+
+		//push tets to skinny queue
+		t.setRationAndRadius();
+		if (t.getREration() > maxRatio || t.getRadius() > maxRadius)
+			skinnyTets.push(t);
 	}
 
 	//output to mesh
