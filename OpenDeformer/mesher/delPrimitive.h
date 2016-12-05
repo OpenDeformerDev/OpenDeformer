@@ -104,20 +104,65 @@ namespace ODER {
 		uintptr_t vertexPointer;//point to a vertex which is one of the vertices of latest inserted vertex
 	};
 
-
-	class VertexListNode {
+	class TriVertexListNode {
 	public:
-		VertexListNode() :currentVert(0x1), next(NULL) {}
+		TriVertexListNode() :currentVert(0x1), next(NULL), faceIndex(-1) {}
 		void setVertex(Vertex *vert) {
 			currentVert = uintptr_t(vert);
 		}
 		Vertex *getVertex() const {
 			return (Vertex *)(currentVert & (~0x3));
 		}
-		VertexListNode *getNextNode() const {
+		TriVertexListNode *getNextNode() const {
 			return next;
 		}
-		void setNextNode(VertexListNode *nextNode) {
+		void setNextNode(TriVertexListNode *nextNode) {
+			next = nextNode;
+		}
+		void setDeletedMark() {
+			currentVert |= 0x1;
+		}
+		void unSetDeletedMark() {
+			currentVert &= (~0x1);
+		}
+		bool isPreFaceDeleted() const {
+			return (currentVert & 0x1) == 0x1;
+		}
+		void setMark() {
+			currentVert |= 0x2;
+		}
+		void unSetMark() {
+			currentVert &= (~0x2);
+		}
+		void setIndex(int index) { 
+			faceIndex = index;
+		}
+		int getIndex() const { 
+			return faceIndex; 
+		}
+		bool isMarked() {
+			return (currentVert & 0x2) == 0x2;
+		}
+	private:
+		uintptr_t currentVert;
+		TriVertexListNode *next;
+		int faceIndex;
+	};
+
+
+	class TetVertexListNode {
+	public:
+		TetVertexListNode() :currentVert(0x1), next(NULL) {}
+		void setVertex(Vertex *vert) {
+			currentVert = uintptr_t(vert);
+		}
+		Vertex *getVertex() const {
+			return (Vertex *)(currentVert & (~0x3));
+		}
+		TetVertexListNode *getNextNode() const {
+			return next;
+		}
+		void setNextNode(TetVertexListNode *nextNode) {
 			next = nextNode;
 		}
 		void setDeletedMark() {
@@ -140,7 +185,7 @@ namespace ODER {
 		}
 	private:
 		uintptr_t currentVert;
-		VertexListNode *next;
+		TetVertexListNode *next;
 	};
 
 	class EdgeListNode {
@@ -152,10 +197,10 @@ namespace ODER {
 		Vertex *getEndVertex() const {
 			return endVertex;
 		}
-		void setLink(VertexListNode *Link) {
+		void setLink(TetVertexListNode *Link) {
 			link = Link;
 		}
-		VertexListNode* getLink() const {
+		TetVertexListNode* getLink() const {
 			return link;
 		}
 		EdgeListNode *getNextNode() const {
@@ -166,7 +211,7 @@ namespace ODER {
 		}
 	private:
 		Vertex *endVertex;
-		VertexListNode *link;
+		TetVertexListNode *link;
 		EdgeListNode *next;
 	};
 
@@ -187,37 +232,17 @@ namespace ODER {
 	struct Face {
 		Face() {
 			v[0] = v[1] = v[2] = NULL;
+			index = -1;
 		}
 		Face(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered = false) {
-			if (ordered) {
-				int min = v0->getLabel() < v1->getLabel() ? (v0->getLabel() < v2->getLabel() ? 0 : 2) : (v1->getLabel() < v2->getLabel() ? 1 : 2);
-				switch (min) {
-				case 0:
-					v[0] = v0; v[1] = v1; v[2] = v2;
-					break;
-				case 1:
-					v[0] = v1; v[1] = v2; v[2] = v0;
-					break;
-				case 2:
-					v[0] = v2; v[1] = v0; v[2] = v1;
-					break;
-				}
-			}
-			else {
-				v[0] = v0; v[1] = v1; v[2] = v2;
-			}
+			initVertices(v0, v1, v2, ordered);
+			index = -1;
 		}
-		void sortVertices() {
-			int min = v[0]->getLabel() < v[1]->getLabel() ? (v[0]->getLabel() < v[2]->getLabel() ? 0 : 2) : (v[1]->getLabel() < v[2]->getLabel() ? 1 : 2);
-			if (min == 1) {
-				std::swap(v[0], v[1]);
-				std::swap(v[1], v[2]);
-			}
-			else if (min == 2) {
-				std::swap(v[0], v[1]);
-				std::swap(v[0], v[2]);
-			}
+		Face(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false) {
+			initVertices(v0, v1, v2, ordered);
+			this->index = index;
 		}
+		void sortVertices();
 		bool operator==(const Face& f) const {
 			return v[0] == f.v[0] && v[1] == f.v[1] && v[2] == f.v[2];
 		}
@@ -225,6 +250,9 @@ namespace ODER {
 			return v[0] != f.v[0] || v[1] != f.v[1] || v[2] != f.v[2];
 		}
 		Vertex *v[3];
+		int index;
+	private:
+		void initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered);
 	};
 
 	struct Tetrahedron {
@@ -321,7 +349,7 @@ namespace ODER {
 	class TriMeshDataStructure {
 	public:
 		TriMeshDataStructure();
-		void addTriangle(Vertex *a, Vertex *b, Vertex *c);
+		void addTriangle(Vertex *a, Vertex *b, Vertex *c, int index = -1);
 		void deleteTriangle(Vertex *a, Vertex *b, Vertex *c);
 		void setDeletedMark(Vertex *u, Vertex *v);
 		void unSetDeletedMark(Vertex *u, Vertex *v);
@@ -330,7 +358,7 @@ namespace ODER {
 		void setMark(Vertex *u, Vertex *v);
 		void unSetMark(Vertex *u, Vertex *v);
 		bool isMarked(Vertex *u, Vertex *v) const;
-		bool Adjacent(const Segment &s, Vertex **w) const;
+		bool Adjacent(const Segment &s, Vertex **w, int *index = NULL) const;
 		bool adjacent2Vertex(Vertex *w, Face *f) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
@@ -352,8 +380,8 @@ namespace ODER {
 			using pointer = const Face *;
 
 			TriMeshConstIterator() : parent(NULL), child(NULL) {}
-			TriMeshConstIterator(const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& iter,
-				const std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator& end);
+			TriMeshConstIterator(const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& iter,
+				const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& end);
 			TriMeshConstIterator(const TriMeshConstIterator&) = default;
 			TriMeshConstIterator(TriMeshConstIterator&&) = default;
 			TriMeshConstIterator& operator=(const TriMeshConstIterator&) = default;
@@ -372,9 +400,9 @@ namespace ODER {
 			void findNext();
 
 			Face current;
-			VertexListNode *parent, *child;
-			std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator topologyIter;
-			std::unordered_map<Vertex *, VertexListNode *, vertex_hash>::const_iterator topologyEnd;
+			TriVertexListNode *parent, *child;
+			std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator topologyIter;
+			std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator topologyEnd;
 		};
 
 		using const_iterator = TriMeshConstIterator;
@@ -382,13 +410,13 @@ namespace ODER {
 		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
 
 	private:
-		bool getAdjacentListNode(Vertex* u, Vertex* v, VertexListNode **w) const;
-		void insertToTopology(Vertex *a, Vertex *b, Vertex *c);
+		bool getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const;
+		void insertToTopology(Vertex *a, Vertex *b, Vertex *c, int index);
 		void removeFromTopology(Vertex *a, Vertex *b, Vertex *c);
 		static bool verticesOrderCheck(const Vertex *a, const Vertex *b, const Vertex *c);
 
-		std::unordered_map<Vertex *, VertexListNode *, vertex_hash> topology;
-		MemoryPool<VertexListNode> *nodePool;
+		std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash> topology;
+		MemoryPool<TriVertexListNode> *nodePool;
 	};
 
 	class TetMeshDataStructure {
@@ -441,7 +469,7 @@ namespace ODER {
 
 			Tetrahedron current;
 			EdgeListNode *linkHead;
-			VertexListNode *parent, *child;
+			TetVertexListNode *parent, *child;
 
 			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyIter;
 			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyEnd;
@@ -452,8 +480,8 @@ namespace ODER {
 		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
 
 	private:
-		bool getAdjacentListNode(const Face& f, VertexListNode **z) const;
-		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, VertexListNode **z) const;
+		bool getAdjacentListNode(const Face& f, TetVertexListNode **z) const;
+		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, TetVertexListNode **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
@@ -462,7 +490,7 @@ namespace ODER {
 		static bool verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d);
 
 		std::unordered_map<Vertex *, EdgeListNode *, vertex_hash> topology;
-		MemoryPool<VertexListNode> *nodePool;
+		MemoryPool<TetVertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
 	};
 

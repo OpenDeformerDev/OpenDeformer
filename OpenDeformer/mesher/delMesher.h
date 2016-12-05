@@ -31,7 +31,6 @@ namespace ODER{
 		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
 		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
 		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount);
-		void outPut(TriMeshDataStructure& meshRep, std::deque<Face>& meshDeque);
 		void outPut(std::vector<Face> &meshVec) { meshRep.getTriangles(false, meshVec); }
 	private:
 		void calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
@@ -74,7 +73,7 @@ namespace ODER{
 		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius, REAL facetAngleTol = REAL(179));
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
-		~DelMesher() = default;
+		~DelMesher();
 		Reference<Mesh> generateMesh(int *vertexLableMap);
 
 	private:
@@ -133,7 +132,7 @@ namespace ODER{
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, Face *inFace = NULL, bool insertToQueue = true);
 		bool digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
 			const VertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
-		void digCavity(Vertex *u, const DelVector& above, const Segment &f, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
+		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
 		////daling segments need to be fixed
 		bool Encroached(const Segment &s) const;
@@ -169,6 +168,7 @@ namespace ODER{
 		std::deque<Face> mayEncroachedFaces;
 		std::deque<Segment> mayEncroachedSegs;
 		std::unordered_set<Segment, segment_ordered_hash> mayEncroachedSegsSet;
+		std::vector<uintptr_t *> polygonVertices;
 
 		std::vector<Face> tobeDeletedFaces;
 		std::vector<Segment> newSegsOfFaces;
