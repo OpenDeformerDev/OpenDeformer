@@ -81,16 +81,19 @@ namespace ODER{
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
 		Face findPosition(Vertex *u, const DelVector& above, const Face& f) const;
 
+		void detectAcuteVertices() const;
 		void constrainedTriangulation();
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
-	
-		void splitSubSegment(const Segment& s, Vertex* ref);
 
 		void splitSubSegment(const Segment& s);
 		void splitSubPolygon(const Face& f);
 		void splitTetrahedron(const Tetrahedron& tet);
 
+		//segment recovery
+		void segmentsRecovery(bool insertToQueue);
+		void splitSubSegment(const Segment& s, Vertex* ref, bool insertToQueue = true);
 		//face recovery
+		void facesRecovery();
 		bool faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
 			std::vector<Segment>& regionBoundaries, std::vector<Face>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
@@ -134,11 +137,15 @@ namespace ODER{
 			const VertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, bool insertToQueue = true, bool trulyDeleteOrAdd = true);
 
-		////daling segments need to be fixed
 		bool Encroached(const Segment &s) const;
 		bool Encroached(const Face &f) const;
-		bool Encroached(const Segment &s, const Vertex &v) const;
-		bool Encroached(const Face &f, const Vertex &v) const;
+		bool Encroached(const Segment &s, Vertex *v) const;
+		bool Encroached(const Face &f, Vertex *v) const;
+
+		size_t getPolygonVertices(int faceIndex, Vertex ***verts) const;
+		bool Adjacent(const Segment &s, Vertex *v) const;
+		bool Adjacent(const Face&f, Vertex *v) const;
+		bool Adjacent(const Segment &s, const Face &f) const;
 
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
@@ -168,7 +175,7 @@ namespace ODER{
 		std::deque<Face> mayEncroachedFaces;
 		std::deque<Segment> mayEncroachedSegs;
 		std::unordered_set<Segment, segment_ordered_hash> mayEncroachedSegsSet;
-		std::vector<uintptr_t *> polygonVertices;
+		std::vector<uintptr_t *> verticesPerPolygon;
 
 		std::vector<Face> tobeDeletedFaces;
 		std::vector<Segment> newSegsOfFaces;
@@ -210,6 +217,13 @@ namespace ODER{
 
 	inline void DelMesher::deallocVertex(Vertex *vert) {
 		vertPool.Dealloc(vert);
+	}
+
+	inline size_t DelMesher::getPolygonVertices(int faceIndex, Vertex ***verts) const {
+		uintptr_t *p = verticesPerPolygon[faceIndex];
+		size_t count = *(size_t *)p;
+		*verts = (Vertex **)(p + 1);
+		return count;
 	}
 }
 

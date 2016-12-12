@@ -102,6 +102,18 @@ namespace ODER{
 		else return val;
 	}
 
+	inline float nearestPowerOfTwo(float val) {
+		int exp = 0;
+		float significand = frexp(val, &exp);
+		return fabs(significand) < 0.75f ? ldexp(1.f, exp - 1) : ldexp(1.f, exp);
+	}
+
+	inline double nearestPowerOfTwo(double val) {
+		int exp = 0;
+		double significand = frexp(val, &exp);
+		return fabs(significand) < 0.75 ? ldexp(1.0, exp - 1) : ldexp(1.0, exp);
+	}
+
 	constexpr float const_pow(float base, int exp) noexcept {
 		return exp < 0 ? 1.f / const_pow(base, -exp) :
 			(exp == 0 ? 1.f :
