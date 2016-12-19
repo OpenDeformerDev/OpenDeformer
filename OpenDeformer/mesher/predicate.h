@@ -263,7 +263,6 @@ template<class FT> FT Predicator<FT>::orient3d(const VectorBase<FT>& a, const Ve
 	return orient3dAdaptive(a, b, c, d, norm);
 }
 
-
 template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, FT norm) const{
 	int finLength;
 	FT det, errorBound;
@@ -516,13 +515,13 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 			}
 		}
 		if (!dcyErrorZeroTest){
-			FT daxe_dcye1, dcxe_dbye0;
-			arthemetricer.twoProduct(-daxError, dbyError, daxe_dcye1, dcxe_dbye0);
-			arthemetricer.twoOneProduct(daxe_dcye1, dcxe_dbye0, db.z, u[3], u[2], u[1], u[0]);
+			FT daxe_dcye1, daxe_dcye0;
+			arthemetricer.twoProduct(-daxError, dcyError, daxe_dcye1, daxe_dcye0);
+			arthemetricer.twoOneProduct(daxe_dcye1, daxe_dcye0, db.z, u[3], u[2], u[1], u[0]);
 			finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 			std::swap(finNow, finOther);
 			if (!dbzErrorZeroTest){
-				arthemetricer.twoOneProduct(daxe_dcye1, dcxe_dbye0, dbzError, u[3], u[2], u[1], u[0]);
+				arthemetricer.twoOneProduct(daxe_dcye1, daxe_dcye0, dbzError, u[3], u[2], u[1], u[0]);
 				finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 				std::swap(finNow, finOther);
 			}
@@ -543,13 +542,13 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 			}
 		}
 		if (!dayErrorZeroTest){
-			FT dbxe_daye1, dbxe_dcye0;
-			arthemetricer.twoProduct(-dbxError, dayError, dbxe_daye1, dbxe_dcye0);
-			arthemetricer.twoOneProduct(dbxe_daye1, dbxe_dcye0, dc.z, u[3], u[2], u[1], u[0]);
+			FT dbxe_daye1, dbxe_daye0;
+			arthemetricer.twoProduct(-dbxError, dayError, dbxe_daye1, dbxe_daye0);
+			arthemetricer.twoOneProduct(dbxe_daye1, dbxe_daye0, dc.z, u[3], u[2], u[1], u[0]);
 			finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 			std::swap(finNow, finOther);
 			if (!dczErrorZeroTest){
-				arthemetricer.twoOneProduct(dbxe_daye1, dbxe_dcye0, dczError, u[3], u[2], u[1], u[0]);
+				arthemetricer.twoOneProduct(dbxe_daye1, dbxe_daye0, dczError, u[3], u[2], u[1], u[0]);
 				finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 				std::swap(finNow, finOther);
 			}
@@ -570,13 +569,13 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 			}
 		}
 		if (!dbyErrorZeroTest){
-			FT dcxe_dcye1, dcxe_dbye0;
-			arthemetricer.twoProduct(-dcxError, dbyError, dcxe_dcye1, dcxe_dbye0);
-			arthemetricer.twoOneProduct(dcxe_dcye1, dcxe_dbye0, dc.z, u[3], u[2], u[1], u[0]);
+			FT dcxe_dbye1, dcxe_dbye0;
+			arthemetricer.twoProduct(-dcxError, dbyError, dcxe_dbye1, dcxe_dbye0);
+			arthemetricer.twoOneProduct(dcxe_dbye1, dcxe_dbye0, da.z, u[3], u[2], u[1], u[0]);
 			finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 			std::swap(finNow, finOther);
 			if (!dazErrorZeroTest){
-				arthemetricer.twoOneProduct(dcxe_dcye1, dcxe_dbye0, dczError, u[3], u[2], u[1], u[0]);
+				arthemetricer.twoOneProduct(dcxe_dbye1, dcxe_dbye0, dazError, u[3], u[2], u[1], u[0]);
 				finLength = arthemetricer.fastExpansionSum(finNow, u, finOther, finLength, 4);
 				std::swap(finNow, finOther);
 			}
@@ -594,7 +593,7 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 		std::swap(finNow, finOther);
 	}
 	if (!dczErrorZeroTest){
-		wLen = arthemetricer.scaleExpansion(abt, dazError, w, abtLen);
+		wLen = arthemetricer.scaleExpansion(abt, dczError, w, abtLen);
 		finLength = arthemetricer.fastExpansionSum(finNow, w, finOther, finLength, wLen);
 		std::swap(finNow, finOther);
 	}
@@ -2177,7 +2176,10 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	FT scale = sqrt(maxLen2) / sqrt(nLen2);
 	n.x *= scale; n.y *= scale; n.z *= scale;
 
-	return VectorBase<FT>(corner.x + n.x, corner.y + n.y, corner.z + n.z);
+	Assert(!isnan(n.x) && !isnan(n.y) && !isnan(n.z));
+
+	VectorBase<FT> above(corner.x + n.x, corner.y + n.y, corner.z + n.z);
+	return above;
 }
 
 }

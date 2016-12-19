@@ -759,18 +759,21 @@ namespace ODER {
 			insertToTopology(Segment(c, d), a, b);
 
 			addSupplyVerts(b, c, d, a, 1);
+			addEnforcedSegmentsAdjacency(b, d, c, a, 1);
 			break;
 		case 1:
 			insertToTopology(Segment(a, b), c, d);
 			insertToTopology(Segment(c, d), a, b);
 
 			addSupplyVerts(a, b, c, d, 0);
+			addEnforcedSegmentsAdjacency(a, b, c, d, 0);
 			break;
 		case 2:
 			insertToTopology(Segment(a, c), d, b);
 			insertToTopology(Segment(b, d), c, a);
 
 			addSupplyVerts(a, c, b, d, 0);
+			addEnforcedSegmentsAdjacency(a, c, d, b, 0);
 			break;
 		case 3:
 			insertToTopology(Segment(a, b), c, d);
@@ -778,12 +781,14 @@ namespace ODER {
 			insertToTopology(Segment(b, c), a, d);
 
 			addSupplyVerts(a, b, c, d, 1);
+			addEnforcedSegmentsAdjacency(a, b, c, d, 1);
 			break;
 		case 4:
 			insertToTopology(Segment(a, d), b, c);
 			insertToTopology(Segment(b, c), a, d);
 
 			addSupplyVerts(a, d, b, c, 0);
+			addEnforcedSegmentsAdjacency(a, d, b, c, 0);
 			break;
 		case 5:
 			insertToTopology(Segment(a, b), c, d);
@@ -791,6 +796,7 @@ namespace ODER {
 			insertToTopology(Segment(b, d), c, a);
 
 			addSupplyVerts(a, b, d, c, 1);
+			addEnforcedSegmentsAdjacency(a, d, b, c, 1);
 			break;
 		case 6:
 			insertToTopology(Segment(a, c), d, b);
@@ -798,6 +804,7 @@ namespace ODER {
 			insertToTopology(Segment(c, d), a, b);
 
 			addSupplyVerts(a, c, d, b, 1);
+			addEnforcedSegmentsAdjacency(a, c, d, b, 1);
 			break;
 		case 7:
 			insertToTopology(Segment(a, b), c, d);
@@ -1049,6 +1056,54 @@ namespace ODER {
 
 		return found;
 	}
+
+	bool TetMeshDataStructure::adjacent2Segment(const Segment &s, Tetrahedron *t) const {
+		Vertex *a = s.v[0], *b = s.v[1];
+		if (parityCheck(a, b)) {
+			bool ordered = edgeOrderCheck(a, b);
+			if (!ordered) std::swap(a, b);
+			auto pair = topology.find(a);
+			if (pair != topology.end()) {
+				EdgeListNode *linkHead = pair->second;
+				while (linkHead != NULL && linkHead->getEndVertex() != b)
+					linkHead = linkHead->getNextNode();
+
+				if (linkHead != NULL) {
+					TetVertexListNode *parentNode = linkHead->getLink();
+					TetVertexListNode *node = parentNode != NULL ? parentNode->getNextNode() : NULL;
+					while (node != NULL) {
+						if (!node->isPreFaceDeleted()) {
+							if (ordered) *t = Tetrahedron(a, b, parentNode->getVertex(), node->getVertex());
+							else *t = Tetrahedron(b, a, node->getVertex(), parentNode->getVertex());
+							return true;
+						}
+						parentNode = node;
+						node = node->getNextNode();
+					}
+					node = linkHead->getLink();
+					if (parentNode != node && !node->isPreFaceDeleted()) {
+						if (ordered) *t = Tetrahedron(a, b, parentNode->getVertex(), node->getVertex());
+						else *t = Tetrahedron(b, a, node->getVertex(), parentNode->getVertex());
+						return true;
+					}
+				}
+			}
+		}
+		else {
+			auto found = segmentAdjacency.find(Segment(a, b, true));
+			Vertex *c = found->second;
+			if (found != segmentAdjacency.end() && c != NULL) {
+				Vertex *d = NULL;
+				if (Adjacent(Face(b, a, c), &d)) {
+					*t = Tetrahedron(a, b, c, d);
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 
 	TetMeshDataStructure::TetMeshConstIterator::TetMeshConstIterator(const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& iter,
 		const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& end) : topologyIter(iter), topologyEnd(end){
@@ -1558,6 +1613,40 @@ namespace ODER {
 		default:
 			Severe("Unexpected mode in DelMesher::addSupplyVerts");
 			break;
+		}
+	}
+
+	void TetMeshDataStructure::addEnforcedSegmentsAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode) {
+		switch (mode) {
+		case 0:
+			addEnforcedSegmentAdjacency(a, c, d, b);
+			addEnforcedSegmentAdjacency(a, d, b, c);
+			addEnforcedSegmentAdjacency(b, c, a, d);
+			addEnforcedSegmentAdjacency(b, d, c, a);
+			break;
+		case 1:
+			addEnforcedSegmentAdjacency(a, d, b, c);
+			addEnforcedSegmentAdjacency(b, d, c, a);
+			addEnforcedSegmentAdjacency(c, d, a, b);
+			break;
+		default:
+			Severe("Unexpected mode in DelMesher::addEnforcedSegmentsAdjacency");
+			break;
+		}
+	}
+
+	void TetMeshDataStructure::addEnforcedSegmentAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
+		if (matchVertexFlag(a->type, VertexType::Vertex_Segment) && 
+			matchVertexFlag(b->type, VertexType::Vertex_Segment)) {
+			auto found = segmentAdjacency.find(Segment(a, b, true));
+			if (found != segmentAdjacency.end()) {
+				if (!edgeOrderCheck(a, b)) {
+					std::swap(a, b);
+					std::swap(c, d);
+				}
+
+				found->second = c;
+			}
 		}
 	}
 

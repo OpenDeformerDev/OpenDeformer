@@ -7,7 +7,6 @@
 
 #include <memory>
 #include <vector>
-#include <cstdint>
 #include <limits>
 #include "memory.h"
 

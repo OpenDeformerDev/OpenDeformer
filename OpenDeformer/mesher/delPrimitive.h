@@ -304,9 +304,11 @@ namespace ODER {
 
 	struct segment_ordered_hash {
 		size_t operator()(const Segment &s) const {
-			int64_t smallerLable = s.v[0]->getLabel();
-			int64_t biggerLable = s.v[1]->getLabel();
-			return std::hash<int64_t>()(((biggerLable * (biggerLable + 1)) >> 1) + smallerLable);
+			constexpr int shift = 8 * sizeof(int);
+			size_t smallerLable = s.v[0]->getLabel();
+			uint64_t biggerLable = s.v[1]->getLabel();
+			uint64_t hashVal = ((biggerLable * (biggerLable + 1)) >> 1) + smallerLable;
+			return size_t((hashVal >> shift) ^ hashVal);
 		}
 	};
 
@@ -320,7 +322,7 @@ namespace ODER {
 
 	struct vertex_hash {
 		size_t operator()(const Vertex *v) const {
-			return std::hash<int>()(v->getLabel());
+			return v->getLabel();
 		}
 	};
 
@@ -436,6 +438,17 @@ namespace ODER {
 		bool Contain(const Tetrahedron& t) const;
 		void Clear();
 		void Reserve(size_t n) { topology.reserve(n); }
+
+		//Ensure: the segment ab must not in mesh
+		void addSegment(Vertex *a, Vertex *b);
+		void deleteSegment(Vertex *a, Vertex *b);
+		//Ensure: the segment s must be added
+		bool adjacent2Segment(const Segment &s, Tetrahedron *t) const;
+		//Ensure: the segment s must be added
+		bool Contain(const Segment &s) const;
+		bool isSegment(const Segment &s) const;
+
+
 		~TetMeshDataStructure();
 
 		class TetMeshConstIterator {
@@ -475,21 +488,50 @@ namespace ODER {
 			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyEnd;
 		};
 
+		class SegmentConstIterator {
+		public:
+			using iterator_category = std::input_iterator_tag;
+			using value_type = Segment;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = const Segment&;
+			using pointer = const Segment *;
+
+			SegmentConstIterator(const std::unordered_map<Segment, Vertex*, vertex_hash>::const_iterator &iter)
+				: segAdjIter(iter) {}
+			SegmentConstIterator& operator++() { ++segAdjIter; return *this; }
+			SegmentConstIterator operator++(int){ return SegmentConstIterator(segAdjIter++); }
+
+			bool operator==(const SegmentConstIterator& right) const { return segAdjIter == right.segAdjIter; }
+			bool operator!=(const SegmentConstIterator& right) const { return segAdjIter != right.segAdjIter; }
+
+			reference operator*() const { return segAdjIter->first; }
+			pointer operator->() const { return &segAdjIter->first; }
+		private:
+			std::unordered_map<Segment, Vertex*, vertex_hash>::const_iterator segAdjIter;
+		};
+
 		using const_iterator = TetMeshConstIterator;
 		const_iterator begin() const { return const_iterator(topology.begin(), topology.end()); }
 		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
+		SegmentConstIterator segmentBegin() const { return SegmentConstIterator(segmentAdjacency.begin()); }
+		SegmentConstIterator segmentEnd() const { return SegmentConstIterator(segmentAdjacency.end()); }
 
 	private:
 		bool getAdjacentListNode(const Face& f, TetVertexListNode **z) const;
 		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, TetVertexListNode **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
-		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
+		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);		
+		void addEnforcedSegmentsAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
+		void addEnforcedSegmentAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
+
 		static bool parityCheck(const Vertex *x, const Vertex *y);
 		static bool edgeOrderCheck(const Vertex *a, const Vertex *b);
 		static bool verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d);
 
 		std::unordered_map<Vertex *, EdgeListNode *, vertex_hash> topology;
+		std::unordered_map<Segment, Vertex*, segment_ordered_hash> segmentAdjacency;
 		MemoryPool<TetVertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
 	};
@@ -497,13 +539,13 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) {
 		constexpr int odd_mark = 1;
-		return (std::hash<int>()(x->getLabel()) & odd_mark) == (std::hash<int>()(y->getLabel()) & odd_mark);
+		return (x->getLabel() & odd_mark) == (y->getLabel() & odd_mark);
 	}
 
 	inline bool TetMeshDataStructure::edgeOrderCheck(const Vertex *a, const Vertex *b) {
 		constexpr int mask = 2;
 		int aLabel = a->getLabel(), bLabel = b->getLabel();
-		return b->isGhost() || (!a->isGhost() && ((aLabel < bLabel) ^ ((std::hash<int>()(aLabel) & mask) == (std::hash<int>()(bLabel) & mask))));
+		return b->isGhost() || (!a->isGhost() && ((aLabel < bLabel) ^ ((aLabel & mask) == (bLabel & mask))));
 	}
 
 	inline bool TriMeshDataStructure::Contain(Vertex *v) const {
@@ -542,6 +584,23 @@ namespace ODER {
 		Vertex *x = NULL;
 		Adjacent(Face(t.v[1], t.v[2], t.v[3]), &x);
 		return x == t.v[0];
+	}
+
+	inline bool TetMeshDataStructure::Contain(const Segment &s) const {
+		Tetrahedron t;
+		return adjacent2Segment(s, &t);
+	}
+
+	inline bool TetMeshDataStructure::isSegment(const Segment &s) const {
+		return segmentAdjacency.find(Segment(s.v[0], s.v[1], true)) != segmentAdjacency.end();
+	}
+
+	inline void TetMeshDataStructure::addSegment(Vertex *a, Vertex *b) { 
+		segmentAdjacency.insert(std::make_pair(Segment(a, b, true), (Vertex *)NULL)); 
+	}
+
+	inline void TetMeshDataStructure::deleteSegment(Vertex *a, Vertex *b) { 
+		segmentAdjacency.erase(Segment(a, b, true)); 
 	}
 
 	inline bool TetMeshDataStructure::verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d) {

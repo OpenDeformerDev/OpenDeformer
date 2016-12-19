@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <functional>
 #include <assert.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifndef NDEBUG
 #define ODER_DEBUG
