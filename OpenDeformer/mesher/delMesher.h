@@ -16,23 +16,20 @@
 #include <unordered_set>
 #include <vector>
 #include <deque>
+#include <stack>
 
 namespace ODER{
 	class DelTriangulator{
 	public:
-		DelTriangulator(){
-			ghost = allocAligned<Vertex>();
-			ghost->setGhost();
-		}
-		~DelTriangulator(){
-			freeAligned(ghost);
-		}
-		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
-		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, const Face& ref, bool boundaryOnly);
-		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount);
-		void outPut(std::vector<Face> &meshVec) { meshRep.getTriangles(false, meshVec); }
+		DelTriangulator() = default;
+		~DelTriangulator() = default;
+		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, 
+			const Face& ref, bool boundaryOnly, std::vector<Face>& output);
+		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, 
+			const Face& ref, bool boundaryOnly, std::vector<Face>& output);
+		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount, std::vector<Face>& output);
 	private:
-		void calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
+		DelVector calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
 		void insertSegment(const Segment& s);
 		void triangulateHalfHole(const std::vector<Vertex *>& vertices);
 		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
@@ -107,12 +104,11 @@ namespace ODER{
 			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
 			std::vector<Tetrahedron>& deleted);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool triangulateCavity(const std::vector<Face>& regionFaces, bool missingFaceTest, bool encroachFaceTest, std::vector<Face>& boundaryFaces,
+		bool triangulateCavity(const std::vector<Face>& regionFaces, std::vector<Face>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
 		void propagateCleanCavity(const Face& f, int depth);
 		void refineRegion(const Face& regionFace, bool encroachTest);
 
-		Vertex* allocVertex();
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type);
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
@@ -169,19 +165,10 @@ namespace ODER{
 		REAL maxRadius;
 		static Predicator<REAL> predicator;
 
-		std::unordered_map<Vertex *, Segment, vertex_hash> vertSegMap;
-		//unordered_set<Face, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<Face>> polygons;
-		//unordered_set<Tetrahedron, tet_hash, std::equal_to<Tetrahedron>, NONE_SYNC_CHUNK_ALLOC<Tetrahedron>> tets;
-
-		//unordered_map<Face, Vertex *, face_hash, std::equal_to<Face>, NONE_SYNC_CHUNK_ALLOC<std::pair<Face, Vertex*>>> fvHash;
-		//unordered_map<Segment, Vertex *, segment_hash, std::equal_to<Segment>, NONE_SYNC_CHUNK_ALLOC<std::pair<Segment, Vertex*>>> svHash;
-		//unordered_map<Vertex *, Segment, vertex_hash> vfHash;
-		//unordered_map<Vertex *, Vertex *, vertex_hash> vsHash;
-
 		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>, std::function<bool(const Tetrahedron&, const Tetrahedron&)>> skinnyTets;
 		std::deque<Face> mayEncroachedFaces, mayMissingFaces;
 		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
-		std::unordered_set<Segment, segment_ordered_hash> mayEncroachedSegsSet;
+		std::vector<Segment> markedSegments;
 		std::vector<uintptr_t *> verticesPerPolygon;
 
 		std::vector<Face> tobeDeletedFaces;
@@ -191,39 +178,31 @@ namespace ODER{
 		std::vector<Tetrahedron> newTets;
 
 		std::vector<Vertex *> oriVertices;
+		std::vector<Segment> oriSegments;
 		MemoryPool<Vertex> vertPool;
+		MemoryArena<uintptr_t> pointerArena;
 
 		TetMeshDataStructure meshRep;
 		TetMeshDataStructure cavityRep;
 		TriMeshDataStructure surfaceRep;
 
-		Vertex *ghost;
 		AABB<REAL> boundBox;
-		VertexLabeler labeler;
 	};
 
-	inline Vertex* DelMesher::allocVertex() { return vertPool.Alloc(); }
-
 	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight, VertexType type){
-		Vertex *newVertex = vertPool.Alloc();
-		newVertex->vert = vert;
-		newVertex->weight = weight;
-		newVertex->type = type;
-		newVertex->setLabel(labeler.getLabel());
+		Vertex *newVertex = meshRep.allocVertex(vert, weight, type);
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}
 
 	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
-		Vertex *newVertex = vertPool.Alloc();
-		*newVertex = vertex;
-		newVertex->setVertexPointer(NULL);
+		Vertex *newVertex = meshRep.allocVertex(vertex.vert, vertex.weight, vertex.getVertexType());
 		Assert(boundBox.Inside(newVertex->vert));
 		return newVertex;
 	}
 
 	inline void DelMesher::deallocVertex(Vertex *vert) {
-		vertPool.Dealloc(vert);
+		meshRep.deallocVertex(vert);
 	}
 
 	inline size_t DelMesher::getPolygonVertices(int faceIndex, Vertex ***verts) const {

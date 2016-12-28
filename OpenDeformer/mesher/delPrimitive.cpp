@@ -109,8 +109,60 @@ namespace ODER {
 	}
 
 	TriMeshDataStructure::TriMeshDataStructure() {
-		topology.reserve(32);
 		nodePool = new MemoryPool<TriVertexListNode>(64);
+		vertPool = NULL;
+		ghost = NULL;
+		deadVerticesStack = NULL;
+	}
+
+	Vertex* TriMeshDataStructure::allocVertex(const DelVector &point, REAL weight) {
+		if (vertPool == NULL) vertPool = new MemoryArena<Vertex>(128);
+
+		Vertex *newVert = NULL;
+		if (deadVerticesStack == NULL) {
+			newVert = vertPool->Alloc(1, point, weight, VertexType::Vertex_Facet);
+			newVert->setLabel(labeler.getLabel());
+		}
+		else {
+			newVert = deadVerticesStack;
+			deadVerticesStack = newVert->getPointedVertex();
+			int lable = newVert->getLabel();
+			Construct(newVert, point, weight, VertexType::Vertex_Facet);
+			newVert->setLabel(lable);
+		}
+		vertices.push_back(newVert);
+
+		return newVert;
+	}
+
+	void TriMeshDataStructure::deallocVertex(Vertex *vert) {
+		Assert(vertPool != NULL);
+		TriVertexListNode *node = vert->getFaceLink();
+		while (node) {
+			TriVertexListNode *tmp = node->getNextNode();
+			nodePool->Dealloc(node);
+			node = tmp;
+		}
+		vert->type = Vertex_Undefined;
+		vert->setVertexPointer(deadVerticesStack);
+		deadVerticesStack = vert;
+	}
+
+	void TriMeshDataStructure::bindVolumeVertex(Vertex *vert) {
+		Assert(matchVertexFlag(vert->type, VertexType(VertexType::Vertex_Volume | VertexType::Vertex_Facet)));
+		Assert(vert->getFaceLink() == NULL);
+		vertices.push_back(vert);
+	}
+
+	void TriMeshDataStructure::unbindVolumeVertex(Vertex *vert) {
+		Assert(matchVertexFlag(vert->type, VertexType(VertexType::Vertex_Volume | VertexType::Vertex_Facet)));
+		TriVertexListNode *node = vert->getFaceLink();
+		while (node) {
+			TriVertexListNode *tmp = node->getNextNode();
+			nodePool->Dealloc(node);
+			node = tmp;
+		}
+		vertices.erase(std::remove(vertices.begin(), vertices.end(), vert), vertices.end());
 	}
 
 	void TriMeshDataStructure::addTriangle(Vertex *a, Vertex *b, Vertex *c, int index) {
@@ -177,10 +229,9 @@ namespace ODER {
 	}
 
 	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Face *f) const {
-		auto entry = topology.find(w);
-		if (entry == topology.end())
-			return false;
-		TriVertexListNode *node = entry->second;
+		if (!matchVertexFlag(w->type, VertexType::Vertex_Facet)) return false;
+
+		TriVertexListNode *node = w->getFaceLink();
 		TriVertexListNode *nextNode = NULL;
 		bool found = false;
 		while (node != NULL && !found) {
@@ -195,13 +246,11 @@ namespace ODER {
 	}
 
 	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const {
-		auto entry = topology.find(a);
-		Assert(entry != topology.end());
-
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return false;
 		DelVector aa = a->vert;
 		constexpr Predicator<REAL> predicator;
 
-		TriVertexListNode *parent = entry->second;
+		TriVertexListNode *parent = a->getFaceLink();
 		TriVertexListNode *child = parent->getNextNode();
 		Vertex *c = NULL, *d = NULL;
 		
@@ -215,7 +264,7 @@ namespace ODER {
 			child = child->getNextNode();
 		}
 		if (child == NULL) {
-			child = entry->second;
+			child = a->getFaceLink();
 			if (!child->isPreFaceDeleted()) {
 				c = parent->getVertex();
 				d = child->getVertex();
@@ -272,7 +321,7 @@ namespace ODER {
 		}
 
 		if (child == NULL) {
-			child = entry->second;
+			child = a->getFaceLink();
 			if (!child->isPreFaceDeleted()) {
 				c = parent->getVertex();
 				d = child->getVertex();
@@ -299,13 +348,29 @@ namespace ODER {
 		return true;
 	}
 
-	TriMeshDataStructure::TriMeshConstIterator::TriMeshConstIterator(const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& iter,
-		const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& end) : topologyIter(iter), topologyEnd(end){
-		while (topologyIter != topologyEnd) {
-			Vertex *center = topologyIter->first;
-			parent = topologyIter->second;
-			child = parent->getNextNode();
-			while (child != NULL) {
+	TriMeshDataStructure::TriMeshConstIterator::TriMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
+		const std::vector<Vertex *>::const_iterator& end) : vertIter(iter), vertEnd(end){
+		while (vertIter != vertEnd) {
+			Vertex *center = *vertIter;
+			if (matchVertexFlag(center->type, VertexType::Vertex_Facet) && 
+				center->getFaceLink()) {
+				parent = center->getFaceLink();
+				child = parent->getNextNode();
+				while (child != NULL) {
+					if (!child->isPreFaceDeleted()) {
+						Vertex *b = parent->getVertex();
+						Vertex *c = child->getVertex();
+						if (verticesOrderCheck(center, b, c)) {
+							current = Face(center, b, c, child->getIndex());
+							return;
+						}
+					}
+
+					parent = child;
+					child = parent->getNextNode();
+				}
+
+				child = center->getFaceLink();
 				if (!child->isPreFaceDeleted()) {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
@@ -314,38 +379,28 @@ namespace ODER {
 						return;
 					}
 				}
-
-				parent = child;
-				child = parent->getNextNode();
 			}
 
-			child = topologyIter->second;
-			if (!child->isPreFaceDeleted()) {
-				Vertex *b = parent->getVertex();
-				Vertex *c = child->getVertex();
-				if (verticesOrderCheck(center, b, c)) {
-					current = Face(center, b, c, child->getIndex());
-					return;
-				}
-			}
-
-			++topologyIter;
+			++vertIter;
 		}
 		parent = NULL; child = NULL;
 	}
 
 	void TriMeshDataStructure::TriMeshConstIterator::findNext() {
 		do {
-			if (child != topologyIter->second) {
+			if (child != (*vertIter)->getFaceLink()) {
 				parent = child;
 				child = parent->getNextNode();
-				if (child == NULL) child = topologyIter->second;
+				if (child == NULL) child = (*vertIter)->getFaceLink();
 			}
 			else {
-				++topologyIter;
+				do {
+					++vertIter;
+				} while (vertIter != vertEnd && 
+					(!matchVertexFlag((*vertIter)->type, Vertex_Facet) || !((*vertIter)->getFaceLink())));
 
-				if (topologyIter != topologyEnd) {
-					parent = topologyIter->second;
+				if (vertIter != vertEnd) {
+					parent = (*vertIter)->getFaceLink();
 					child = parent->getNextNode();
 				}
 				else {
@@ -356,11 +411,11 @@ namespace ODER {
 			}
 
 			if (!child->isPreFaceDeleted()) {
-				Vertex *center = topologyIter->first;
+				Vertex *center = *vertIter;
 				Vertex *b = parent->getVertex();
 				Vertex *c = child->getVertex();
 				if (verticesOrderCheck(center, b, c)) {
-					current =  Face(center, b, c, child->getIndex());
+					current = Face(center, b, c, child->getIndex());
 					return;
 				}
 			}
@@ -376,12 +431,12 @@ namespace ODER {
 	void TriMeshDataStructure::getTriangles(bool ghost, std::vector<Face>& triangles) const {
 		TriVertexListNode *parent = NULL;
 		TriVertexListNode *child = NULL;
-		triangles.reserve(topology.size() * 2);
+		triangles.reserve(vertices.size() * 2);
 
-		for (auto entry : topology) {
-			Vertex *center = entry.first;
-			if ((ghost || !center->isGhost())) {
-				parent = entry.second;
+		for (auto center : vertices) {
+			if (matchVertexFlag(center->type, Vertex_Facet) 
+				&& center->getFaceLink() && (ghost || !center->isGhost())) {
+				parent = center->getFaceLink();
 				child = parent->getNextNode();
 				while (child != NULL) {
 					if (!child->isPreFaceDeleted()) {
@@ -394,8 +449,8 @@ namespace ODER {
 					parent = child;
 					child = child->getNextNode();
 				}
-				if (!entry.second->isPreFaceDeleted()) {
-					child = entry.second;
+				if (!center->getFaceLink()->isPreFaceDeleted()) {
+					child = center->getFaceLink();
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (verticesOrderCheck(center, b, c))
@@ -406,16 +461,14 @@ namespace ODER {
 	}
 
 	bool TriMeshDataStructure::getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const {
-		auto entry = topology.find(u);
-		if (entry == topology.end()) return false;
-
-		TriVertexListNode *node = entry->second;
+		if (!matchVertexFlag(u->type, VertexType::Vertex_Facet)) return false;
+		TriVertexListNode *node = u->getFaceLink();
 		bool found = false;
 		while (node != NULL) {
 			if (node->getVertex() == v) {
 				TriVertexListNode *nextNode = node->getNextNode();
 				if (nextNode == NULL)
-					nextNode = entry->second;
+					nextNode = u->getFaceLink();
 				*w = nextNode;
 				found = true;
 				break;
@@ -427,8 +480,7 @@ namespace ODER {
 	}
 
 	void TriMeshDataStructure::insertToTopology(Vertex *a, Vertex *b, Vertex *c, int index) {
-		auto entry = topology.find(a);
-		if (entry == topology.end()) {
+		if (!a->getFaceLink()) {
 			TriVertexListNode *node = nodePool->Alloc();
 			node->setVertex(b);
 			node->setDeletedMark();
@@ -436,10 +488,10 @@ namespace ODER {
 			nextNode->setVertex(c);
 			nextNode->setIndex(index);
 			node->setNextNode(nextNode);
-			topology[a] = node;
+			a->setFaceLink(node);
 		}
 		else {
-			TriVertexListNode *head = entry->second;
+			TriVertexListNode *head = a->getFaceLink();
 			TriVertexListNode *parent = head;
 			TriVertexListNode *child = parent->getNextNode();
 			TriVertexListNode *foundNode[2];
@@ -474,7 +526,7 @@ namespace ODER {
 				if (head->isPreFaceDeleted()) {
 					nextNode->setNextNode(head);
 					head = newNode;
-					entry->second = head;
+					a->setFaceLink(head);
 				}
 				else {
 					parent = head;
@@ -500,7 +552,7 @@ namespace ODER {
 						newNode->setDeletedMark();
 						newNode->setNextNode(head);
 						head = newNode;
-						entry->second = head;
+						a->setFaceLink(head);
 					}
 					else {
 						foundNode[0]->unSetDeletedMark();
@@ -567,7 +619,7 @@ namespace ODER {
 							}
 							bNode->setNextNode(NULL);
 							end->setNextNode(NULL);
-							entry->second = cNode;
+							a->setFaceLink(cNode);
 							head = cNode;
 						}
 					}
@@ -593,7 +645,7 @@ namespace ODER {
 						else {
 							end->setNextNode(head);
 							head = start;
-							entry->second = head;
+							a->setFaceLink(head);
 						}
 					}
 					//the lost fan lost
@@ -617,9 +669,7 @@ namespace ODER {
 	}
 
 	void TriMeshDataStructure::removeFromTopology(Vertex *a, Vertex *b, Vertex *c) {
-		auto entry = topology.find(a);
-		Assert(entry != topology.end());
-		TriVertexListNode *head = entry->second;
+		TriVertexListNode *head = a->getFaceLink();
 		if (head) {
 			TriVertexListNode *grandparent = head;
 			TriVertexListNode *parent = grandparent->getNextNode();
@@ -632,13 +682,13 @@ namespace ODER {
 					//check the node behide parent
 					if (child && child->isPreFaceDeleted()) {
 						nodePool->Dealloc(parent);
-						entry->second = child;
+						a->setFaceLink(child);
 						head = child;
 					}
 					//normal case
 					else {
 						parent->setDeletedMark();
-						entry->second = parent;
+						a->setFaceLink(parent);
 						head = parent;
 					}
 				}
@@ -706,7 +756,7 @@ namespace ODER {
 						//the node behide the head deleted
 						if (next && next->isPreFaceDeleted()) {
 							next->setDeletedMark();
-							entry->second = next;
+							a->setFaceLink(next);
 							nodePool->Dealloc(head);
 							head = next;
 						}
@@ -726,23 +776,146 @@ namespace ODER {
 			//clean the deleted node
 			if (head->getNextNode() == NULL) {
 				nodePool->Dealloc(head);
-				topology.erase(entry);
+				a->setFaceLink(NULL);
 			}
 		}
 	}
 
 	void TriMeshDataStructure::Clear() {
-		topology.clear();
+		vertices.clear();
 		nodePool->freeAll();
+		if (vertPool) vertPool->freeAll();
+		ghost = NULL;
+		deadVerticesStack = NULL;
+		labeler.restartLable();
 	}
 
 	TriMeshDataStructure::~TriMeshDataStructure() {
 		delete nodePool;
+		delete vertPool;
 	}
 
 	TetMeshDataStructure::TetMeshDataStructure() {
 		nodePool = new MemoryPool<TetVertexListNode>(256);
 		edgeNodePool = new MemoryPool<EdgeListNode>();
+		vertPool = new MemoryArena<Vertex>(256);
+		pointerList = new ThreadUnsafeFreelist<sizeof(uintptr_t), 4 * sizeof(uintptr_t)>();
+		ghost = NULL;
+		deadVerticesStack = NULL;
+	}
+
+	Vertex* TetMeshDataStructure::allocVertex(const DelVector &point, REAL weight, VertexType extraType) {
+		constexpr size_t freeSegFacetPointerCount = 4, fixedSegFacetPointerCount = 3, facetPointerCount = 2;
+		constexpr size_t freeSegPointerCount = 3, fixedSegPointerCount = 2;
+		
+		Vertex *newVert = NULL;
+		if (deadVerticesStack == NULL) {
+			newVert = vertPool->Alloc(1, point, weight, VertexType(Vertex_Volume | extraType));
+			newVert->setLabel(labeler.getLabel());
+		}
+		else {
+			newVert = deadVerticesStack;
+			deadVerticesStack = newVert->getPointedVertex();
+			int label = newVert->getLabel();
+			Construct(newVert, point, weight, VertexType(Vertex_Volume | extraType));
+			newVert->setLabel(label);
+		}
+		vertices.push_back(newVert);
+
+		uintptr_t *pointers = NULL;
+		if (matchVertexFlag(extraType, VertexType::Vertex_Facet)) {
+			if (matchVertexFlag(extraType, VertexType::Vertex_Segment)) {
+				if (matchVertexFlag(extraType, VertexType::Vertex_Free)) {
+					pointers = pointerList->Alloc<uintptr_t>(freeSegFacetPointerCount);
+					Initiation(pointers, freeSegFacetPointerCount);
+				}
+				else {
+					pointers = pointerList->Alloc<uintptr_t>(fixedSegFacetPointerCount);
+					Initiation(pointers, freeSegFacetPointerCount);
+				}
+			}
+			else {
+				pointers = pointerList->Alloc<uintptr_t>(facetPointerCount);
+				Initiation(pointers, facetPointerCount);
+			}
+		}
+		else if (matchVertexFlag(extraType, VertexType::Vertex_Segment)) {
+			if (matchVertexFlag(extraType, VertexType::Vertex_Free)) {
+				pointers = pointerList->Alloc<uintptr_t>(freeSegPointerCount);
+				Initiation(pointers, freeSegPointerCount);
+			}
+			else {
+				pointers = pointerList->Alloc<uintptr_t>(fixedSegPointerCount);
+				Initiation(pointers, fixedSegPointerCount);
+			}
+		}
+
+		newVert->setPointers(pointers);
+
+		return newVert;
+	}
+
+	void TetMeshDataStructure::deallocVertex(Vertex *vert) {
+		constexpr size_t freeSegFacetPointerCount = 4, fixedSegFacetPointerCount = 3, facetPointerCount = 2;
+		constexpr size_t freeSegPointerCount = 3, fixedSegPointerCount = 2;
+		VertexType type = vert->type;
+
+		//clean edgelist
+		EdgeListNode *linkHead = NULL;
+		if (vert->hasEdgeList()) linkHead = vert->getEdgeList();
+		while (linkHead) {
+			TetVertexListNode *node = linkHead->getLink();
+			while (node) {
+				TetVertexListNode *tmp = node->getNextNode();
+				nodePool->Dealloc(node);
+				node = tmp;
+			}
+			EdgeListNode *tmp = linkHead->getNextNode();
+			edgeNodePool->Dealloc(linkHead);
+			linkHead = tmp;
+		}
+
+		//clean enforced edges
+		if (matchVertexFlag(type, VertexType::Vertex_Segment)) {
+			EdgeListNode *enfocedListHead = vert->getEnforcedEdgeList();
+			while (enfocedListHead) {
+				EdgeListNode *tmp = enfocedListHead->getNextNode();
+				edgeNodePool->Dealloc(enfocedListHead);
+				enfocedListHead = tmp;
+			}
+		}
+
+		//clean pointers
+		if (matchVertexFlag(type, VertexType::Vertex_Facet)) {
+			if (matchVertexFlag(type, VertexType::Vertex_Segment)) {
+				if (matchVertexFlag(type, VertexType::Vertex_Free))
+					pointerList->Dealloc<uintptr_t>(vert->getPointers(), freeSegFacetPointerCount);
+				else
+					pointerList->Dealloc<uintptr_t>(vert->getPointers(), fixedSegFacetPointerCount);
+
+				//erase it if vert in enforcedEdgeVertices
+				if (vert->isEnforcedEdgeMarked())
+					enforcedEdgeVertices.erase(std::remove(enforcedEdgeVertices.begin(), enforcedEdgeVertices.end(), vert),
+						enforcedEdgeVertices.end());
+			}
+			else
+				pointerList->Dealloc<uintptr_t>(vert->getPointers(), facetPointerCount);
+		}
+		else if (matchVertexFlag(type, VertexType::Vertex_Segment)) {
+			if (matchVertexFlag(type, VertexType::Vertex_Free))
+				pointerList->Dealloc<uintptr_t>(vert->getPointers(), freeSegPointerCount);
+			else
+				pointerList->Dealloc<uintptr_t>(vert->getPointers(), fixedSegPointerCount);
+
+			//erase it if vert in enforcedEdgeVertices
+			if (vert->isEnforcedEdgeMarked()) 
+				enforcedEdgeVertices.erase(std::remove(enforcedEdgeVertices.begin(), enforcedEdgeVertices.end(), vert),
+					enforcedEdgeVertices.end());
+		}
+
+		vert->type = VertexType::Vertex_Undefined;
+		vert->setVertexPointer(deadVerticesStack);
+		deadVerticesStack = vert;
 	}
 
 	void TetMeshDataStructure::addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
@@ -899,7 +1072,6 @@ namespace ODER {
 		return getAdjacentListNode(f, &node) && node->isMarked();
 	}
 
-
 	bool TetMeshDataStructure::Adjacent(const Face &f, Vertex **z) const {
 		TetVertexListNode *node = NULL;
 		if (getAdjacentListNode(f, &node)) {
@@ -927,9 +1099,8 @@ namespace ODER {
 	bool TetMeshDataStructure::getAdjacentListNode(Vertex *w, Vertex *x, Vertex *y, TetVertexListNode **z) const {
 		bool found = false;
 		if (edgeOrderCheck(x, w)) {
-			auto pair = topology.find(x);
-			if (pair != topology.end()) {
-				EdgeListNode *linkHead = pair->second;
+			if (x->hasEdgeList()) {
+				EdgeListNode *linkHead = x->getEdgeList();
 				while (linkHead != NULL && linkHead->getEndVertex() != w) {
 					linkHead = linkHead->getNextNode();
 				}
@@ -951,9 +1122,8 @@ namespace ODER {
 			}
 		}
 		else {
-			auto pair = topology.find(w);
-			if (pair != topology.end()) {
-				EdgeListNode *linkHead = pair->second;
+			if (w->hasEdgeList()) {
+				EdgeListNode *linkHead = w->getEdgeList();
 				while (linkHead != NULL && linkHead->getEndVertex() != x) {
 					linkHead = linkHead->getNextNode();
 				}
@@ -987,11 +1157,11 @@ namespace ODER {
 	bool TetMeshDataStructure::adjacent2Vertex(Vertex *w, Tetrahedron *t) const {
 		bool found = false;
 		EdgeListNode *linkHead = NULL;
-		auto pair = topology.find(w);
-		bool hasList = (pair != topology.end() && pair->second != NULL);
+		bool hasList = w->hasEdgeList();
 		if (!hasList) {
-			Vertex *end = w->getPointedVertex();
-			linkHead = topology.find(end)->second;
+			Vertex *end = w->getSupplyVertex();
+			if (end == NULL || !end->hasEdgeList()) return adjacent2VertexSlow(w, t);
+			linkHead = end->getEdgeList();
 			bool foundHead = false;
 			while (linkHead != NULL && !foundHead) {
 				if (linkHead->getEndVertex() == w)
@@ -1001,7 +1171,7 @@ namespace ODER {
 			}
 		}
 		else
-			linkHead = pair->second;
+			linkHead = w->getEdgeList();
 
 		if (linkHead != NULL) {
 			TetVertexListNode *head = linkHead->getLink();
@@ -1019,15 +1189,16 @@ namespace ODER {
 				if(hasList)
 				    *t = Tetrahedron(w, linkHead->getEndVertex(), parentLoop->getVertex(), loop->getVertex());
 				else
-					*t = Tetrahedron(w, w->getPointedVertex(), loop->getVertex(), parentLoop->getVertex());
-				found = true;
+					*t = Tetrahedron(w, w->getSupplyVertex(), loop->getVertex(), parentLoop->getVertex());
+				return true;
 			}
 		}
 		else {
 			if (!hasList) {
-				Vertex *oppo = w->getPointedVertex();
-				linkHead = topology.find(oppo)->second;
-				while (linkHead && !found) {
+				Vertex *oppo = w->getSupplyVertex();
+				Assert(oppo->hasEdgeList());
+				linkHead = oppo->getEdgeList();
+				while (linkHead) {
 					TetVertexListNode *head = linkHead->getLink();
 					TetVertexListNode *parentLoop = head;
 					TetVertexListNode *loop = parentLoop->getNextNode();
@@ -1042,11 +1213,11 @@ namespace ODER {
 						if (childLoop == NULL) childLoop = head;
 						if (!loop->isPreFaceDeleted()) {
 							*t = Tetrahedron(w, parentLoop->getVertex(), linkHead->getEndVertex(), oppo);
-							found = true;
+							return true;
 						}
 						else if (!childLoop->isPreFaceDeleted()) {
 							*t = Tetrahedron(w, childLoop->getVertex(), oppo, linkHead->getEndVertex());
-							found = true;
+							return true;
 						}
 					}
 					linkHead = linkHead->getNextNode();
@@ -1054,17 +1225,57 @@ namespace ODER {
 			}
 		}
 
-		return found;
+		return adjacent2VertexSlow(w, t);
 	}
 
-	bool TetMeshDataStructure::adjacent2Segment(const Segment &s, Tetrahedron *t) const {
+	void TetMeshDataStructure::addSegment(Vertex *a, Vertex *b) {
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		if (node == NULL) {
+			EdgeListNode *oldNode = a->getEnforcedEdgeList();
+			EdgeListNode *newNode = edgeNodePool->Alloc();
+			newNode->setEndVertex(b);
+			newNode->setNextNode(oldNode);
+			newNode->setOtherVertex(NULL);
+			a->setEnforcedEdgeList(newNode);
+			if (oldNode == NULL && !a->isEnforcedEdgeMarked()) {
+				a->setEnforcedEdgeMark();
+				enforcedEdgeVertices.push_back(a);
+			}
+		}
+	}
+
+	void TetMeshDataStructure::deleteSegment(Vertex *a, Vertex *b) {
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		EdgeListNode *parentNode = NULL;
+		while (node != NULL && node->getEndVertex() != b) {
+			parentNode = node;
+			node = node->getNextNode();
+		}
+
+		if (node) {
+			if (parentNode)
+				parentNode->setNextNode(node->getNextNode());
+			else {
+				EdgeListNode *next = node->getNextNode();
+				a->setEnforcedEdgeList(next);
+			}
+
+			edgeNodePool->Dealloc(node);
+		}
+	}
+
+	bool TetMeshDataStructure::adjacent2SegmentFast(const Segment &s, Tetrahedron *t) const {
 		Vertex *a = s.v[0], *b = s.v[1];
 		if (parityCheck(a, b)) {
 			bool ordered = edgeOrderCheck(a, b);
 			if (!ordered) std::swap(a, b);
-			auto pair = topology.find(a);
-			if (pair != topology.end()) {
-				EdgeListNode *linkHead = pair->second;
+			if (a->hasEdgeList()) {
+				EdgeListNode *linkHead = a->getEdgeList();
 				while (linkHead != NULL && linkHead->getEndVertex() != b)
 					linkHead = linkHead->getNextNode();
 
@@ -1090,12 +1301,17 @@ namespace ODER {
 			}
 		}
 		else {
-			auto found = segmentAdjacency.find(Segment(a, b, true));
-			Vertex *c = found->second;
-			if (found != segmentAdjacency.end() && c != NULL) {
-				Vertex *d = NULL;
-				if (Adjacent(Face(b, a, c), &d)) {
-					*t = Tetrahedron(a, b, c, d);
+			bool ordered = edgeOrderCheck(a, b);
+			if (!ordered) std::swap(a, b);
+			EdgeListNode *node = a->getEnforcedEdgeList();
+			while (node != NULL && node->getEndVertex() != b) 
+				node = node->getNextNode();
+
+			if (node) {
+				Vertex *c = node->getOtherVertex(), *d = NULL;
+				if (c != NULL && Adjacent(Face(b, a, c), &d)) {
+					if (ordered) *t = Tetrahedron(a, b, c, d);
+					else  *t = Tetrahedron(b, a, d, c);
 					return true;
 				}
 			}
@@ -1104,12 +1320,217 @@ namespace ODER {
 		return false;
 	}
 
+	void TetMeshDataStructure::setMark(Vertex *a, Vertex *b) {
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Segment) ||
+			!matchVertexFlag(b->type, VertexType::Vertex_Segment))
+			return;
 
-	TetMeshDataStructure::TetMeshConstIterator::TetMeshConstIterator(const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& iter,
-		const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& end) : topologyIter(iter), topologyEnd(end){
-		while (topologyIter != topologyEnd) {
-			Vertex *ori = topologyIter->first;
-			linkHead = topologyIter->second;
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		if (node) node->setMark();
+	}
+
+	void TetMeshDataStructure::unSetMark(Vertex *a, Vertex *b) {
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Segment) ||
+			!matchVertexFlag(b->type, VertexType::Vertex_Segment))
+			return;
+
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		if (node) node->unSetMark();
+	}
+
+	bool TetMeshDataStructure::isMarked(Vertex *a, Vertex *b) const {
+		bool ret = false;
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Segment) ||
+			!matchVertexFlag(b->type, VertexType::Vertex_Segment))
+			return ret;
+
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		if (node) ret = node->isMarked();
+
+		return ret;
+	}
+
+	bool TetMeshDataStructure::testAndMark(Vertex *a, Vertex *b) {
+		bool ret = false;
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Segment) ||
+			!matchVertexFlag(b->type, VertexType::Vertex_Segment))
+			return ret;
+
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		if (node) {
+			ret = node->isMarked();
+			node->setMark();
+		}
+
+		return ret;
+	}
+
+	bool TetMeshDataStructure::adjacent2VertexSlow(Vertex *w, Tetrahedron *t) const {
+		for (auto vert : vertices) {
+			if (matchVertexFlag(vert->type, VertexType::Vertex_Volume) 
+				&& vert->hasEdgeList()) {
+				EdgeListNode *linkHead = vert->getEdgeList();
+				while (linkHead) {
+					Vertex *endVert = linkHead->getEndVertex();
+					TetVertexListNode *head = linkHead->getLink();
+					TetVertexListNode *parentNode = head;
+					TetVertexListNode *node = parentNode->getNextNode();
+					while (node) {
+						if (!node->isPreFaceDeleted()) {
+							Vertex *c = parentNode->getVertex();
+							Vertex *d = node->getVertex();
+							if (endVert == w) {
+								w->setSupplyVertexPointer(vert);
+								*t = Tetrahedron(w, vert, d, c);
+								return true;
+							}
+							else if (c == w) {
+								w->setSupplyVertexPointer(vert);
+								*t = Tetrahedron(w, d, vert, endVert);
+								return true;
+							}
+							else if (d == w) {
+								w->setSupplyVertexPointer(vert);
+								*t = Tetrahedron(w, c, endVert, vert);
+								return true;
+							}
+						}
+						parentNode = node;
+						node = node->getNextNode();
+					}
+					if (!head->isPreFaceDeleted()) {
+						Vertex *c = parentNode->getVertex();
+						Vertex *d = head->getVertex();
+						if (endVert == w) {
+							w->setSupplyVertexPointer(vert);
+							*t = Tetrahedron(w, vert, d, c);
+							return true;
+						}
+						if (c == w) {
+							w->setSupplyVertexPointer(vert);
+							*t = Tetrahedron(w, d, vert, endVert);
+							return true;
+						}
+						else if (d == w) {
+							w->setSupplyVertexPointer(vert);
+							*t = Tetrahedron(w, c, endVert, vert);
+							return true;
+						}
+					}
+					linkHead = linkHead->getNextNode();
+				}
+			}
+		}
+
+		return false;
+	}
+
+	bool TetMeshDataStructure::adjacent2SegmentSlow(const Segment &s, Tetrahedron *t) const {
+		Vertex *a = s.v[0], *b = s.v[1];
+		for (auto vert : vertices) {
+			if (matchVertexFlag(vert->type, VertexType::Vertex_Volume)
+				&& vert->hasEdgeList()) {	
+				EdgeListNode *linkHead = vert->getEdgeList();
+				while (linkHead) {
+					Vertex *endVert = linkHead->getEndVertex();
+
+					int condition = 0;
+					if (vert == a) condition = 1;
+					else if (vert == b) condition = 2;
+					else if (endVert == a) condition = 3;
+					else if (endVert == b) condition = 4;
+
+					if (condition != 0) {
+						TetVertexListNode *head = linkHead->getLink();
+						TetVertexListNode *parentNode = head;
+						TetVertexListNode *node = parentNode->getNextNode();
+						do {
+							if (node == NULL) node = head;
+							if (!node->isPreFaceDeleted()) {
+								Vertex *c = parentNode->getVertex();
+								Vertex *d = node->getVertex();
+
+								//check all the case
+								switch (condition) {
+								case 1:
+									if (c == b) {
+										*t = Tetrahedron(a, b, d, endVert);
+										return true;
+									}
+									else if (d == b) {
+										*t = Tetrahedron(a, b, endVert, c);
+										return true;
+									}
+									break;
+								case 2:
+									if (c == a) {
+										*t = Tetrahedron(a, b, endVert, d);
+										return true;
+									}
+									else if (d == a) {
+										*t = Tetrahedron(a, b, c, endVert);
+										return true;
+									}
+									break;
+								case 3:
+									if (c == b) {
+										*t = Tetrahedron(a, b, vert, d);
+										return true;
+									}
+									else if (d == b) {
+										*t = Tetrahedron(a, b, c, vert);
+										return true;
+									}
+									break;
+								case 4:
+									if (c == a) {
+										*t = Tetrahedron(a, b, d, vert);
+										return true;
+									}
+									else if (d == a) {
+										*t = Tetrahedron(a, b, vert, c);
+										return true;
+									}
+									break;
+								default:
+									break;
+								}
+							}
+							parentNode = node;
+							node = node->getNextNode();
+						} while (parentNode != head);
+					}
+					linkHead = linkHead->getNextNode();
+				}
+			}
+		}
+		return false;
+	}
+
+	TetMeshDataStructure::TetMeshConstIterator::TetMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
+		const std::vector<Vertex *>::const_iterator& end) : vertIter(iter), vertEnd(end){
+		linkHead = NULL;
+		while (vertIter != vertEnd) {
+			Vertex *ori = *vertIter;
+			if (matchVertexFlag(ori->type, VertexType::Vertex_Volume) && ori->hasEdgeList()) 
+				linkHead = ori->getEdgeList();
+
 			while (linkHead) {
 				Vertex *end = linkHead->getEndVertex();
 				parent = linkHead->getLink();
@@ -1138,9 +1559,9 @@ namespace ODER {
 				}
 				linkHead = linkHead->getNextNode();
 			}
-			++topologyIter;
+			++vertIter;
 		}
-		linkHead = NULL;
+
 		parent = NULL; child = NULL;
 	}
 
@@ -1154,9 +1575,13 @@ namespace ODER {
 			else {
 				linkHead = linkHead->getNextNode();
 				if (!linkHead) {
-					++topologyIter;
-					if (topologyIter != topologyEnd)
-						linkHead = topologyIter->second;
+					do {
+						++vertIter;
+					} while (vertIter != vertEnd && 
+						(!matchVertexFlag((*vertIter)->type, VertexType::Vertex_Volume) || !((*vertIter)->hasEdgeList())));
+
+					if (vertIter != vertEnd)
+						linkHead = (*vertIter)->getEdgeList();
 					else {
 						current = Tetrahedron(NULL, NULL, NULL, NULL);
 						linkHead = NULL;
@@ -1169,7 +1594,7 @@ namespace ODER {
 			}
 
 			if (!child->isPreFaceDeleted()) {
-				Vertex *ori = topologyIter->first;
+				Vertex *ori = *vertIter;
 				Vertex *end = linkHead->getEndVertex();
 				Vertex *c = parent->getVertex();
 				Vertex *d = child->getVertex();
@@ -1181,38 +1606,74 @@ namespace ODER {
 		} while (true);
 	}
 
+	TetMeshDataStructure::SegmentConstIterator::SegmentConstIterator(const std::vector<Vertex *>::const_iterator &iter, 
+		const std::vector<Vertex *>::const_iterator &end): edgeVertIter(iter), edgeVertEnd(end) {
+		edgeNode = NULL;
+		while (edgeVertIter != edgeVertEnd) {
+			Vertex *ori = *edgeVertIter;
+			edgeNode = ori->getEnforcedEdgeList();
+			if (edgeNode) {
+				segment = Segment(ori, edgeNode->getEndVertex());
+				break;
+			}
+			++edgeVertIter;
+		}
+	}
+
+	void TetMeshDataStructure::SegmentConstIterator::findNext() {
+		edgeNode = edgeNode->getNextNode();
+		if (edgeNode) segment.v[1] = edgeNode->getEndVertex();
+		else {
+			do {
+				++edgeVertIter;
+			} while (edgeVertIter != edgeVertEnd &&
+				 !((*edgeVertIter)->getEnforcedEdgeList()));
+
+			if (edgeVertIter != edgeVertEnd) {
+				Vertex *ori = *edgeVertIter;
+				edgeNode = ori->getEnforcedEdgeList();
+				segment = Segment(ori, edgeNode->getEndVertex());
+			}
+			else {
+				edgeNode = NULL;
+				segment = Segment(NULL, NULL);
+			}
+		}
+	}
+
 	void TetMeshDataStructure::getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const {
-		for (auto pair : topology) {
-			Vertex *vert = pair.first;
-			EdgeListNode *linkHead = pair.second;
-			while (linkHead) {
-				Vertex *endVert = linkHead->getEndVertex();
-				if (ghost || !endVert->isGhost()) {
-					TetVertexListNode *head = linkHead->getLink();
-					TetVertexListNode *parentNode = head;
-					TetVertexListNode *node = parentNode->getNextNode();
-					while (node) {
-						if (!node->isPreFaceDeleted()) {
+		for (auto vert : vertices) {
+			if (matchVertexFlag(vert->type, VertexType::Vertex_Volume) && vert->hasEdgeList()) {
+				EdgeListNode *linkHead = vert->getEdgeList();
+				while (linkHead) {
+					Vertex *endVert = linkHead->getEndVertex();
+					if (ghost || !endVert->isGhost()) {
+						TetVertexListNode *head = linkHead->getLink();
+						TetVertexListNode *parentNode = head;
+						TetVertexListNode *node = parentNode->getNextNode();
+						while (node) {
+							if (!node->isPreFaceDeleted()) {
+								Vertex *c = parentNode->getVertex();
+								Vertex *d = node->getVertex();
+								if (verticesOrderCheck(vert, endVert, c, d)) {
+									if (ghost || (!c->isGhost() && !d->isGhost()))
+										tets.push_back(Tetrahedron(vert, endVert, c, d));
+								}
+							}
+							parentNode = node;
+							node = node->getNextNode();
+						}
+						if (!head->isPreFaceDeleted()) {
 							Vertex *c = parentNode->getVertex();
-							Vertex *d = node->getVertex();
+							Vertex *d = head->getVertex();
 							if (verticesOrderCheck(vert, endVert, c, d)) {
 								if (ghost || (!c->isGhost() && !d->isGhost()))
 									tets.push_back(Tetrahedron(vert, endVert, c, d));
 							}
 						}
-						parentNode = node;
-						node = node->getNextNode();
 					}
-					if (!head->isPreFaceDeleted()) {
-						Vertex *c = parentNode->getVertex();
-						Vertex *d = head->getVertex();
-						if (verticesOrderCheck(vert, endVert, c, d)) {
-							if (ghost || (!c->isGhost() && !d->isGhost()))
-								tets.push_back(Tetrahedron(vert, endVert, c, d));
-						}
-					}
+					linkHead = linkHead->getNextNode();
 				}
-				linkHead = linkHead->getNextNode();
 			}
 		}
 	}
@@ -1224,9 +1685,14 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::Clear() {
-		topology.clear();
+		vertices.clear();
 		nodePool->freeAll();
 		edgeNodePool->freeAll();
+		vertPool->freeAll();
+		pointerList->freeAll();
+		labeler.restartLable();
+		ghost = NULL;
+		deadVerticesStack = NULL;
 	}
 
 	void TetMeshDataStructure::insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD) {
@@ -1236,8 +1702,7 @@ namespace ODER {
 			std::swap(c, d);
 		}
 
-		auto pair = topology.find(a);
-		if (pair == topology.end()) {
+		if (!a->hasEdgeList()) {
 			//init link
 			TetVertexListNode *node = nodePool->Alloc();
 			node->setVertex(c);
@@ -1249,11 +1714,10 @@ namespace ODER {
 			EdgeListNode *newNode = edgeNodePool->Alloc();
 			newNode->setEndVertex(b);
 			newNode->setLink(node);
-			topology.insert(std::make_pair(a, newNode));
+			a->setEdgeList(newNode);
 		}
-
 		else {
-			EdgeListNode *linkHead = pair->second;
+			EdgeListNode *linkHead = a->getEdgeList();
 			bool foundHead = false;
 			while (linkHead != NULL && !foundHead) {
 				if (linkHead->getEndVertex() == b)
@@ -1273,8 +1737,8 @@ namespace ODER {
 				EdgeListNode *newNode = edgeNodePool->Alloc();
 				newNode->setEndVertex(b);
 				newNode->setLink(node);
-				newNode->setNextNode(pair->second);
-				pair->second = newNode;
+				newNode->setNextNode(a->getEdgeList());
+				a->setEdgeList(newNode);
 			}
 			else {
 				TetVertexListNode *head = linkHead->getLink();
@@ -1446,7 +1910,7 @@ namespace ODER {
 					break;
 				}
 				default:
-					Severe("Unexpted case in DelTriangulator::insertToTopology");
+					Severe("Unexpted case in TetMeshDataStructure::insertToTopology");
 					break;
 				}
 			}
@@ -1460,10 +1924,9 @@ namespace ODER {
 			std::swap(c, d);
 		}
 
-		auto pair = topology.find(a);
-		Assert(pair != topology.end());
+		Assert(a->hasEdgeList());
 		EdgeListNode *parentLinkHead = NULL;
-		EdgeListNode *linkHead = pair->second;
+		EdgeListNode *linkHead = a->getEdgeList();
 		bool foundHead = false;
 		while (linkHead != NULL && !foundHead) {
 			if (linkHead->getEndVertex() == b)
@@ -1580,11 +2043,9 @@ namespace ODER {
 				linkHead->setLink(NULL);
 				if (parentLinkHead != NULL)
 					parentLinkHead->setNextNode(linkHead->getNextNode());
-				else {
-					EdgeListNode *newLinkHead = linkHead->getNextNode();
-					if (newLinkHead) pair->second = newLinkHead;
-					else topology.erase(pair);
-				}
+				else
+					a->setEdgeList(linkHead->getNextNode());
+
 				edgeNodePool->Dealloc(linkHead);
 			}
 		}
@@ -1593,22 +2054,22 @@ namespace ODER {
 	void TetMeshDataStructure::addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode) {
 		switch (mode) {
 		case 0:
-			a->setVertexPointer(b);
-			b->setVertexPointer(a);
-			c->setVertexPointer(d);
-			d->setVertexPointer(c);
+			if (!a->isGhost() && !a->hasEdgeList()) a->setSupplyVertexPointer(b);
+			if (!b->isGhost() && !b->hasEdgeList()) b->setSupplyVertexPointer(a);
+			if (!c->isGhost() && !c->hasEdgeList()) c->setSupplyVertexPointer(d);
+			if (!d->isGhost() && !d->hasEdgeList()) d->setSupplyVertexPointer(c);
 			break;
 		case 1:
-			a->setVertexPointer(b);
-			b->setVertexPointer(c);
-			c->setVertexPointer(a);
-			d->setVertexPointer(edgeOrderCheck(a, b) ? a : b);
+			if (!a->isGhost() && !a->hasEdgeList()) a->setSupplyVertexPointer(b);
+			if (!b->isGhost() && !b->hasEdgeList()) b->setSupplyVertexPointer(c);
+			if (!c->isGhost() && !c->hasEdgeList()) c->setSupplyVertexPointer(a);
+			if (!d->isGhost() && !d->hasEdgeList()) d->setSupplyVertexPointer(edgeOrderCheck(a, b) ? a : b);
 			break;
 		case 2:
-			a->setVertexPointer(b);
-			b->setVertexPointer(c);
-			c->setVertexPointer(d);
-			d->setVertexPointer(a);
+			if (!a->isGhost() && !a->hasEdgeList()) a->setSupplyVertexPointer(b);
+			if (!b->isGhost() && !b->hasEdgeList()) b->setSupplyVertexPointer(c);
+			if (!c->isGhost() && !c->hasEdgeList()) c->setSupplyVertexPointer(d);
+			if (!d->isGhost() && !d->hasEdgeList()) d->setSupplyVertexPointer(a);
 			break;
 		default:
 			Severe("Unexpected mode in DelMesher::addSupplyVerts");
@@ -1638,20 +2099,23 @@ namespace ODER {
 	void TetMeshDataStructure::addEnforcedSegmentAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d) {
 		if (matchVertexFlag(a->type, VertexType::Vertex_Segment) && 
 			matchVertexFlag(b->type, VertexType::Vertex_Segment)) {
-			auto found = segmentAdjacency.find(Segment(a, b, true));
-			if (found != segmentAdjacency.end()) {
-				if (!edgeOrderCheck(a, b)) {
-					std::swap(a, b);
-					std::swap(c, d);
-				}
-
-				found->second = c;
+			if (!edgeOrderCheck(a, b)) {
+				std::swap(a, b);
+				std::swap(c, d);
 			}
+
+			EdgeListNode *node = a->getEnforcedEdgeList();
+			while (node != NULL && node->getEndVertex() != b)
+				node = node->getNextNode();
+
+			if (node) node->setOtherVertex(c);
 		}
 	}
 
 	TetMeshDataStructure::~TetMeshDataStructure() {
 		delete nodePool;
 		delete edgeNodePool;
+		delete vertPool;
+		delete pointerList;
 	}
 }

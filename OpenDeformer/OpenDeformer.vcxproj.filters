@@ -251,9 +251,6 @@
     <ClCompile Include="solver\inLDLTPreconditioner.cpp">
       <Filter>源文件\solver</Filter>
     </ClCompile>
-    <ClCompile Include="core\allocator.cpp">
-      <Filter>源文件\core</Filter>
-    </ClCompile>
     <ClCompile Include="material\invertibleHyperelastic.cpp">
       <Filter>源文件\material</Filter>
     </ClCompile>

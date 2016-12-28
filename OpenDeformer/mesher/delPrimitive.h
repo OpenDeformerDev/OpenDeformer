@@ -7,7 +7,9 @@
 
 #include "oder.h"
 #include "latool.h"
+#include "allocator.h"
 #include <unordered_map>
+#include <unordered_set>
 #include <set>
 #include <numeric>
 
@@ -40,7 +42,7 @@ namespace ODER {
 		Vertex_Undefined = 0,
 		Vertex_Fixed = 1 << 0,
 		Vertex_Free = 1 << 1,
-		Vertex_Segment = 1 << 2, 
+		Vertex_Segment = 1 << 2,
 		Vertex_Facet = 1 << 3,
 		Vertex_Volume = 1 << 4,
 		Vertex_Acute = 1 << 5,
@@ -48,28 +50,35 @@ namespace ODER {
 		Vertex_FixedSegment = Vertex_Fixed | Vertex_Segment,
 		Vertex_FixedFacet = Vertex_Fixed | Vertex_Facet,
 		Vertex_FixedVolume = Vertex_Fixed | Vertex_Volume,
-		
+
 		Vertex_FreeSegment = Vertex_Free | Vertex_Segment,
 		Vertex_FreeFacet = Vertex_Free | Vertex_Facet,
 		Vertex_FreeVolume = Vertex_Free | Vertex_Facet,
+
+		Vertex_LowDimension = Vertex_Segment | Vertex_Facet,
 	};
 
 	class EdgeListNode;
+	class TriVertexListNode;
+	class TriMeshDataStructure;
+	class TetMeshDataStructure;
 
 	struct Vertex {
-		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), vertexPointer(0), type(VertexType::Vertex_Undefined){}
+		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
+			vertexPointer(NULL), pointers(0), type(VertexType::Vertex_Undefined){}
 		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
-			: vert{ vv.x, vv.y, vv.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), vertexPointer(0), type(t) {}
+			: vert{ vv.x, vv.y, vv.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
+			vertexPointer(NULL), pointers(0), type(t) {}
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: vert(vv), weight(w), label(-1), vertexPointer(0), type(t) {}
+			: vert(vv), weight(w), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
 			constexpr REAL max = std::numeric_limits<REAL>::max();
 			vert.x = max; vert.y = max; vert.z = max;
 			weight = -max;
 			label = VertexLabeler::getSpecilGhostLabel();
-			vertexPointer = 0;
+			pointers = 0;
+			vertexPointer = NULL;
 			relaxedInsetionRadius = max;
-			type = VertexType::Vertex_Undefined;
 		}
 		bool isGhost() const {
 			return label == VertexLabeler::getSpecilGhostLabel();
@@ -80,28 +89,51 @@ namespace ODER {
 		int getLabel() const {
 			return label;
 		}
-		void setVertexPointer(Vertex *v) {
-			vertexPointer = uintptr_t(v) | (vertexPointer & 0x1);
-		}
-		Vertex *getPointedVertex() const {
-			return (Vertex *)(vertexPointer & (~0x1));
-		}
 		void setMark() {
-			vertexPointer |= 0x1;
+			pointers |= 0x1;
 		}
 		void unSetMark() {
-			vertexPointer &= (~0x1);
+			pointers &= (~0x1);
 		}
 		bool isMarked() const {
-			return (vertexPointer & 0x1) == 0x1;
+			return (pointers & 0x1) == 0x1;
 		}
+		void setVertexPointer(Vertex *v) {
+			vertexPointer = v;
+		}
+		Vertex *getPointedVertex() const {
+			return vertexPointer;
+		}
+		VertexType getVertexType() const { return type; }
+		void setAcute() { type = VertexType(type | VertexType::Vertex_Acute); }
+		void setOriSegmentIndex(int index);
+		int getOriSegmentIndex() const;
+
 		DelVector vert;
 		REAL weight;
 		REAL relaxedInsetionRadius;
-		VertexType type;
 	private:
+		void setEdgeList(EdgeListNode *n);
+		EdgeListNode *getEdgeList();
+		bool hasEdgeList() const;
+		void setSupplyVertexPointer(Vertex *v);
+		Vertex *getSupplyVertex() const;
+		void setFaceLink(TriVertexListNode *link);
+		TriVertexListNode *getFaceLink() const;
+		void setEnforcedEdgeList(EdgeListNode *node);
+		EdgeListNode *getEnforcedEdgeList() const;
+		void setEnforcedEdgeMark();
+		bool isEnforcedEdgeMarked() const;
+		void setPointers(uintptr_t *p);
+		uintptr_t *getPointers() const;
+
 		int label;
-		uintptr_t vertexPointer;//point to a vertex which is one of the vertices of latest inserted vertex
+		VertexType type;
+		uintptr_t pointers;
+		Vertex *vertexPointer;
+
+		friend class TriMeshDataStructure;
+		friend class TetMeshDataStructure;
 	};
 
 	class TriVertexListNode {
@@ -198,10 +230,10 @@ namespace ODER {
 			return endVertex;
 		}
 		void setLink(TetVertexListNode *Link) {
-			link = Link;
+			link = uintptr_t(Link) | (link & 0x1);
 		}
 		TetVertexListNode* getLink() const {
-			return link;
+			return (TetVertexListNode*)(link & (~0x1));
 		}
 		EdgeListNode *getNextNode() const {
 			return next;
@@ -209,9 +241,24 @@ namespace ODER {
 		void setNextNode(EdgeListNode *nextNode) {
 			next = nextNode;
 		}
+		void setOtherVertex(Vertex *vert) {
+			link = uintptr_t(vert) | (link & 0x1);
+		}
+		Vertex *getOtherVertex() {
+			return (Vertex *)(link & (~0x1));
+		}
+		void setMark() {
+			link |= 0x1;
+		}
+		void unSetMark() {
+			link &= (~0x1);
+		}
+		bool isMarked() const {
+			return (link & 0x1) == 0x1;
+		}
 	private:
 		Vertex *endVertex;
-		TetVertexListNode *link;
+		uintptr_t link;
 		EdgeListNode *next;
 	};
 
@@ -351,6 +398,11 @@ namespace ODER {
 	class TriMeshDataStructure {
 	public:
 		TriMeshDataStructure();
+		Vertex *getGhostVertex();
+		Vertex* allocVertex(const DelVector &point, REAL weight);
+		void deallocVertex(Vertex *vert);
+		void bindVolumeVertex(Vertex *vert);
+		void unbindVolumeVertex(Vertex *vert);
 		void addTriangle(Vertex *a, Vertex *b, Vertex *c, int index = -1);
 		void deleteTriangle(Vertex *a, Vertex *b, Vertex *c);
 		void setDeletedMark(Vertex *u, Vertex *v);
@@ -367,7 +419,7 @@ namespace ODER {
 		bool Contain(const Face &f) const;
 		bool findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const;
 		void Clear();
-		void Reserve(size_t n) { topology.reserve(n); }
+		void Reserve(size_t n) { vertices.reserve(n); }
 		std::vector<Face> getTriangles(bool ghost) const;
 		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
 		~TriMeshDataStructure();
@@ -381,9 +433,8 @@ namespace ODER {
 			using reference = const Face&;
 			using pointer = const Face *;
 
-			TriMeshConstIterator() : parent(NULL), child(NULL) {}
-			TriMeshConstIterator(const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& iter,
-				const std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator& end);
+			TriMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
+				const std::vector<Vertex *>::const_iterator& end);
 			TriMeshConstIterator(const TriMeshConstIterator&) = default;
 			TriMeshConstIterator(TriMeshConstIterator&&) = default;
 			TriMeshConstIterator& operator=(const TriMeshConstIterator&) = default;
@@ -403,13 +454,13 @@ namespace ODER {
 
 			Face current;
 			TriVertexListNode *parent, *child;
-			std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator topologyIter;
-			std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash>::const_iterator topologyEnd;
+			std::vector<Vertex *>::const_iterator vertIter;
+			std::vector<Vertex *>::const_iterator vertEnd;
 		};
 
 		using const_iterator = TriMeshConstIterator;
-		const_iterator begin() const { return const_iterator(topology.begin(), topology.end()); }
-		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
+		const_iterator begin() const { return const_iterator(vertices.begin(), vertices.end()); }
+		const_iterator end() const { return const_iterator(vertices.end(), vertices.end()); }
 
 	private:
 		bool getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const;
@@ -417,13 +468,20 @@ namespace ODER {
 		void removeFromTopology(Vertex *a, Vertex *b, Vertex *c);
 		static bool verticesOrderCheck(const Vertex *a, const Vertex *b, const Vertex *c);
 
-		std::unordered_map<Vertex *, TriVertexListNode *, vertex_hash> topology;
+		std::vector<Vertex *> vertices;
 		MemoryPool<TriVertexListNode> *nodePool;
+		MemoryArena<Vertex> *vertPool;
+		VertexLabeler labeler;
+		Vertex *ghost;
+		Vertex *deadVerticesStack;
 	};
 
 	class TetMeshDataStructure {
 	public:
 		TetMeshDataStructure();
+		Vertex* getGhostVertex();
+		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = Vertex_Undefined);
+		void deallocVertex(Vertex *vert);
 		void addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void setMark(Vertex *u, Vertex *v, Vertex *w);
@@ -437,17 +495,25 @@ namespace ODER {
 		bool Contain(const Face &f) const;
 		bool Contain(const Tetrahedron& t) const;
 		void Clear();
-		void Reserve(size_t n) { topology.reserve(n); }
+		void Reserve(size_t n) { vertices.reserve(n); }
 
 		//Ensure: the segment ab must not in mesh
 		void addSegment(Vertex *a, Vertex *b);
 		void deleteSegment(Vertex *a, Vertex *b);
-		//Ensure: the segment s must be added
+		bool adjacent2SegmentFast(const Segment &s, Tetrahedron *t) const;
 		bool adjacent2Segment(const Segment &s, Tetrahedron *t) const;
 		//Ensure: the segment s must be added
 		bool Contain(const Segment &s) const;
 		bool isSegment(const Segment &s) const;
+		//Mark segment
+		void setMark(Vertex *a, Vertex *b);
+		void unSetMark(Vertex *a, Vertex *b);
+		bool isMarked(Vertex *a, Vertex *b) const;
+		bool testAndMark(Vertex *a, Vertex *b);
 
+		//fast adjacency query check
+		bool fastVertexQueryCheck(Vertex *u) const;
+		bool fastSegmentQueryCheck(const Segment &s) const;
 
 		~TetMeshDataStructure();
 
@@ -461,8 +527,8 @@ namespace ODER {
 			using pointer = const Tetrahedron *;
 		
 			TetMeshConstIterator() : linkHead(NULL), parent(NULL), child(NULL) {}
-			TetMeshConstIterator(const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& iter,
-				const std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator& end);
+			TetMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
+				const std::vector<Vertex *>::const_iterator& end);
 			TetMeshConstIterator(const TetMeshConstIterator&) = default;
 			TetMeshConstIterator(TetMeshConstIterator&&) = default;
 			TetMeshConstIterator& operator=(const TetMeshConstIterator&) = default;
@@ -484,8 +550,8 @@ namespace ODER {
 			EdgeListNode *linkHead;
 			TetVertexListNode *parent, *child;
 
-			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyIter;
-			std::unordered_map<Vertex *, EdgeListNode *, vertex_hash>::const_iterator topologyEnd;
+			std::vector<Vertex *>::const_iterator vertIter;
+			std::vector<Vertex *>::const_iterator vertEnd;
 		};
 
 		class SegmentConstIterator {
@@ -497,25 +563,28 @@ namespace ODER {
 			using reference = const Segment&;
 			using pointer = const Segment *;
 
-			SegmentConstIterator(const std::unordered_map<Segment, Vertex*, vertex_hash>::const_iterator &iter)
-				: segAdjIter(iter) {}
-			SegmentConstIterator& operator++() { ++segAdjIter; return *this; }
-			SegmentConstIterator operator++(int){ return SegmentConstIterator(segAdjIter++); }
+			SegmentConstIterator(const std::vector<Vertex *>::const_iterator &iter, const std::vector<Vertex *>::const_iterator &end);
+			SegmentConstIterator& operator++();
+			SegmentConstIterator operator++(int);
 
-			bool operator==(const SegmentConstIterator& right) const { return segAdjIter == right.segAdjIter; }
-			bool operator!=(const SegmentConstIterator& right) const { return segAdjIter != right.segAdjIter; }
+			bool operator==(const SegmentConstIterator& right) const;
+			bool operator!=(const SegmentConstIterator& right) const;
 
-			reference operator*() const { return segAdjIter->first; }
-			pointer operator->() const { return &segAdjIter->first; }
+			reference operator*() const { return segment; }
+			pointer operator->() const { return &segment; }
 		private:
-			std::unordered_map<Segment, Vertex*, vertex_hash>::const_iterator segAdjIter;
+			void findNext();
+			std::vector<Vertex *>::const_iterator edgeVertIter;
+			std::vector<Vertex *>::const_iterator edgeVertEnd;
+			EdgeListNode *edgeNode;
+			Segment segment;
 		};
 
 		using const_iterator = TetMeshConstIterator;
-		const_iterator begin() const { return const_iterator(topology.begin(), topology.end()); }
-		const_iterator end() const { return const_iterator(topology.end(), topology.end()); }
-		SegmentConstIterator segmentBegin() const { return SegmentConstIterator(segmentAdjacency.begin()); }
-		SegmentConstIterator segmentEnd() const { return SegmentConstIterator(segmentAdjacency.end()); }
+		const_iterator begin() const { return const_iterator(vertices.begin(), vertices.end()); }
+		const_iterator end() const { return const_iterator(vertices.end(), vertices.end()); }
+		SegmentConstIterator segmentBegin() const { return SegmentConstIterator(enforcedEdgeVertices.begin(), enforcedEdgeVertices.end()); }
+		SegmentConstIterator segmentEnd() const { return SegmentConstIterator(enforcedEdgeVertices.end(), enforcedEdgeVertices.end()); }
 
 	private:
 		bool getAdjacentListNode(const Face& f, TetVertexListNode **z) const;
@@ -526,16 +595,166 @@ namespace ODER {
 		void addEnforcedSegmentsAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);
 		void addEnforcedSegmentAdjacency(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 
+		bool adjacent2VertexSlow(Vertex *w, Tetrahedron *t) const;
+		bool adjacent2SegmentSlow(const Segment &s, Tetrahedron *t) const;
+
 		static bool parityCheck(const Vertex *x, const Vertex *y);
 		static bool edgeOrderCheck(const Vertex *a, const Vertex *b);
 		static bool verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d);
 
-		std::unordered_map<Vertex *, EdgeListNode *, vertex_hash> topology;
-		std::unordered_map<Segment, Vertex*, segment_ordered_hash> segmentAdjacency;
+		std::vector<Vertex *> vertices;
+		std::vector<Vertex *> enforcedEdgeVertices;
 		MemoryPool<TetVertexListNode> *nodePool;
 		MemoryPool<EdgeListNode> *edgeNodePool;
+		MemoryArena<Vertex> *vertPool;
+		ThreadUnsafeFreelist<sizeof(uintptr_t), 4 * sizeof(uintptr_t)> *pointerList;
+		VertexLabeler labeler;
+		Vertex *ghost;
+		Vertex *deadVerticesStack;
 	};
 
+	inline bool matchVertexFlag(VertexType type, VertexType flag) {
+		return (type & flag) == flag;
+	}
+
+	inline bool matchOneOfVertexFlags(VertexType type, VertexType flag) {
+		return (type & flag) != 0;
+	}
+
+	inline void Vertex::setEdgeList(EdgeListNode *n) {
+		if (!matchOneOfVertexFlags(type, Vertex_LowDimension))
+			pointers = uintptr_t(n) | (pointers & 0x1);
+		else {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			p[0] = uintptr_t(n);
+		}
+	}
+
+	inline EdgeListNode *Vertex::getEdgeList() {
+		if (!matchOneOfVertexFlags(type, Vertex_LowDimension))
+			return (EdgeListNode *)(pointers & (~0x1));
+		else {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			return (EdgeListNode *)p[0];
+		}
+	}
+
+	inline void Vertex::setSupplyVertexPointer(Vertex *v) {
+		if (!matchOneOfVertexFlags(type, Vertex_LowDimension))
+			pointers = (uintptr_t(v) | 0x2) | (pointers & 0x1);
+		else {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			p[0] = uintptr_t(v) | 0x2;
+		}
+	}
+
+	inline Vertex *Vertex::getSupplyVertex() const {
+		if (!matchOneOfVertexFlags(type, Vertex_LowDimension))
+			return (Vertex *)(pointers & (~0x3));
+		else {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			return (Vertex *)(p[0] & (~0x2));
+		}
+	}
+
+	inline bool Vertex::hasEdgeList() const {
+		if (!matchOneOfVertexFlags(type, Vertex_LowDimension))
+			return (pointers & (~0x1)) != 0 && (pointers & 0x2) == 0;
+		else {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			return p[0] != 0 && (p[0] & 0x2) == 0;
+		}
+	}
+
+	inline void Vertex::setFaceLink(TriVertexListNode *link) {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Facet));
+		if (matchVertexFlag(type, VertexType::Vertex_Volume)) {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			p[1] = uintptr_t(link);
+		}
+		else
+			pointers = uintptr_t(link) | (pointers & 0x1);
+	}
+
+	inline TriVertexListNode *Vertex::getFaceLink() const {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Facet));
+		if (matchVertexFlag(type, VertexType::Vertex_Volume)) {
+			uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+			return (TriVertexListNode *)p[1];
+		}
+		else
+			return (TriVertexListNode *)(pointers & (~0x1));
+	}
+
+	inline void Vertex::setEnforcedEdgeList(EdgeListNode *node) {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Segment));
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 2 : 1;
+		p[pos] = uintptr_t(node) | (p[pos] & 0x1);
+	}
+
+	inline EdgeListNode *Vertex::getEnforcedEdgeList() const {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Segment));
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 2 : 1;
+		return (EdgeListNode *)(p[pos] & (~0x1));
+	}
+
+	inline void Vertex::setEnforcedEdgeMark() {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Segment));
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 2 : 1;
+		p[pos] |= 0x1;
+	}
+
+	inline bool Vertex::isEnforcedEdgeMarked() const {
+		Assert(matchVertexFlag(type, VertexType::Vertex_Segment));
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 2 : 1;
+		return (p[pos] & 0x1) == 0x1;
+	}
+
+	inline void Vertex::setOriSegmentIndex(int index) {
+		Assert(matchVertexFlag(type, VertexType::Vertex_FreeSegment));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 3 : 2;
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		p[pos] = index;
+	}
+
+	inline int Vertex::getOriSegmentIndex() const {
+		Assert(matchVertexFlag(type, VertexType::Vertex_FreeSegment));
+		int pos = matchVertexFlag(type, VertexType::Vertex_Facet) ? 3 : 2;
+		uintptr_t *p = (uintptr_t *)(pointers & (~0x1));
+		return p[pos];
+	}
+
+	inline void Vertex::setPointers(uintptr_t *p) {
+		pointers = uintptr_t(p);
+	}
+
+	inline uintptr_t *Vertex::getPointers() const {
+		return (uintptr_t *)pointers;
+	}
+
+	inline Vertex *TriMeshDataStructure::getGhostVertex() {
+		if (ghost == NULL) {
+			if (vertPool == NULL) vertPool = new MemoryArena<Vertex>(128);
+			ghost = vertPool->Alloc();
+			ghost->type = VertexType::Vertex_Facet;
+			ghost->setGhost();
+			vertices.push_back(ghost);
+		}
+		return ghost;
+	}
+
+	inline Vertex* TetMeshDataStructure::getGhostVertex() {
+		if (ghost == NULL) {
+			ghost = vertPool->Alloc();
+			ghost->type = VertexType::Vertex_Volume;
+			ghost->setGhost();
+		}
+		return ghost;
+	}
 
 	inline bool TetMeshDataStructure::parityCheck(const Vertex *x, const Vertex *y) {
 		constexpr int odd_mark = 1;
@@ -588,19 +807,32 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::Contain(const Segment &s) const {
 		Tetrahedron t;
-		return adjacent2Segment(s, &t);
+		return adjacent2SegmentFast(s, &t);
+	}
+
+	inline bool TetMeshDataStructure::fastVertexQueryCheck(Vertex *u) const {
+		return u->hasEdgeList() || u->getSupplyVertex();
+	}
+
+	inline bool TetMeshDataStructure::fastSegmentQueryCheck(const Segment &s) const {
+		return parityCheck(s.v[0], s.v[1]);
 	}
 
 	inline bool TetMeshDataStructure::isSegment(const Segment &s) const {
-		return segmentAdjacency.find(Segment(s.v[0], s.v[1], true)) != segmentAdjacency.end();
+		Vertex *a = s.v[0], *b = s.v[1];
+		if (a == NULL || b == NULL || !matchVertexFlag(a->type, VertexType::Vertex_Segment) || !matchVertexFlag(b->type, VertexType::Vertex_Segment))
+			return false;
+		if (!edgeOrderCheck(a, b)) std::swap(a, b);
+		EdgeListNode *node = a->getEnforcedEdgeList();
+		while (node != NULL && node->getEndVertex() != b)
+			node = node->getNextNode();
+
+		return node != NULL;
 	}
 
-	inline void TetMeshDataStructure::addSegment(Vertex *a, Vertex *b) { 
-		segmentAdjacency.insert(std::make_pair(Segment(a, b, true), (Vertex *)NULL)); 
-	}
-
-	inline void TetMeshDataStructure::deleteSegment(Vertex *a, Vertex *b) { 
-		segmentAdjacency.erase(Segment(a, b, true)); 
+	inline bool TetMeshDataStructure::adjacent2Segment(const Segment &s, Tetrahedron *t) const {
+		if (!adjacent2SegmentFast(s, t)) return adjacent2SegmentSlow(s, t);
+		return true;
 	}
 
 	inline bool TetMeshDataStructure::verticesOrderCheck(const Vertex *ori, const Vertex *end, const Vertex *c, const Vertex *d) {
@@ -622,7 +854,7 @@ namespace ODER {
 	}
 
 	inline bool TriMeshDataStructure::TriMeshConstIterator::operator==(const TriMeshConstIterator& right) const {
-		return topologyIter == right.topologyIter && parent == right.parent && child == right.child;
+		return vertIter == right.vertIter && parent == right.parent && child == right.child;
 	}
 
 	inline bool TriMeshDataStructure::TriMeshConstIterator::operator!=(const TriMeshConstIterator& right) const {
@@ -641,15 +873,30 @@ namespace ODER {
 	}
 
 	inline bool TetMeshDataStructure::TetMeshConstIterator::operator==(const TetMeshConstIterator& right) const {
-		return topologyIter == right.topologyIter && linkHead == right.linkHead && parent == right.parent && child == right.child;
+		return vertIter == right.vertIter && linkHead == right.linkHead && parent == right.parent && child == right.child;
 	}
 
 	inline bool TetMeshDataStructure::TetMeshConstIterator::operator!=(const TetMeshConstIterator& right) const {
 		return !(*this == right);
 	}
 
-	inline bool matchVertexFlag(VertexType type, VertexType flag) {
-		return (type & flag) == flag;
+	inline TetMeshDataStructure::SegmentConstIterator& TetMeshDataStructure::SegmentConstIterator::operator++() {
+		findNext();
+		return *this;
+	}
+
+	inline TetMeshDataStructure::SegmentConstIterator TetMeshDataStructure::SegmentConstIterator::operator++(int) {
+		SegmentConstIterator temp = *this;
+		findNext();
+		return temp;
+	}
+
+	inline bool TetMeshDataStructure::SegmentConstIterator::operator==(const SegmentConstIterator& right) const {
+		return edgeVertIter == right.edgeVertIter && edgeNode == right.edgeNode;
+	}
+
+	inline bool TetMeshDataStructure::SegmentConstIterator::operator!=(const SegmentConstIterator& right) const {
+		return !(*this == right);
 	}
 }
 

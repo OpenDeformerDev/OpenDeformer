@@ -220,7 +220,6 @@
     <ClInclude Include="solver\stubPreconditioner.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="core\allocator.cpp" />
     <ClCompile Include="core\constrainer.cpp" />
     <ClCompile Include="core\mechMaterial.cpp" />
     <ClCompile Include="core\meshRelabler.cpp" />
