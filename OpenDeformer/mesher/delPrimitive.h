@@ -276,6 +276,15 @@ namespace ODER {
 		}
 		Vertex *v[2];
 	};
+
+	struct SegmentWithIndex : public Segment {
+		SegmentWithIndex() : index(-1) {}
+		SegmentWithIndex(Vertex *v0, Vertex *v1, int index, bool ordered = false)
+			: Segment(v0, v1, ordered), index(index) {}
+
+		int index;
+	};
+
 	struct Face {
 		Face() {
 			v[0] = v[1] = v[2] = NULL;
@@ -414,6 +423,7 @@ namespace ODER {
 		bool isMarked(Vertex *u, Vertex *v) const;
 		bool Adjacent(const Segment &s, Vertex **w, int *index = NULL) const;
 		bool adjacent2Vertex(Vertex *w, Face *f) const;
+		int getTriangleIndex(Vertex *a, Vertex *b, Vertex *c) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
 		bool Contain(const Face &f) const;
@@ -604,8 +614,8 @@ namespace ODER {
 
 		std::vector<Vertex *> vertices;
 		std::vector<Vertex *> enforcedEdgeVertices;
-		MemoryPool<TetVertexListNode> *nodePool;
-		MemoryPool<EdgeListNode> *edgeNodePool;
+		MemoryPool<TetVertexListNode, std::alignment_of<TetVertexListNode>::value> *nodePool;
+		MemoryPool<EdgeListNode, std::alignment_of<EdgeListNode>::value> *edgeNodePool;
 		MemoryArena<Vertex> *vertPool;
 		ThreadUnsafeFreelist<sizeof(uintptr_t), 4 * sizeof(uintptr_t)> *pointerList;
 		VertexLabeler labeler;

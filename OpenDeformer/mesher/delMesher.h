@@ -106,7 +106,7 @@ namespace ODER{
 		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
 		bool triangulateCavity(const std::vector<Face>& regionFaces, std::vector<Face>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
-		void propagateCleanCavity(const Face& f, int depth);
+		void propagateCleanCavity(const Face& f, TetMeshDataStructure& cavityRep, int depth);
 		void refineRegion(const Face& regionFace, bool encroachTest);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type);
@@ -122,24 +122,32 @@ namespace ODER{
 				missingSegTest = false;
 				encroachFaceTest = false;
 				missingFaceTest = false;
+				rejected = false;
 			}
 			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFaceTest, missingFaceTest;
+			mutable bool rejected;
 		};
 		struct SurfaceVertexInsertionFlags {
 			SurfaceVertexInsertionFlags() {
 				trueInsertion = true;
+				deletionRecord = false;
 				encroachmentTest = false;
 				missingTest = false;
 			}
-			bool trueInsertion, encroachmentTest, missingTest;
+			bool trueInsertion, deletionRecord, encroachmentTest, missingTest;
 		};
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep, 
 			const VolumeVertexInsertionFlags& vifs = VolumeVertexInsertionFlags(), Tetrahedron *rt = NULL);
+		void insertVertexOnSegment(Vertex *u, const Segment& s, const Tetrahedron& tet, 
+			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
+		void insertVertexOnSurface(Vertex *u, const Face& f, const Tetrahedron& tet,
+			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 		void insertSurfaceVertex(Vertex *u, const Face &f, const SurfaceVertexInsertionFlags& vifs);
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, const SurfaceVertexInsertionFlags& vifs, Face *inFace = NULL);
-		bool digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
+		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
 			const VolumeVertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, const SurfaceVertexInsertionFlags& vifs);
+		void triangulateCavity(Vertex *u, std::vector<Face>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 
 		bool Encroached(const Segment &s) const;
 		bool Encroached(const Face &f) const;
@@ -172,10 +180,10 @@ namespace ODER{
 		std::vector<uintptr_t *> verticesPerPolygon;
 
 		std::vector<Face> tobeDeletedFaces;
-		std::vector<Segment> newSegsOfFaces;
+		std::vector<SegmentWithIndex> newSegsOfFaces;
 
 		std::vector<Tetrahedron> tobeDeletedTets;
-		std::vector<Tetrahedron> newTets;
+		std::vector<Face> newFacesOfTets;
 
 		std::vector<Vertex *> oriVertices;
 		std::vector<Segment> oriSegments;
@@ -183,7 +191,6 @@ namespace ODER{
 		MemoryArena<uintptr_t> pointerArena;
 
 		TetMeshDataStructure meshRep;
-		TetMeshDataStructure cavityRep;
 		TriMeshDataStructure surfaceRep;
 
 		AABB<REAL> boundBox;

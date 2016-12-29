@@ -245,6 +245,14 @@ namespace ODER {
 		return found;
 	}
 
+	int TriMeshDataStructure::getTriangleIndex(Vertex *a, Vertex *b, Vertex *c) const {
+		TriVertexListNode *node = NULL;
+		if (getAdjacentListNode(a, b, &node) && !node->isPreFaceDeleted() &&
+			node->getVertex() == c)
+			return node->getIndex();
+		return -1;
+	}
+
 	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const {
 		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return false;
 		DelVector aa = a->vert;
@@ -796,8 +804,8 @@ namespace ODER {
 	}
 
 	TetMeshDataStructure::TetMeshDataStructure() {
-		nodePool = new MemoryPool<TetVertexListNode>(256);
-		edgeNodePool = new MemoryPool<EdgeListNode>();
+		nodePool = new MemoryPool<TetVertexListNode, std::alignment_of<TetVertexListNode>::value>(256);
+		edgeNodePool = new MemoryPool<EdgeListNode, std::alignment_of<EdgeListNode>::value>();
 		vertPool = new MemoryArena<Vertex>(256);
 		pointerList = new ThreadUnsafeFreelist<sizeof(uintptr_t), 4 * sizeof(uintptr_t)>();
 		ghost = NULL;
