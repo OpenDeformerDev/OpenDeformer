@@ -81,9 +81,10 @@ namespace ODER{
 		void constrainedTriangulation();
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
 
-		void splitSubSegment(const Segment& s);
-		void splitSubPolygon(const Face& f);
-		void splitTetrahedron(const Tetrahedron& tet);
+		//parent is marked if there exits entwinement
+		void refineSubSegment(const Segment& s, Vertex *parent);
+		void refineSubPolygon(const Face& f);
+		void refineTetrahedron(const Tetrahedron& tet);
 
 		//segment recovery
 		void segmentsRecovery(bool missingTest);
@@ -123,9 +124,11 @@ namespace ODER{
 				encroachFaceTest = false;
 				missingFaceTest = false;
 				rejected = false;
+				insertRadiusTest = false;
 			}
-			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFaceTest, missingFaceTest;
+			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFaceTest, missingFaceTest, insertRadiusTest;
 			mutable bool rejected;
+			mutable Vertex *parent;
 		};
 		struct SurfaceVertexInsertionFlags {
 			SurfaceVertexInsertionFlags() {
@@ -156,8 +159,8 @@ namespace ODER{
 
 		size_t getPolygonVertices(int faceIndex, Vertex ***verts) const;
 		bool Adjacent(const Segment &s, Vertex *v) const;
-		bool Adjacent(const Face&f, Vertex *v) const;
-		bool Adjacent(const Segment &s, const Face &f) const;
+		bool Adjacent(int faceIndex, Vertex *v) const;
+		bool Adjacent(const Segment &s, int faceIndex) const;
 
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
@@ -179,7 +182,7 @@ namespace ODER{
 		std::vector<Segment> markedSegments;
 		std::vector<uintptr_t *> verticesPerPolygon;
 
-		std::vector<Face> tobeDeletedFaces;
+		std::vector<FaceWithIndex> tobeDeletedFaces;
 		std::vector<SegmentWithIndex> newSegsOfFaces;
 
 		std::vector<Tetrahedron> tobeDeletedTets;

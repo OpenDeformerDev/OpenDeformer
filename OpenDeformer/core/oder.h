@@ -46,8 +46,6 @@
 #define M_PI 3.141592653589793238462643383279502884197169399375105820974944592308
 
 namespace ODER{
-	static unsigned int randomSeed = 23;
-
 	class SparseMatrixAssembler;
 	class SparseMatrix;
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix;
@@ -80,9 +78,21 @@ namespace ODER{
 	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 3, 3 >;
 	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 3, 3 > ;
 
-	inline unsigned int Randomnation(unsigned int choices){
-		randomSeed = (randomSeed * 1366l + 150889l) % 714025l;
-		return randomSeed % choices;
+	namespace RandomnationInternal { static unsigned int randomSeed = 23u; }
+	template<unsigned int choices> inline unsigned int Randomnation() {
+		using RandomnationInternal::randomSeed;
+		if (choices < 714025u) {
+			randomSeed = (randomSeed * 1366u + 150889u) % 714025u;
+			return randomSeed % choices;
+		}
+		else {
+			unsigned int newRandom = (randomSeed * 1366u + 150889u) % 714025u;
+			randomSeed = (newRandom * 1366u + 150889u) % 714025u;
+			newRandom = newRandom * (choices / 714025u) + randomSeed;
+
+			if (newRandom >= choices) return newRandom - choices;
+			else return newRandom;
+		}
 	}
 
 	template<class T> inline void hashCombine(size_t& seed, T val) {

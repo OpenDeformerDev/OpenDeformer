@@ -288,15 +288,9 @@ namespace ODER {
 	struct Face {
 		Face() {
 			v[0] = v[1] = v[2] = NULL;
-			index = -1;
 		}
 		Face(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered = false) {
 			initVertices(v0, v1, v2, ordered);
-			index = -1;
-		}
-		Face(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false) {
-			initVertices(v0, v1, v2, ordered);
-			this->index = index;
 		}
 		void sortVertices();
 		bool operator==(const Face& f) const {
@@ -306,9 +300,16 @@ namespace ODER {
 			return v[0] != f.v[0] || v[1] != f.v[1] || v[2] != f.v[2];
 		}
 		Vertex *v[3];
-		int index;
 	private:
 		void initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered);
+	};
+
+	struct FaceWithIndex : public Face {
+		FaceWithIndex() :index(-1) {}
+		FaceWithIndex(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false)
+			: Face(v0, v1, v2), index(index) {}
+
+		int index;
 	};
 
 	struct Tetrahedron {
@@ -422,7 +423,7 @@ namespace ODER {
 		void unSetMark(Vertex *u, Vertex *v);
 		bool isMarked(Vertex *u, Vertex *v) const;
 		bool Adjacent(const Segment &s, Vertex **w, int *index = NULL) const;
-		bool adjacent2Vertex(Vertex *w, Face *f) const;
+		bool adjacent2Vertex(Vertex *w, Face *f, int *index = NULL) const;
 		int getTriangleIndex(Vertex *a, Vertex *b, Vertex *c) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;

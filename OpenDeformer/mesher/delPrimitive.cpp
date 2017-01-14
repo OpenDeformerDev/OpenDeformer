@@ -228,7 +228,7 @@ namespace ODER {
 		return false;
 	}
 
-	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Face *f) const {
+	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Face *f, int *index) const {
 		if (!matchVertexFlag(w->type, VertexType::Vertex_Facet)) return false;
 
 		TriVertexListNode *node = w->getFaceLink();
@@ -237,7 +237,8 @@ namespace ODER {
 		while (node != NULL && !found) {
 			nextNode = node->getNextNode();
 			if (nextNode && !nextNode->isPreFaceDeleted()) {
-				*f = Face(w, node->getVertex(), nextNode->getVertex(), nextNode->getIndex());
+				*f = Face(w, node->getVertex(), nextNode->getVertex());
+				if (index) *index = nextNode->getIndex();
 				found = true;
 			}
 			node = nextNode;
@@ -351,7 +352,7 @@ namespace ODER {
 				return false;
 		}
 
-		*f = Face(a, c, d, child->getIndex());
+		*f = Face(a, c, d);
 
 		return true;
 	}
@@ -369,7 +370,7 @@ namespace ODER {
 						Vertex *b = parent->getVertex();
 						Vertex *c = child->getVertex();
 						if (verticesOrderCheck(center, b, c)) {
-							current = Face(center, b, c, child->getIndex());
+							current = Face(center, b, c);
 							return;
 						}
 					}
@@ -383,7 +384,7 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (verticesOrderCheck(center, b, c)) {
-						current = Face(center, b, c, child->getIndex());
+						current = Face(center, b, c);
 						return;
 					}
 				}
@@ -423,7 +424,7 @@ namespace ODER {
 				Vertex *b = parent->getVertex();
 				Vertex *c = child->getVertex();
 				if (verticesOrderCheck(center, b, c)) {
-					current = Face(center, b, c, child->getIndex());
+					current = Face(center, b, c);
 					return;
 				}
 			}
@@ -451,7 +452,7 @@ namespace ODER {
 						Vertex *b = parent->getVertex();
 						Vertex *c = child->getVertex();
 						if (verticesOrderCheck(center, b, c))
-							triangles.push_back(Face(center, b, c, child->getIndex()));
+							triangles.push_back(Face(center, b, c));
 					}
 
 					parent = child;
@@ -462,7 +463,7 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (verticesOrderCheck(center, b, c))
-						triangles.push_back(Face(center, b, c, child->getIndex()));
+						triangles.push_back(Face(center, b, c));
 				}
 			}
 		}
@@ -1725,13 +1726,18 @@ namespace ODER {
 			a->setEdgeList(newNode);
 		}
 		else {
+			EdgeListNode *parentLinkHead = NULL;
 			EdgeListNode *linkHead = a->getEdgeList();
 			bool foundHead = false;
+			int distance = 0;
 			while (linkHead != NULL && !foundHead) {
 				if (linkHead->getEndVertex() == b)
 					foundHead = true;
-				else
+				else {
+					parentLinkHead = linkHead;
 					linkHead = linkHead->getNextNode();
+					distance += 1;
+				}
 			}
 			if (!foundHead) {
 				//init link
@@ -1921,6 +1927,14 @@ namespace ODER {
 					Severe("Unexpted case in TetMeshDataStructure::insertToTopology");
 					break;
 				}
+
+				//move the linkHead to the start of the edge list of the vertex
+				constexpr int cacheLimit = 3;
+				if (distance > cacheLimit) {
+					parentLinkHead->setNextNode(linkHead->getNextNode());
+					linkHead->setNextNode(a->getEdgeList());
+					a->setEdgeList(linkHead);
+				}
 			}
 		}
 	}
@@ -1936,12 +1950,14 @@ namespace ODER {
 		EdgeListNode *parentLinkHead = NULL;
 		EdgeListNode *linkHead = a->getEdgeList();
 		bool foundHead = false;
+		int distance = 0;
 		while (linkHead != NULL && !foundHead) {
 			if (linkHead->getEndVertex() == b)
 				foundHead = true;
 			else {
 				parentLinkHead = linkHead;
 				linkHead = linkHead->getNextNode();
+				distance += 1;
 			}
 		}
 		Assert(foundHead);
@@ -2045,6 +2061,7 @@ namespace ODER {
 					}
 				}
 			}
+			constexpr int cacheLimit = 3;
 			//clean the deleted node
 			if (head->getNextNode() == NULL) {
 				nodePool->Dealloc(head);
@@ -2055,6 +2072,12 @@ namespace ODER {
 					a->setEdgeList(linkHead->getNextNode());
 
 				edgeNodePool->Dealloc(linkHead);
+			}
+			//move the linkHead to the start of the edge list of the vertex
+			else if (distance > cacheLimit) {
+				parentLinkHead->setNextNode(linkHead->getNextNode());
+				linkHead->setNextNode(a->getEdgeList());
+				a->setEdgeList(linkHead);
 			}
 		}
 	}

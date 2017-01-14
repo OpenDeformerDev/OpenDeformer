@@ -9,6 +9,7 @@
 #include "latool.h"
 #include "numerMethod.h"
 #include "predicate.h"
+#include <random>
 
 namespace ODER {
 	namespace Geometer {
@@ -231,6 +232,95 @@ namespace ODER {
 			}
 
 			return theta;
+		}
+
+		namespace HilbertSortInternal {
+			template<int x, bool xFlip, bool yFlip, bool zFlip, size_t threshold,
+				class RandomAccessIterator, class CoordTrait>
+			void HilbertSort3dRecursive(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
+				constexpr int y = (x + 1) % 3, z = (x + 2) % 3;
+				if (end - begin <= threshold) return;
+
+				auto CompXLess = [ct](auto p, auto q){ return xFlip ? ct(q).x < ct(p).x : ct(p).x < ct(q).x; };
+				auto CompYLess = [ct](auto p, auto q){ return yFlip ? ct(q).y < ct(p).y : ct(p).y < ct(q).y; };
+				auto CompZLess = [ct](auto p, auto q){ return zFlip ? ct(q).z < ct(p).z : ct(p).z < ct(q).z; };
+				auto CompXGreat = [ct](auto p, auto q){ return xFlip ? ct(q).x > ct(p).x : ct(p).x > ct(q).x; };
+				auto CompYGreat = [ct](auto p, auto q){ return yFlip ? ct(q).y > ct(p).y : ct(p).y > ct(q).y; };
+				auto CompZGreat = [ct](auto p, auto q){ return zFlip ? ct(q).z > ct(p).z : ct(p).z > ct(q).z; };
+
+				auto HilbertSplit = [](auto begin, auto end, auto comp) {
+					auto mid = begin + (end - begin) / 2;
+					std::nth_element(begin, mid, end, comp);
+					return mid;
+				};
+
+				RandomAccessIterator iter0 = begin, iter8 = end;
+				RandomAccessIterator iter4 = HilbertSplit(iter0, iter8, CompXLess);
+				RandomAccessIterator iter2 = HilbertSplit(iter0, iter4, CompYLess);
+				RandomAccessIterator iter1 = HilbertSplit(iter0, iter2, CompZLess);
+				RandomAccessIterator iter3 = HilbertSplit(iter2, iter4, CompZGreat);
+				RandomAccessIterator iter6 = HilbertSplit(iter4, iter8, CompYGreat);
+				RandomAccessIterator iter5 = HilbertSplit(iter4, iter6, CompZLess);
+				RandomAccessIterator iter7 = HilbertSplit(iter6, iter8, CompZGreat);
+
+				HilbertSort3dRecursive<z, zFlip, xFlip, yFlip, threshold>(iter0, iter1, ct);
+				HilbertSort3dRecursive<y, yFlip, zFlip, xFlip, threshold>(iter1, iter2, ct);
+				HilbertSort3dRecursive<y, yFlip, zFlip, xFlip, threshold>(iter2, iter3, ct);
+				HilbertSort3dRecursive<x, xFlip, !yFlip, !zFlip, threshold>(iter3, iter4, ct);
+				HilbertSort3dRecursive<x, xFlip, !yFlip, !zFlip, threshold>(iter4, iter5, ct);
+				HilbertSort3dRecursive<y, !yFlip, zFlip, !xFlip, threshold>(iter5, iter6, ct);
+				HilbertSort3dRecursive<y, !yFlip, zFlip, !xFlip, threshold>(iter6, iter7, ct);
+				HilbertSort3dRecursive<z, !zFlip, !xFlip, yFlip, threshold>(iter7, iter8, ct);
+			}
+		}
+
+		template<bool reverse = false, size_t threshold = 1u, class RandomAccessIterator, class CoordTrait>
+		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
+			static_assert(std::is_same<std::iterator_traits<RandomAccessIterator>::iterator_category,
+				std::random_access_iterator_tag>::value, "ODER::HilbertSort3d support random access iterators only");
+			HilbertSortInternal::HilbertSort3dRecursive<0, reverse, reverse, reverse, threshold>(begin, end, ct);
+		}
+		template<bool reverse = false, size_t threshold = 1u, class RandomAccessIterator>
+		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end) {
+			return HilbertSort3d<reverse, threshold>(begin, end, [](auto p){ return p; });
+		}
+
+		template<class RandomAccessIterator, class CoordTrait> 
+		void brioSort3d(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
+			static_assert(std::is_same<std::iterator_traits<RandomAccessIterator>::iterator_category,
+				std::random_access_iterator_tag>::value, "ODER::brioSort3d support random access iterators only");
+
+			using difference_type = std::iterator_traits<RandomAccessIterator>::difference_type;
+			std::random_device rng;
+			std::default_random_engine randomEngine(rng());
+			std::shuffle(begin, end, randomEngine);
+
+			constexpr double ratio = 0.5;
+			constexpr difference_type brioThreshold = 64u;
+			constexpr size_t HilbertThreshold = 8u;
+			difference_type range = end - begin;
+			size_t roundCount = size_t(ceil(log2(range) * log2(1.0 / ratio)));
+
+			RandomAccessIterator curBegin = begin, curEnd = end;
+			size_t round = 0u;
+			for (; round < roundCount && range >= brioThreshold; round++) {
+				std::binomial_distribution<difference_type> distrbute(range, ratio);
+				range = distrbute(randomEngine);
+				curBegin = begin + range;
+
+				if (round % 2u == 0u) HilbertSort3d<false, HilbertThreshold>(curBegin, curEnd, ct);
+				else HilbertSort3d<true, HilbertThreshold>(curBegin, curEnd, ct);
+
+				curEnd = curBegin;
+				std::shuffle(begin, curEnd, randomEngine);
+			}
+			if (round % 2u == 0u) HilbertSort3d<false, HilbertThreshold>(begin, curEnd, ct);
+			else HilbertSort3d<false, HilbertThreshold>(begin, curEnd, ct);
+		}
+
+		template<class RandomAccessIterator>
+		void brioSort3d(RandomAccessIterator begin, RandomAccessIterator end) {
+			return brioSort3d(begin, end, [](auto p){ return p; });
 		}
 	}
 }
