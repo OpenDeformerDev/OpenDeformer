@@ -33,11 +33,15 @@ template<class FT> class Predicator{
 public:
 	static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::Predicator support IEEE 754-1985 floating point only");
 
+	enum Plane { Plane_XY, Plane_YZ, Plane_XZ, Plane_Arbitary };
+
 	FT orient2d(FT ax, FT ay, FT bx, FT by, FT cx, FT cy) const;
 
 	FT orient2d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& above) const;
 
 	FT orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const;
+
+	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
 
 	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
@@ -82,15 +86,13 @@ public:
 	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
-private:
+	Plane getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
-	enum Plane { Plane_XY, Plane_YZ, Plane_XZ, Plane_Arbitary };
+private:
 
 	FT orient2dAdaptive(FT ax, FT ay, FT bx, FT by, FT cx, FT cy, FT norm) const;
 
 	FT orient3dAdaptive(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, FT norm) const;
-
-	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
 
 	FT inOrthoSphereAdaptive(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 		                   const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight, FT norm) const;
@@ -120,7 +122,6 @@ private:
 	bool intersectionTestAllCoplanar(const VectorBase<FT>& p, const VectorBase<FT>& q, const VectorBase<FT>& r,
 		const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
 
-	Plane getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 	VectorBase<FT> triangleNormal(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 	VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 

@@ -75,7 +75,10 @@ namespace ODER{
 	private:
 		bool findSegment(const Segment& s) const{ return meshRep.isSegment(s); }
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
-		Face findPosition(Vertex *u, const DelVector& above, const Face& f) const;
+		Tetrahedron findPositionWithOcclusion(Vertex *u, const Tetrahedron& t, 
+			const TetMeshDataStructure& meshRep, const TriMeshDataStructure& occluderRep) const;
+		Face findPosition(Vertex *u, const Face& f) const;
+		Face findPositionWithOcclusion(Vertex *u, const Face& f) const;
 
 		void detectAcuteVertices() const;
 		void constrainedTriangulation();
@@ -110,7 +113,7 @@ namespace ODER{
 		void propagateCleanCavity(const Face& f, TetMeshDataStructure& cavityRep, int depth);
 		void refineRegion(const Face& regionFace, bool encroachTest);
 
-		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type);
+		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
 

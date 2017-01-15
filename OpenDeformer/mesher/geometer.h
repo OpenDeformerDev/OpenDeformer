@@ -278,7 +278,7 @@ namespace ODER {
 		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
 			static_assert(std::is_same<std::iterator_traits<RandomAccessIterator>::iterator_category,
 				std::random_access_iterator_tag>::value, "ODER::HilbertSort3d support random access iterators only");
-			HilbertSortInternal::HilbertSort3dRecursive<0, reverse, reverse, reverse, threshold>(begin, end, ct);
+			HilbertSortInternal::HilbertSort3dRecursive<0, reverse, false, false, threshold>(begin, end, ct);
 		}
 		template<bool reverse = false, size_t threshold = 1u, class RandomAccessIterator>
 		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end) {
@@ -301,17 +301,17 @@ namespace ODER {
 			difference_type range = end - begin;
 			size_t roundCount = size_t(ceil(log2(range) * log2(1.0 / ratio)));
 
-			RandomAccessIterator curBegin = begin, curEnd = end;
+			RandomAccessIterator curEnd = end;
 			size_t round = 0u;
 			for (; round < roundCount && range >= brioThreshold; round++) {
-				std::binomial_distribution<difference_type> distrbute(range, ratio);
+				std::binomial_distribution<difference_type> distrbute(range, 1.0 - ratio);
 				range = distrbute(randomEngine);
-				curBegin = begin + range;
+				RandomAccessIterator curMid = begin + range;
 
-				if (round % 2u == 0u) HilbertSort3d<false, HilbertThreshold>(curBegin, curEnd, ct);
-				else HilbertSort3d<true, HilbertThreshold>(curBegin, curEnd, ct);
+				if (round % 2u == 0u) HilbertSort3d<false, HilbertThreshold>(curMid, curEnd, ct);
+				else HilbertSort3d<true, HilbertThreshold>(curMid, curEnd, ct);
 
-				curEnd = curBegin;
+				curEnd = curMid;
 				std::shuffle(begin, curEnd, randomEngine);
 			}
 			if (round % 2u == 0u) HilbertSort3d<false, HilbertThreshold>(begin, curEnd, ct);

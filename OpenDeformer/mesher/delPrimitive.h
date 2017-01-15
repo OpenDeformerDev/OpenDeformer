@@ -491,7 +491,7 @@ namespace ODER {
 	public:
 		TetMeshDataStructure();
 		Vertex* getGhostVertex();
-		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = Vertex_Undefined);
+		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = VertexType(Vertex_Undefined));
 		void deallocVertex(Vertex *vert);
 		void addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);

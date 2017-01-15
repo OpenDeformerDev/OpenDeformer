@@ -986,24 +986,220 @@ Tetrahedron DelMesher::findPosition(Vertex *u, const Tetrahedron &t, const TetMe
 	return Tetrahedron(NULL, NULL, NULL, NULL);
 }
 
-Face DelMesher::findPosition(Vertex *u, const DelVector& above, const Face& f) const{
+Tetrahedron DelMesher::findPositionWithOcclusion(Vertex *u, const Tetrahedron& t, 
+	const TetMeshDataStructure& meshRep, const TriMeshDataStructure& occluderRep) const {
 	size_t maxIter = std::numeric_limits<size_t>::max();
-	Vertex *a = f.v[0];
-	Vertex *b = f.v[1], *c = f.v[2];
+	Vertex *a = t.v[0], *b = t.v[1], *c = t.v[2], *d = t.v[3];
+	if (b->isGhost()) {
+		std::swap(a, b); std::swap(c, d);
+	}
+	else if (c->isGhost()) {
+		std::swap(a, c); std::swap(b, d);
+	}
+	else if (d->isGhost()) {
+		std::swap(a, d); std::swap(b, c);
+	}
+
+	while (maxIter--) {
+		Vertex *x = NULL;
+		if (a->isGhost()) {
+			if (predicator.inOrthoHalfSpace3D(u->vert, u->weight, b->vert, b->weight, c->vert, c->weight, d->vert, d->weight)) {
+				if (occluderRep.Contain(Face(b, c, d))) return Tetrahedron(NULL, b, c, d);
+				else if (occluderRep.Contain(Face(b, d, c))) return Tetrahedron(NULL, b, d, c);
+				else return t;
+			}
+			meshRep.Adjacent(Face(b, d, c, true), &x);
+			a = x; std::swap(d, c);
+		}
+		else {
+			bool ori0 = predicator.orient3d(u->vert, a->vert, b->vert, c->vert) > 0;
+			bool ori1 = predicator.orient3d(u->vert, a->vert, c->vert, d->vert) > 0;
+			bool ori2 = predicator.orient3d(u->vert, a->vert, d->vert, b->vert) > 0;
+
+			int condition = ori0 + (ori1 << 1) + (ori2 << 2);
+
+			switch (condition) {
+			case 0:
+				if (predicator.orient3d(u->vert, d->vert, c->vert, b->vert) > 0) {
+					if (occluderRep.Contain(Face(d, c, b))) return Tetrahedron(NULL, d, c, b);
+					else if (occluderRep.Contain(Face(d, b, c))) return Tetrahedron(NULL, d, b, c);
+
+					meshRep.Adjacent(Face(d, c, b), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, d, c, b, true);
+					//Tetrahedron(x, d, c, b)
+					a = x; std::swap(b, d);
+				}
+				else {
+					return Tetrahedron(a, b, c, d, true);
+				}
+				break;
+			case 1:
+				if (occluderRep.Contain(Face(a, b, c))) return Tetrahedron(NULL, a, b, c);
+				else if (occluderRep.Contain(Face(a, c, b))) return Tetrahedron(NULL, a, c, b);
+
+				meshRep.Adjacent(Face(a, b, c), &x);
+				if (x->isGhost())
+					return Tetrahedron(x, a, b, c, true);
+				//Tetrahedron(x, a, b, c)
+				d = c; c = b; b = a; a = x;
+				break;
+			case 2:
+				if (occluderRep.Contain(Face(a, c, d))) return Tetrahedron(NULL, a, c, d);
+				else if (occluderRep.Contain(Face(a, d, c))) return Tetrahedron(NULL, a, d, c);
+
+				meshRep.Adjacent(Face(a, c, d), &x);
+				if (x->isGhost())
+					return Tetrahedron(x, a, c, d, true);
+				//Tetrahedron(x, a, c, d)
+				b = a; a = x;
+				break;
+			case 3:
+				if (Randomnation<2>() == 0) {
+					if (occluderRep.Contain(Face(a, b, c))) return Tetrahedron(NULL, a, b, c);
+					else if (occluderRep.Contain(Face(a, c, b))) return Tetrahedron(NULL, a, c, b);
+
+					meshRep.Adjacent(Face(a, b, c), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, b, c, true);
+					//Tetrahedron(x, a, b, c)
+					d = c; c = b; b = a; a = x;
+				}
+				else {
+					if (occluderRep.Contain(Face(a, c, d))) return Tetrahedron(NULL, a, c, d);
+					else if (occluderRep.Contain(Face(a, d, c))) return Tetrahedron(NULL, a, d, c);
+
+					meshRep.Adjacent(Face(a, c, d), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, c, d, true);
+					//Tetrahedron(x, a, c, d)
+					b = a; a = x;
+				}
+				break;
+			case 4:
+				if (occluderRep.Contain(Face(a, d, b))) return Tetrahedron(NULL, a, d, b);
+				else if (occluderRep.Contain(Face(a, b, d))) return Tetrahedron(NULL, a, b, d);
+
+				meshRep.Adjacent(Face(a, d, b), &x);
+				if (x->isGhost())
+					return Tetrahedron(x, a, d, b, true);
+				//Tetrahedron(x, a, d, b)
+				c = d; d = b; b = a; a = x;
+				break;
+			case 5:
+				if (Randomnation<2>() == 0) {
+					if (occluderRep.Contain(Face(a, b, c))) return Tetrahedron(NULL, a, b, c);
+					else if (occluderRep.Contain(Face(a, c, b))) return Tetrahedron(NULL, a, c, b);
+
+					meshRep.Adjacent(Face(a, b, c), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, b, c, true);
+					//Tetrahedron(x, a, b, c)
+					d = c; c = b; b = a; a = x;
+				}
+				else {
+					if (occluderRep.Contain(Face(a, d, b))) return Tetrahedron(NULL, a, d, b);
+					else if (occluderRep.Contain(Face(a, b, d))) return Tetrahedron(NULL, a, b, d);
+
+					meshRep.Adjacent(Face(a, d, b), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, d, b, true);
+					//Tetrahedron(x, a, d, b)
+					c = d; d = b; b = a; a = x;
+				}
+				break;
+			case 6:
+				if (Randomnation<2>() == 0) {
+					if (occluderRep.Contain(Face(a, c, d))) return Tetrahedron(NULL, a, c, d);
+					else if (occluderRep.Contain(Face(a, d, c))) return Tetrahedron(NULL, a, d, c);
+
+					meshRep.Adjacent(Face(a, c, d), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, c, d, true);
+					//Tetrahedron(x, a, c, d)
+					b = a; a = x;
+				}
+				else {
+					if (occluderRep.Contain(Face(a, d, b))) return Tetrahedron(NULL, a, d, b);
+					else if (occluderRep.Contain(Face(a, b, d))) return Tetrahedron(NULL, a, b, d);
+
+					meshRep.Adjacent(Face(a, d, b), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, d, b, true);
+					//Tetrahedron(x, a, d, b)
+					c = d; d = b; b = a; a = x;
+				}
+				break;
+			case 7:
+			{
+				unsigned int term = Randomnation<3>();
+				if (term == 0) {
+					if (occluderRep.Contain(Face(a, b, c))) return Tetrahedron(NULL, a, b, c);
+					else if (occluderRep.Contain(Face(a, c, b))) return Tetrahedron(NULL, a, c, b);
+
+					meshRep.Adjacent(Face(a, b, c), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, b, c, true);
+					//Tetrahedron(x, a, b, c)
+					d = c; c = b; b = a; a = x;
+				}
+				else if (term == 1) {
+					if (occluderRep.Contain(Face(a, c, d))) return Tetrahedron(NULL, a, c, d);
+					else if (occluderRep.Contain(Face(a, d, c))) return Tetrahedron(NULL, a, d, c);
+
+					meshRep.Adjacent(Face(a, c, d), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, c, d, true);
+					b = a; a = x;
+				}
+				else {
+					if (occluderRep.Contain(Face(a, d, b))) return Tetrahedron(NULL, a, d, b);
+					else if (occluderRep.Contain(Face(a, b, d))) return Tetrahedron(NULL, a, b, d);
+
+					meshRep.Adjacent(Face(a, d, b), &x);
+					if (x->isGhost())
+						return Tetrahedron(x, a, d, b, true);
+					//Tetrahedron(x, a, d, b)
+					c = d; d = b; b = a; a = x;
+				}
+				break;
+			}
+			default:
+				Severe("Unexpected Case in 3d overloaded DelMesher::findPosition");
+			}
+		}
+	}
+	Severe("Do not find Tet in 3d overloaded DelMesher::findPosition");
+	//should never return this value
+	return Tetrahedron(NULL, NULL, NULL, NULL);
+}
+
+Face DelMesher::findPosition(Vertex *u, const Face& f) const{
+	size_t maxIter = std::numeric_limits<size_t>::max();
+	Vertex *a = f.v[0], *b = f.v[1], *c = f.v[2];
+
+	auto plane = predicator.getProjectingPlane(a->vert, b->vert, c->vert);
+	bool faceOrient = predicator.orientCoplane(a->vert, b->vert, c->vert, plane) > 0;
+
+	auto orientTest = [plane, faceOrient](const DelVector& a, const DelVector& b, const DelVector& c) {
+		constexpr Predicator<REAL> predicator;
+		REAL ori = predicator.orientCoplane(a, b, c, plane);
+		return faceOrient ? ori > 0 : ori < 0;
+	};
 
 	while (maxIter--){
 		Vertex *x = NULL;
-		bool ori0 = predicator.orient2d(b->vert, a->vert, u->vert, above) > 0;
-		bool ori1 = predicator.orient2d(a->vert, c->vert, u->vert, above) > 0;
+		bool ori0 = orientTest(b->vert, a->vert, u->vert);
+		bool ori1 = orientTest(a->vert, c->vert, u->vert);
 
 		int condition = ori0 + (ori1 << 1);
 		switch (condition){
 		case 0:
-			if (predicator.orientCoplane(c->vert, b->vert, u->vert) > 0){
+			if (orientTest(c->vert, b->vert, u->vert)){
 				surfaceRep.Adjacent(Segment(c, b), &x);
 				a = x; std::swap(b, c); //Face(x, c, b)
 			}
-			else{
+			else {
 				return Face(a, b, c, true);
 			}
 			break;
@@ -1021,6 +1217,67 @@ Face DelMesher::findPosition(Vertex *u, const DelVector& above, const Face& f) c
 				c = a; a = x; //Face(x, b, a)
 			}
 			else{
+				surfaceRep.Adjacent(Segment(a, c), &x);
+				b = a; a = x; //Face(x, a, c)
+			}
+			break;
+		default:
+			Severe("Unexpected Case in 2d overloaded DelMesher::findPosition");
+		}
+	}
+	Severe("Do not find Face in 2d overloaded DelMesher::findPosition");
+	//should never return this value
+	return Face(NULL, NULL, NULL);
+}
+
+Face DelMesher::findPositionWithOcclusion(Vertex *u, const Face& f) const {
+	size_t maxIter = std::numeric_limits<size_t>::max();
+	Vertex *a = f.v[0], *b = f.v[1], *c = f.v[2];
+
+	auto plane = predicator.getProjectingPlane(a->vert, b->vert, c->vert);
+	bool faceOrient = predicator.orientCoplane(a->vert, b->vert, c->vert, plane) > 0;
+	
+	auto orientTest = [plane, faceOrient](const DelVector& a, const DelVector& b, const DelVector& c) {
+		constexpr Predicator<REAL> predicator;
+		REAL ori = predicator.orientCoplane(a, b, c, plane);
+		return faceOrient ? ori > 0 : ori < 0;
+	};
+
+	while (maxIter--) {
+		Vertex *x = NULL;
+		bool ori0 = orientTest(b->vert, a->vert, u->vert);
+		bool ori1 = orientTest(a->vert, c->vert, u->vert);
+
+		int condition = ori0 + (ori1 << 1);
+		switch (condition) {
+		case 0:
+			if (orientTest(c->vert, b->vert, u->vert)) {
+				if (meshRep.Contain(Segment(c, b))) return Face(NULL, c, b);
+				surfaceRep.Adjacent(Segment(c, b), &x);
+				a = x; std::swap(b, c); //Face(x, c, b)
+			}
+			else {
+				return Face(a, b, c, true);
+			}
+			break;
+		case 1:
+			if (meshRep.Contain(Segment(b, a))) return Face(NULL, b, a);
+			surfaceRep.Adjacent(Segment(b, a), &x);
+			c = a; a = x; //Face(x, b, a)
+			break;
+		case 2:
+			if (meshRep.Contain(Segment(a, c))) return Face(NULL, a, c);
+			surfaceRep.Adjacent(Segment(a, c), &x);
+			b = a; a = x; //Face(x, a, c)
+			break;
+		case 3:
+			if (Randomnation<2>() == 0) {
+				if (meshRep.Contain(Segment(b, a))) return Face(NULL, b, a);
+				surfaceRep.Adjacent(Segment(b, a), &x);
+				c = a; a = x; //Face(x, b, a)
+			}
+			else {
+				if (meshRep.Contain(Segment(a, c))) return Face(NULL, a, c);
 				surfaceRep.Adjacent(Segment(a, c), &x);
 				b = a; a = x; //Face(x, a, c)
 			}
@@ -1610,57 +1867,121 @@ void DelMesher::refineSubPolygon(const Face &f) {
 	}
 }
 
-void DelMesher::refineTetrahedron(const Tetrahedron& tet){
+void DelMesher::refineTetrahedron(const Tetrahedron& tet) {
 	Vertex *a = tet.v[0], *b = tet.v[1], *c = tet.v[2], *d = tet.v[3];
-	Vertex center;
+	DelVector center;
+	REAL radius = 0;
 	Geometer::Orthosphere(a->vert, a->weight, b->vert, b->weight,
-		c->vert, c->weight, d->vert, d->weight, &center.vert);
+		c->vert, c->weight, d->vert, d->weight, &center, &radius);
 
-	tobeDeletedTets.push_back(tet);
-	meshRep.deleteTetrahedron(a, b, c, d);
+	Vertex *steinerVert = meshRep.allocVertex(center, REAL(0));
+	Tetrahedron found = findPositionWithOcclusion(steinerVert, tet, meshRep, surfaceRep);
 
-	VolumeVertexInsertionFlags vifs;
-	vifs.trueInsertion = false;
-	digCavity(&center, Face(b, d, c, true), meshRep, vifs, NULL);
-	digCavity(&center, Face(a, c, d, true), meshRep, vifs, NULL);
-	digCavity(&center, Face(a, d, b, true), meshRep, vifs, NULL);
-	digCavity(&center, Face(a, b, c, true), meshRep, vifs, NULL);
+	if (found.v[0]) {
+		VolumeVertexInsertionFlags vifs;
+		vifs.cdt = true; vifs.encroachSegTest = true; vifs.encroachFaceTest = true;
+		vifs.trueInsertion = false;
+		insertVertex(steinerVert, found, meshRep, vifs);
 
-	bool encrochment = false;
-	Face encrocachedFace;
-	bool result = false;
-	for (auto nf : newFacesOfTets){
-		result = surfaceRep.Contain(nf);
-		if(!result){
-			std::swap(nf.v[2], nf.v[1]);
-			result = surfaceRep.Contain(nf);
-			if (!result)
-				continue;
+		//detect subsegment encorachment first
+		bool encorach = false;
+		Segment encorachedSeg;
+		for (auto s : mayEncroachedSegs) {
+			if (Encroached(s, steinerVert)) {
+				encorach = true;
+				encorachedSeg = s;
+				break;
+			}
 		}
-		if (Encroached(nf, &center)){
-			encrocachedFace = nf;
-			encrochment = true;
-			break;
+		mayEncroachedSegs.clear();
+
+		if (encorach) {
+			for (auto t : tobeDeletedTets) meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
+			tobeDeletedTets.clear(); newFacesOfTets.clear();
+			mayEncroachedFaces.clear();
+			deallocVertex(steinerVert);
+			refineSubSegment(encorachedSeg, NULL);
+		}
+		else {
+			//detect subpolygon encorachment next
+			bool direct = false; Face encorachedFace;
+
+			auto directEncroachmentTest = [](const DelVector& u, const DelVector& a, const DelVector& b, const DelVector& c) {
+				constexpr Predicator<REAL> predicator;
+				auto plane = predicator.getProjectingPlane(a, b, c);
+				bool ori0 = predicator.orientCoplane(u, a, b, plane) >= 0;
+				bool ori1 = predicator.orientCoplane(u, b, c, plane) >= 0;
+				bool ori2 = predicator.orientCoplane(u, c, a, plane) >= 0;
+				return ori0 == ori1 && ori0 == ori2;
+			};
+
+			for (auto f : mayEncroachedFaces) {
+				if (Encroached(f, steinerVert)) {
+					encorach = true;
+					encorachedFace = f;
+					//detect direct encorachment
+					if (directEncroachmentTest(center, f.v[0]->vert, f.v[1]->vert, f.v[2]->vert)) {
+						direct = true;
+						break;
+					}
+				}
+			}
+			mayEncroachedFaces.clear();
+			if (encorach) {
+				for (auto t : tobeDeletedTets) meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
+				tobeDeletedTets.clear(); newFacesOfTets.clear();
+				deallocVertex(steinerVert);
+				if (direct) refineSubPolygon(encorachedFace);
+				else {
+					encorachedFace = findPositionWithOcclusion(steinerVert, encorachedFace);
+					if (encorachedFace.v[0]) refineSubPolygon(encorachedFace);
+					else refineSubSegment(Segment(encorachedFace.v[1], encorachedFace.v[2]), NULL);
+				}
+			}
+			else {
+				Assert(!vifs.rejected);
+				steinerVert->relaxedInsetionRadius = radius;
+				for (auto f : newFacesOfTets) {
+					meshRep.addTetrahedron(steinerVert, f.v[0], f.v[1], f.v[2]);
+					Tetrahedron t(steinerVert, f.v[0], f.v[1], f.v[2]);
+					t.setRationAndRadius();
+					if (t.getREration() > maxRatio || t.getRadius() > maxRadius)
+						skinnyTets.push(t);
+				}
+				tobeDeletedTets.clear(); newFacesOfTets.clear();
+			}
 		}
 	}
+	else {
+		Face occluder(found.v[1], found.v[2], found.v[3]);
+		bool encorach = false;
+		Vertex *encorachedVert = NULL;
+		for (int i = 0; i < 4; i++) {
+			if (Encroached(occluder, tet.v[i])) {
+				encorachedVert = tet.v[i];
+				encorach = true;
+				break;
+			}
+		}
 
-	if (!encrochment){
-		Vertex *newVert = allocVertex(center.vert, center.weight, VertexType::Vertex_FreeVolume);
-		for (auto f: newFacesOfTets){
-			meshRep.addTetrahedron(newVert, f.v[0], f.v[1], f.v[2]);
-			Tetrahedron t(newVert, f.v[0], f.v[1], f.v[2], true);
-			t.setRationAndRadius();
-			if (t.getREration() > maxRatio || t.getRadius() > maxRadius)
-			    skinnyTets.push(t);
+		if (encorach) {
+			deallocVertex(steinerVert);
+			occluder = findPositionWithOcclusion(encorachedVert, occluder);
+			if (occluder.v[0]) refineSubPolygon(occluder);
+			else refineSubSegment(Segment(occluder.v[1], occluder.v[2]), NULL);
+		}
+		else {
+			occluder = findPositionWithOcclusion(steinerVert, occluder);
+			if (occluder.v[0] == NULL) {
+				deallocVertex(steinerVert);
+				refineSubSegment(Segment(occluder.v[1], occluder.v[2]), NULL);
+			}
+			else if (Encroached(occluder, steinerVert)) {
+				deallocVertex(steinerVert);
+				refineSubPolygon(occluder);
+			}
 		}
 	}
-	else{
-		for (auto t : tobeDeletedTets)
-			meshRep.addTetrahedron(t.v[0], t.v[1], t.v[2], t.v[3]);
-		refineSubPolygon(encrocachedFace);
-	}
-	tobeDeletedTets.clear();
-	newFacesOfTets.clear();
 }
 
 //all faces to be recovered must be in mayMissingFaces
