@@ -6,7 +6,7 @@
 #include <numeric>
 
 namespace ODER {
-	void Face::sortVertices() {
+	void Triangle::sortVertices() {
 		int min = v[0]->getLabel() < v[1]->getLabel() ? (v[0]->getLabel() < v[2]->getLabel() ? 0 : 2) : (v[1]->getLabel() < v[2]->getLabel() ? 1 : 2);
 		if (min == 1) {
 			std::swap(v[0], v[1]);
@@ -18,7 +18,7 @@ namespace ODER {
 		}
 	}
 
-	void Face::initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered) {
+	void Triangle::initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered) {
 		if (ordered) {
 			int min = v0->getLabel() < v1->getLabel() ? (v0->getLabel() < v2->getLabel() ? 0 : 2) : (v1->getLabel() < v2->getLabel() ? 1 : 2);
 			switch (min) {
@@ -67,6 +67,8 @@ namespace ODER {
 			v[2]->relaxedInsetionRadius, v[3]->relaxedInsetionRadius }));
 
 		reRation = r / relaxedLength;
+
+
 	}
 
 
@@ -228,7 +230,7 @@ namespace ODER {
 		return false;
 	}
 
-	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Face *f, int *index) const {
+	bool TriMeshDataStructure::adjacent2Vertex(Vertex *w, Triangle *f, int *index) const {
 		if (!matchVertexFlag(w->type, VertexType::Vertex_Facet)) return false;
 
 		TriVertexListNode *node = w->getFaceLink();
@@ -237,7 +239,7 @@ namespace ODER {
 		while (node != NULL && !found) {
 			nextNode = node->getNextNode();
 			if (nextNode && !nextNode->isPreFaceDeleted()) {
-				*f = Face(w, node->getVertex(), nextNode->getVertex());
+				*f = Triangle(w, node->getVertex(), nextNode->getVertex());
 				if (index) *index = nextNode->getIndex();
 				found = true;
 			}
@@ -254,7 +256,7 @@ namespace ODER {
 		return -1;
 	}
 
-	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const {
+	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Triangle *f) const {
 		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return false;
 		DelVector aa = a->vert;
 		constexpr Predicator<REAL> predicator;
@@ -352,7 +354,7 @@ namespace ODER {
 				return false;
 		}
 
-		*f = Face(a, c, d);
+		*f = Triangle(a, c, d);
 
 		return true;
 	}
@@ -370,7 +372,7 @@ namespace ODER {
 						Vertex *b = parent->getVertex();
 						Vertex *c = child->getVertex();
 						if (verticesOrderCheck(center, b, c)) {
-							current = Face(center, b, c);
+							current = Triangle(center, b, c);
 							return;
 						}
 					}
@@ -384,7 +386,7 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (verticesOrderCheck(center, b, c)) {
-						current = Face(center, b, c);
+						current = Triangle(center, b, c);
 						return;
 					}
 				}
@@ -413,7 +415,7 @@ namespace ODER {
 					child = parent->getNextNode();
 				}
 				else {
-					current = Face(NULL, NULL, NULL);
+					current = Triangle(NULL, NULL, NULL);
 					parent = NULL; child = NULL;
 					return;
 				}
@@ -424,20 +426,20 @@ namespace ODER {
 				Vertex *b = parent->getVertex();
 				Vertex *c = child->getVertex();
 				if (verticesOrderCheck(center, b, c)) {
-					current = Face(center, b, c);
+					current = Triangle(center, b, c);
 					return;
 				}
 			}
 		} while (true);
 	}
 
-	std::vector<Face> TriMeshDataStructure::getTriangles(bool ghost) const {
-		std::vector<Face> output;
+	std::vector<Triangle> TriMeshDataStructure::getTriangles(bool ghost) const {
+		std::vector<Triangle> output;
 		getTriangles(ghost, output);
 		return output;
 	}
 
-	void TriMeshDataStructure::getTriangles(bool ghost, std::vector<Face>& triangles) const {
+	void TriMeshDataStructure::getTriangles(bool ghost, std::vector<Triangle>& triangles) const {
 		TriVertexListNode *parent = NULL;
 		TriVertexListNode *child = NULL;
 		triangles.reserve(vertices.size() * 2);
@@ -452,7 +454,7 @@ namespace ODER {
 						Vertex *b = parent->getVertex();
 						Vertex *c = child->getVertex();
 						if (verticesOrderCheck(center, b, c))
-							triangles.push_back(Face(center, b, c));
+							triangles.push_back(Triangle(center, b, c));
 					}
 
 					parent = child;
@@ -463,7 +465,7 @@ namespace ODER {
 					Vertex *b = parent->getVertex();
 					Vertex *c = child->getVertex();
 					if (verticesOrderCheck(center, b, c))
-						triangles.push_back(Face(center, b, c));
+						triangles.push_back(Triangle(center, b, c));
 				}
 			}
 		}
@@ -1059,7 +1061,7 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::setMark(Vertex *u, Vertex *v, Vertex *w) {
-		Face f(u, v, w, true);
+		Triangle f(u, v, w, true);
 
 		TetVertexListNode *node = NULL;
 		if (getAdjacentListNode(f, &node))
@@ -1067,7 +1069,7 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::unSetMark(Vertex *u, Vertex *v, Vertex *w) {
-		Face f(u, v, w, true);
+		Triangle f(u, v, w, true);
 
 		TetVertexListNode *node = NULL;
 		if (getAdjacentListNode(f, &node))
@@ -1075,13 +1077,13 @@ namespace ODER {
 	}
 
 	bool TetMeshDataStructure::isMarked(Vertex *u, Vertex *v, Vertex *w) const {
-		Face f(u, v, w, true);
+		Triangle f(u, v, w, true);
 		TetVertexListNode *node = NULL;
 
 		return getAdjacentListNode(f, &node) && node->isMarked();
 	}
 
-	bool TetMeshDataStructure::Adjacent(const Face &f, Vertex **z) const {
+	bool TetMeshDataStructure::Adjacent(const Triangle &f, Vertex **z) const {
 		TetVertexListNode *node = NULL;
 		if (getAdjacentListNode(f, &node)) {
 			*z = node->getVertex();
@@ -1090,7 +1092,7 @@ namespace ODER {
 		return false;
 	}
 
-	bool TetMeshDataStructure::getAdjacentListNode(const Face& f, TetVertexListNode **z) const {
+	bool TetMeshDataStructure::getAdjacentListNode(const Triangle& f, TetVertexListNode **z) const {
 		bool found = false;
 		bool ab = parityCheck(f.v[0], f.v[1]);
 		bool ac = parityCheck(f.v[0], f.v[2]);
@@ -1318,7 +1320,7 @@ namespace ODER {
 
 			if (node) {
 				Vertex *c = node->getOtherVertex(), *d = NULL;
-				if (c != NULL && Adjacent(Face(b, a, c), &d)) {
+				if (c != NULL && Adjacent(Triangle(b, a, c), &d)) {
 					if (ordered) *t = Tetrahedron(a, b, c, d);
 					else  *t = Tetrahedron(b, a, d, c);
 					return true;

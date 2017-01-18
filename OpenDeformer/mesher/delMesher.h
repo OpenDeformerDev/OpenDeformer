@@ -24,12 +24,12 @@ namespace ODER{
 		DelTriangulator() = default;
 		~DelTriangulator() = default;
 		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, 
-			const Face& ref, bool boundaryOnly, std::vector<Face>& output);
+			const Triangle& ref, bool boundaryOnly, std::vector<Triangle>& output);
 		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, 
-			const Face& ref, bool boundaryOnly, std::vector<Face>& output);
-		void insertSegments(const Face *triangles, const Segment *segments, int triangleCount, int segmentCount, std::vector<Face>& output);
+			const Triangle& ref, bool boundaryOnly, std::vector<Triangle>& output);
+		void insertSegments(const Triangle *triangles, const Segment *segments, int triangleCount, int segmentCount, std::vector<Triangle>& output);
 	private:
-		DelVector calculateAbovePoint(int vertexCount, Vertex** vertices, const Face& ref);
+		DelVector calculateAbovePoint(int vertexCount, Vertex** vertices, const Triangle& ref);
 		void insertSegment(const Segment& s);
 		void triangulateHalfHole(const std::vector<Vertex *>& vertices);
 		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
@@ -37,10 +37,10 @@ namespace ODER{
 			bool mark, bool oriTest, std::deque<Vertex *>& marked, int depth);
 		void insertVertexToCavity(Vertex *u, Vertex *v, Vertex *w, int depth);
 		void triangulateConvexPoly(Vertex *u, const std::vector<Vertex *>& convexPoly);
-		Face findPosition(Vertex *u, const Face &f) const;
-		void digCavity(Vertex *u, const Segment &s, Face *rf, int depth);
+		Triangle findPosition(Vertex *u, const Triangle &f) const;
+		void digCavity(Vertex *u, const Segment &s, Triangle *rf, int depth);
 		void propagateClean(const Segment& s, int depth);
-		inline int findGhost(const Face &f){
+		inline int findGhost(const Triangle &f){
 			for (int i = 0; i < 3; i++){
 				if (f.v[i]->isGhost())
 					return i;
@@ -64,9 +64,23 @@ namespace ODER{
 		TriMeshDataStructure cavityRep;
 	};
 
-	class DelMesher :public Mesher{
+	class DelMesher : public Mesher{
 	public:
-		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, REAL maxRation, REAL maxRadius, REAL facetAngleTol = REAL(179));
+		struct DelMesherCriteria {
+			DelMesherCriteria() {
+				constexpr REAL maxVal = std::numeric_limits<REAL>::max();
+				maxTetRadius = maxVal; maxFacetRadius = maxVal; maxSegLength = maxVal;
+				maxTetRatio = REAL(2.0);
+				facetAngleTol = REAL(179.0);
+			}
+			REAL maxTetRadius;
+			REAL maxFacetRadius;
+			REAL maxSegLength;
+			REAL maxTetRatio;
+			REAL facetAngleTol;
+		};
+
+		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, DelMesherCriteria criteria = DelMesherCriteria());
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
 		~DelMesher();
@@ -77,41 +91,39 @@ namespace ODER{
 		Tetrahedron findPosition(Vertex *u, const Tetrahedron& t, const TetMeshDataStructure& meshRep) const;
 		Tetrahedron findPositionWithOcclusion(Vertex *u, const Tetrahedron& t, 
 			const TetMeshDataStructure& meshRep, const TriMeshDataStructure& occluderRep) const;
-		Face findPosition(Vertex *u, const Face& f) const;
-		Face findPositionWithOcclusion(Vertex *u, const Face& f) const;
+		Triangle findPosition(Vertex *u, const Triangle& f) const;
+		Triangle findPositionWithOcclusion(Vertex *u, const Triangle& f) const;
 
 		void detectAcuteVertices() const;
 		void constrainedTriangulation();
-		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep, bool insertToSkinny);
+		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep);
 
-		//parent is marked if there exits entwinement
-		void refineSubSegment(const Segment& s, Vertex *parent);
-		void refineSubPolygon(const Face& f);
-		void refineTetrahedron(const Tetrahedron& tet);
-
+		void constrainedRefinment();
+		void refineSubSegment(const Segment& s, Vertex *entwinedParent, bool encorachedFacetTest, bool skinnyTetTestEnable);
+		void refineSubPolygon(const Triangle& f, bool skinnyTetTestEnable);
+		void refineTetrahedron(const Tetrahedron& tet, bool& processed);
+		 
 		//segment recovery
-		void segmentsRecovery(bool missingTest);
-		void splitSubSegment(const Segment& s, Vertex* ref, bool missingFaceTest = true);
+		void splitSubSegment(const Segment& s, Vertex* ref, bool missingFacetTest);
 		//face recovery
-		void facesRecovery();
-		bool faceRecovery(Face& f, std::vector<Vertex *>& regionVertices,
-			std::vector<Segment>& regionBoundaries, std::vector<Face>& regionFaces,
-			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
-			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
+		bool facetRecovery(Triangle& f, std::vector<Vertex *>& regionVertices,
+			std::vector<Segment>& regionBoundaries, std::vector<Triangle>& regionFaces,
+			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
-		void findMissingRegion(const Face& missed, std::vector<Vertex *> &regionVertices, 
-			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces);
+		void findMissingRegion(const Triangle& missed, std::vector<Vertex *> &regionVertices, 
+			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces);
 		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
-			std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces, int depth);
-		bool findCavity(const std::vector<Segment>& regionBoundary, std::vector<Face>& regionFaces,
-			std::vector<Vertex *>& positiveVertices, std::vector<Face>& positiveFaces,
-			std::vector<Vertex *>& negativeVertices, std::vector<Face>& negativeFaces,
+			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces, int depth);
+		bool findCavity(const std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces,
+			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
+			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
 			std::vector<Tetrahedron>& deleted);
-		bool findCrossEdge(const Segment& boundary, const std::vector<Face>& regionFaces, Segment& cross) const;
-		bool triangulateCavity(const std::vector<Face>& regionFaces, std::vector<Face>& boundaryFaces,
-			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Face& encroached);
-		void propagateCleanCavity(const Face& f, TetMeshDataStructure& cavityRep, int depth);
-		void refineRegion(const Face& regionFace, bool encroachTest);
+		bool findCrossEdge(const Segment& boundary, const std::vector<Triangle>& regionFaces, Segment& cross) const;
+		bool triangulateCavity(const std::vector<Triangle>& regionFaces, std::vector<Triangle>& boundaryFaces,
+			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Triangle& encroached);
+		void propagateCleanCavity(const Triangle& f, TetMeshDataStructure& cavityRep, int depth);
+		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool encroachedSegTest, bool setInsertionRadius);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
 		Vertex* allocVertex(const Vertex &vert);
@@ -124,12 +136,12 @@ namespace ODER{
 				trueInsertion = true;
 				encroachSegTest = false;
 				missingSegTest = false;
-				encroachFaceTest = false;
-				missingFaceTest = false;
+				encroachFacetTest = false;
+				missingFacetTest = false;
 				rejected = false;
 				insertRadiusTest = false;
 			}
-			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFaceTest, missingFaceTest, insertRadiusTest;
+			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFacetTest, missingFacetTest, insertRadiusTest;
 			mutable bool rejected;
 			mutable Vertex *parent;
 		};
@@ -146,50 +158,56 @@ namespace ODER{
 			const VolumeVertexInsertionFlags& vifs = VolumeVertexInsertionFlags(), Tetrahedron *rt = NULL);
 		void insertVertexOnSegment(Vertex *u, const Segment& s, const Tetrahedron& tet, 
 			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
-		void insertVertexOnSurface(Vertex *u, const Face& f, const Tetrahedron& tet,
+		void insertVertexOnSurface(Vertex *u, const Triangle& f, const Tetrahedron& tet,
 			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
-		void insertSurfaceVertex(Vertex *u, const Face &f, const SurfaceVertexInsertionFlags& vifs);
-		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, const SurfaceVertexInsertionFlags& vifs, Face *inFace = NULL);
-		void digCavity(Vertex *u, const Face& f, TetMeshDataStructure& meshRep,
+		void deleteVertex(Vertex *u, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs = VolumeVertexInsertionFlags());
+		void insertSurfaceVertex(Vertex *u, const Triangle &f, const SurfaceVertexInsertionFlags& vifs);
+		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, const SurfaceVertexInsertionFlags& vifs);
+
+		void digCavity(Vertex *u, const Triangle& f, TetMeshDataStructure& meshRep,
 			const VolumeVertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, const SurfaceVertexInsertionFlags& vifs);
-		void triangulateCavity(Vertex *u, std::vector<Face>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
+		void triangulateCavity(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 
 		bool Encroached(const Segment &s) const;
-		bool Encroached(const Face &f) const;
+		bool Encroached(const Triangle &f, Vertex **encroachedVert) const;
 		bool Encroached(const Segment &s, Vertex *v) const;
-		bool Encroached(const Face &f, Vertex *v) const;
+		bool Encroached(const Triangle &f, Vertex *v) const;
 
-		size_t getPolygonVertices(int faceIndex, Vertex ***verts) const;
+		size_t getPolygonVertices(int facetIndex, Vertex ***verts) const;
 		bool Adjacent(const Segment &s, Vertex *v) const;
-		bool Adjacent(int faceIndex, Vertex *v) const;
-		bool Adjacent(const Segment &s, int faceIndex) const;
+		bool Adjacent(int facetIndex, Vertex *v) const;
+		bool Adjacent(const Segment &s, int facetIndex) const;
+
+		bool skinnyTetTest(Tetrahedron& t) const;
 
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
-		void detectCoplanarFaces(const Face& f, REAL facetRadianTol,
+		void detectCoplanarFaces(const Triangle& f, REAL facetRadianTol,
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep) const;
 		void propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL facetRadianTol,
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep, int depth) const;
+		void makeHole(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep) const;
+		void propagateMakeHole(const Triangle& f, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, int depth) const;
 
-		void propagateClean(const Face &f, int depth);
+		void propagateClean(const Triangle &f, int depth);
 
 		REAL maxRatio;
 		REAL maxRadius;
 		static Predicator<REAL> predicator;
 
 		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>, std::function<bool(const Tetrahedron&, const Tetrahedron&)>> skinnyTets;
-		std::deque<Face> mayEncroachedFaces, mayMissingFaces;
+		std::deque<Triangle> mayEncroachedFacets, mayMissingFacets;
 		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
 		std::vector<Segment> markedSegments;
 		std::vector<uintptr_t *> verticesPerPolygon;
 
-		std::vector<FaceWithIndex> tobeDeletedFaces;
+		std::vector<TriangleWithIndex> tobeDeletedFaces;
 		std::vector<SegmentWithIndex> newSegsOfFaces;
 
 		std::vector<Tetrahedron> tobeDeletedTets;
-		std::vector<Face> newFacesOfTets;
+		std::vector<Triangle> newFacesOfTets;
 
 		std::vector<Vertex *> oriVertices;
 		std::vector<Segment> oriSegments;
@@ -199,6 +217,7 @@ namespace ODER{
 		TetMeshDataStructure meshRep;
 		TriMeshDataStructure surfaceRep;
 
+		DelMesherCriteria criteria;
 		AABB<REAL> boundBox;
 	};
 
@@ -218,8 +237,13 @@ namespace ODER{
 		meshRep.deallocVertex(vert);
 	}
 
-	inline size_t DelMesher::getPolygonVertices(int faceIndex, Vertex ***verts) const {
-		uintptr_t *p = verticesPerPolygon[faceIndex];
+	inline bool DelMesher::skinnyTetTest(Tetrahedron& t) const {
+		t.setRationAndRadius();
+		return t.getREration() > criteria.maxTetRatio || t.getRadius() > criteria.maxTetRadius;
+	}
+
+	inline size_t DelMesher::getPolygonVertices(int facetIndex, Vertex ***verts) const {
+		uintptr_t *p = verticesPerPolygon[facetIndex];
 		size_t count = *(size_t *)p;
 		*verts = (Vertex **)(p + 1);
 		return count;

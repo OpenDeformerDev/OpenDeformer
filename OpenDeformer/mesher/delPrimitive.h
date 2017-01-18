@@ -285,18 +285,18 @@ namespace ODER {
 		int index;
 	};
 
-	struct Face {
-		Face() {
+	struct Triangle {
+		Triangle() {
 			v[0] = v[1] = v[2] = NULL;
 		}
-		Face(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered = false) {
+		Triangle(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered = false) {
 			initVertices(v0, v1, v2, ordered);
 		}
 		void sortVertices();
-		bool operator==(const Face& f) const {
+		bool operator==(const Triangle& f) const {
 			return v[0] == f.v[0] && v[1] == f.v[1] && v[2] == f.v[2];
 		}
-		bool operator!=(const Face &f) const {
+		bool operator!=(const Triangle &f) const {
 			return v[0] != f.v[0] || v[1] != f.v[1] || v[2] != f.v[2];
 		}
 		Vertex *v[3];
@@ -304,10 +304,10 @@ namespace ODER {
 		void initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered);
 	};
 
-	struct FaceWithIndex : public Face {
-		FaceWithIndex() :index(-1) {}
-		FaceWithIndex(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false)
-			: Face(v0, v1, v2), index(index) {}
+	struct TriangleWithIndex : public Triangle {
+		TriangleWithIndex() :index(-1) {}
+		TriangleWithIndex(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false)
+			: Triangle(v0, v1, v2), index(index) {}
 
 		int index;
 	};
@@ -341,7 +341,7 @@ namespace ODER {
 	};
 
 	struct face_compare {
-		bool operator()(const Face &left, const Face &right) const {
+		bool operator()(const Triangle &left, const Triangle &right) const {
 			if (left.v[2] == right.v[2]) {
 				if (left.v[1] == right.v[1])
 					return left.v[0] < right.v[0];
@@ -352,7 +352,7 @@ namespace ODER {
 	};
 
 	struct face_hash {
-		size_t operator()(const Face& f) const {
+		size_t operator()(const Triangle& f) const {
 			size_t hashVal = 0;
 			hashCombine(hashVal, f.v[0]->getLabel(), f.v[1]->getLabel(), f.v[2]->getLabel());
 			return hashVal;
@@ -423,26 +423,26 @@ namespace ODER {
 		void unSetMark(Vertex *u, Vertex *v);
 		bool isMarked(Vertex *u, Vertex *v) const;
 		bool Adjacent(const Segment &s, Vertex **w, int *index = NULL) const;
-		bool adjacent2Vertex(Vertex *w, Face *f, int *index = NULL) const;
+		bool adjacent2Vertex(Vertex *w, Triangle *f, int *index = NULL) const;
 		int getTriangleIndex(Vertex *a, Vertex *b, Vertex *c) const;
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
-		bool Contain(const Face &f) const;
-		bool findIntersectedFace(Vertex *a, const DelVector& bb, Face *f) const;
+		bool Contain(const Triangle &f) const;
+		bool findIntersectedFace(Vertex *a, const DelVector& bb, Triangle *f) const;
 		void Clear();
 		void Reserve(size_t n) { vertices.reserve(n); }
-		std::vector<Face> getTriangles(bool ghost) const;
-		void getTriangles(bool ghost, std::vector<Face>& triangles) const;
+		std::vector<Triangle> getTriangles(bool ghost) const;
+		void getTriangles(bool ghost, std::vector<Triangle>& triangles) const;
 		~TriMeshDataStructure();
 
 		class TriMeshConstIterator {
 		public:
 			using iterator_category = std::input_iterator_tag;
-			using value_type = Face;
+			using value_type = Triangle;
 			using difference_type = ptrdiff_t;
 			using size_type = size_t;
-			using reference = const Face&;
-			using pointer = const Face *;
+			using reference = const Triangle&;
+			using pointer = const Triangle *;
 
 			TriMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
 				const std::vector<Vertex *>::const_iterator& end);
@@ -463,7 +463,7 @@ namespace ODER {
 		private:
 			void findNext();
 
-			Face current;
+			Triangle current;
 			TriVertexListNode *parent, *child;
 			std::vector<Vertex *>::const_iterator vertIter;
 			std::vector<Vertex *>::const_iterator vertEnd;
@@ -491,19 +491,19 @@ namespace ODER {
 	public:
 		TetMeshDataStructure();
 		Vertex* getGhostVertex();
-		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = VertexType(Vertex_Undefined));
+		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = VertexType::Vertex_Undefined);
 		void deallocVertex(Vertex *vert);
 		void addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void setMark(Vertex *u, Vertex *v, Vertex *w);
 		void unSetMark(Vertex *u, Vertex *v, Vertex *w);
 		bool isMarked(Vertex *u, Vertex *v, Vertex *w) const;
-		bool Adjacent(const Face &f, Vertex **w) const;
+		bool Adjacent(const Triangle &f, Vertex **w) const;
 		bool adjacent2Vertex(Vertex *w, Tetrahedron *t) const;
 		std::vector<Tetrahedron> getTetrahedrons(bool ghost) const;
 		void getTetrahedrons(bool ghost, std::vector<Tetrahedron>& tets) const;
 		bool Contain(Vertex *v) const;
-		bool Contain(const Face &f) const;
+		bool Contain(const Triangle &f) const;
 		bool Contain(const Tetrahedron& t) const;
 		void Clear();
 		void Reserve(size_t n) { vertices.reserve(n); }
@@ -598,7 +598,7 @@ namespace ODER {
 		SegmentConstIterator segmentEnd() const { return SegmentConstIterator(enforcedEdgeVertices.end(), enforcedEdgeVertices.end()); }
 
 	private:
-		bool getAdjacentListNode(const Face& f, TetVertexListNode **z) const;
+		bool getAdjacentListNode(const Triangle& f, TetVertexListNode **z) const;
 		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, TetVertexListNode **z) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
@@ -779,7 +779,7 @@ namespace ODER {
 	}
 
 	inline bool TriMeshDataStructure::Contain(Vertex *v) const {
-		Face f;
+		Triangle f;
 		return adjacent2Vertex(v, &f);
 	}
 
@@ -788,7 +788,7 @@ namespace ODER {
 		return Adjacent(s, &w);
 	}
 
-	inline bool TriMeshDataStructure::Contain(const Face &f) const {
+	inline bool TriMeshDataStructure::Contain(const Triangle &f) const {
 		Vertex *w = NULL;
 		bool find = Adjacent(Segment(f.v[0], f.v[1]), &w);
 		if (find) return w == f.v[2];
@@ -805,14 +805,14 @@ namespace ODER {
 		return adjacent2Vertex(v, &t);
 	}
 
-	inline bool TetMeshDataStructure::Contain(const Face &f) const {
+	inline bool TetMeshDataStructure::Contain(const Triangle &f) const {
 		Vertex *x = NULL;
 		return Adjacent(f, &x);
 	}
 
 	inline bool TetMeshDataStructure::Contain(const Tetrahedron& t) const {
 		Vertex *x = NULL;
-		Adjacent(Face(t.v[1], t.v[2], t.v[3]), &x);
+		Adjacent(Triangle(t.v[1], t.v[2], t.v[3]), &x);
 		return x == t.v[0];
 	}
 
