@@ -428,7 +428,6 @@ namespace ODER {
 		bool Contain(Vertex *v) const;
 		bool Contain(const Segment &s) const;
 		bool Contain(const Triangle &f) const;
-		bool findIntersectedFace(Vertex *a, const DelVector& bb, Triangle *f) const;
 		void Clear();
 		void Reserve(size_t n) { vertices.reserve(n); }
 		std::vector<Triangle> getTriangles(bool ghost) const;
@@ -469,10 +468,43 @@ namespace ODER {
 			std::vector<Vertex *>::const_iterator vertEnd;
 		};
 
+		class TriMeshConstCirculator {
+		public:
+			using iterator_category = std::input_iterator_tag;
+			using value_type = Triangle;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = const Triangle&;
+			using pointer = const Triangle *;
+
+			TriMeshConstCirculator(Vertex *v);
+			TriMeshConstCirculator(const TriMeshConstCirculator&) = default;
+			TriMeshConstCirculator(TriMeshConstCirculator&&) = default;
+			TriMeshConstCirculator& operator=(const TriMeshConstCirculator&) = default;
+			TriMeshConstCirculator& operator=(TriMeshConstCirculator&&) = default;
+
+			bool operator==(const TriMeshConstCirculator& right) const;
+			bool operator!=(const TriMeshConstCirculator& right) const;
+			bool operator==(std::nullptr_t p) const;
+			bool operator!=(std::nullptr_t p) const;
+
+			reference operator*() const { return current; }
+			pointer operator->() const { return &current; }
+
+			TriMeshConstCirculator& operator++();
+			TriMeshConstCirculator operator++(int);
+		private:
+			void findNext();
+
+			Vertex *vert;
+			TriVertexListNode *link;
+			Triangle current;
+		};
+
 		using const_iterator = TriMeshConstIterator;
 		const_iterator begin() const { return const_iterator(vertices.begin(), vertices.end()); }
 		const_iterator end() const { return const_iterator(vertices.end(), vertices.end()); }
-
+		TriMeshConstCirculator getIncidentTriangles(Vertex *v) const { return TriMeshConstCirculator(v); }
 	private:
 		bool getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const;
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c, int index);
@@ -591,12 +623,51 @@ namespace ODER {
 			Segment segment;
 		};
 
+		class TetMeshFacetConstCirculator {
+		public:
+			using value_type = Triangle;
+			using difference_type = ptrdiff_t;
+			using size_type = size_t;
+			using reference = const Triangle&;
+			using pointer = const Triangle *;
+
+			TetMeshFacetConstCirculator(const Segment& s, const TetMeshDataStructure *ds);
+			TetMeshFacetConstCirculator(const TetMeshFacetConstCirculator&) = default;
+			TetMeshFacetConstCirculator(TetMeshFacetConstCirculator&&) = default;
+			TetMeshFacetConstCirculator& operator=(const TetMeshFacetConstCirculator&) = default;
+			TetMeshFacetConstCirculator& operator=(TetMeshFacetConstCirculator&&) = default;
+
+			bool operator==(const TetMeshFacetConstCirculator& right) const;
+			bool operator!=(const TetMeshFacetConstCirculator& right) const;
+			bool operator==(std::nullptr_t p) const;
+			bool operator!=(std::nullptr_t p) const;
+
+			reference operator*() const { return current; }
+			pointer operator->() const { return &current; }
+
+			TetMeshFacetConstCirculator& operator++();
+			TetMeshFacetConstCirculator operator++(int);
+		private:
+			void findNext();
+
+			Vertex *ori, *dest;
+			EdgeListNode *linkListHead;
+			TetVertexListNode *listNode;
+			Vertex *initAdjacentVert;
+			Vertex *movingVert;
+			bool reverse;
+
+			const TetMeshDataStructure *ds;
+
+			Triangle current;
+		};
+
 		using const_iterator = TetMeshConstIterator;
 		const_iterator begin() const { return const_iterator(vertices.begin(), vertices.end()); }
 		const_iterator end() const { return const_iterator(vertices.end(), vertices.end()); }
 		SegmentConstIterator segmentBegin() const { return SegmentConstIterator(enforcedEdgeVertices.begin(), enforcedEdgeVertices.end()); }
 		SegmentConstIterator segmentEnd() const { return SegmentConstIterator(enforcedEdgeVertices.end(), enforcedEdgeVertices.end()); }
-
+		TetMeshFacetConstCirculator getIncidentFacets(const Segment& s) const { return TetMeshFacetConstCirculator(s, this); }
 	private:
 		bool getAdjacentListNode(const Triangle& f, TetVertexListNode **z) const;
 		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, TetVertexListNode **z) const;
@@ -872,6 +943,33 @@ namespace ODER {
 		return !(*this == right);
 	}
 
+	inline TriMeshDataStructure::TriMeshConstCirculator& TriMeshDataStructure::TriMeshConstCirculator::operator++() {
+		findNext();
+		return *this;
+	}
+
+	inline TriMeshDataStructure::TriMeshConstCirculator TriMeshDataStructure::TriMeshConstCirculator::operator++(int) {
+		TriMeshConstCirculator tmp = *this;
+		findNext();
+		return tmp;
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstCirculator::operator==(const TriMeshConstCirculator& right) const {
+		return vert == right.vert && link == right.link;
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstCirculator::operator!=(const TriMeshConstCirculator& right) const {
+		return !(*this == right);
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstCirculator::operator==(std::nullptr_t p) const {
+		return link == NULL;
+	}
+
+	inline bool TriMeshDataStructure::TriMeshConstCirculator::operator!=(std::nullptr_t p) const {
+		return !(*this == p);
+	}
+
 	inline TetMeshDataStructure::TetMeshConstIterator& TetMeshDataStructure::TetMeshConstIterator::operator++() {
 		findNext();
 		return *this;
@@ -908,6 +1006,41 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::SegmentConstIterator::operator!=(const SegmentConstIterator& right) const {
 		return !(*this == right);
+	}
+
+	inline TetMeshDataStructure::TetMeshFacetConstCirculator& TetMeshDataStructure::TetMeshFacetConstCirculator::operator++() {
+		findNext();
+		return *this;
+	}
+
+	inline TetMeshDataStructure::TetMeshFacetConstCirculator TetMeshDataStructure::TetMeshFacetConstCirculator::operator++(int) {
+		TetMeshFacetConstCirculator tmp = *this;
+		findNext();
+		return tmp;
+	}
+
+	inline bool TetMeshDataStructure::TetMeshFacetConstCirculator::operator==(const TetMeshFacetConstCirculator& right) const {
+		if (ori == right.ori && dest == right.dest) {
+			if (linkListHead && right.linkListHead) {
+				return listNode == right.listNode;
+			}
+			else if (initAdjacentVert && right.initAdjacentVert) {
+				return movingVert == right.movingVert;
+			}
+		}
+		return false;
+	}
+
+	inline bool TetMeshDataStructure::TetMeshFacetConstCirculator::operator!=(const TetMeshFacetConstCirculator& right) const {
+		return !(*this == right);
+	}
+
+	inline bool TetMeshDataStructure::TetMeshFacetConstCirculator::operator==(std::nullptr_t p) const {
+		return linkListHead == NULL && initAdjacentVert == NULL;
+	}
+
+	inline bool TetMeshDataStructure::TetMeshFacetConstCirculator::operator!=(std::nullptr_t p) const {
+		return !(*this == p);
 	}
 }
 

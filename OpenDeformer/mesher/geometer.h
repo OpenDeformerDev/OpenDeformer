@@ -234,6 +234,13 @@ namespace ODER {
 			return theta;
 		}
 
+		template<class FT> VectorBase<FT> getProjectedPoint(const VectorBase<FT>& a, const VectorBase<FT>& b,
+			const VectorBase<FT>& c, const VectorBase<FT>& p) {
+			VectorBase<FT> normal = Normalize(triangleNormal(a, b, c));
+			VectorBase<FT> pa = a - p;
+			return p + (pa * normal) * normal;
+		}
+
 		namespace HilbertSortInternal {
 			template<int x, bool xFlip, bool yFlip, bool zFlip, size_t threshold,
 				class RandomAccessIterator, class CoordTrait>

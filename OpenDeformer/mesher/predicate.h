@@ -86,7 +86,7 @@ public:
 	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
-	Plane getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
+	Plane getProjectionPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 private:
 
@@ -1841,7 +1841,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 		break;
 	case 7:
 	{
-		Plane plane = getProjectingPlane(a, b, c);
+		Plane plane = getProjectionPlane(a, b, c);
 		if (orientCoplane(a, b, c) > 0)
 			return intersectionTestAllNonnegtive(a, b, c, p, q, r, dp, dq, dr, plane);
 		else
@@ -1884,7 +1884,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& p, co
 		break;
 	case 7:
 	{
-		Plane plane = getProjectingPlane(p, q, r);
+		Plane plane = getProjectionPlane(p, q, r);
 		if (orientCoplane(p, q, r) > 0)
 			return intersectionTestAllNonnegtive(p, q, r, a, b, c, da, db, dc, plane);
 		else
@@ -2034,7 +2034,7 @@ template<class FT> bool Predicator<FT>::Intersection(const VectorBase<FT>& a, co
 		return false;
 	}
 	else {
-		Plane plane = getProjectingPlane(a, b, c);
+		Plane plane = getProjectionPlane(a, b, c);
 		if (orientCoplane(a, b, c, plane) > 0)
 			return intersectionTriSegCoplane(a, b, c, p, q, plane);
 		else
@@ -2096,7 +2096,7 @@ template<class FT> bool Predicator<FT>::intersectionTriSegCoplane(const VectorBa
 	return false; //never here
 }
 
-template<class FT> inline typename Predicator<FT>::Plane Predicator<FT>::getProjectingPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+template<class FT> inline typename Predicator<FT>::Plane Predicator<FT>::getProjectionPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
 	VectorBase<FT> normal = triangleNormal(a, b, c);
 	FT nx = fabs(normal.x), ny = fabs(normal.y), nz = fabs(normal.z);
 	Plane plane = Plane::Plane_Arbitary;

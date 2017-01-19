@@ -67,10 +67,7 @@ namespace ODER {
 			v[2]->relaxedInsetionRadius, v[3]->relaxedInsetionRadius }));
 
 		reRation = r / relaxedLength;
-
-
 	}
-
 
 	void Tetrahedron::sortVertices() {
 		int min = 0, max = 0;
@@ -234,18 +231,25 @@ namespace ODER {
 		if (!matchVertexFlag(w->type, VertexType::Vertex_Facet)) return false;
 
 		TriVertexListNode *node = w->getFaceLink();
-		TriVertexListNode *nextNode = NULL;
-		bool found = false;
-		while (node != NULL && !found) {
-			nextNode = node->getNextNode();
-			if (nextNode && !nextNode->isPreFaceDeleted()) {
+		TriVertexListNode *nextNode = node->getNextNode();
+
+		while (nextNode != NULL) {
+			if (!nextNode->isPreFaceDeleted()) {
 				*f = Triangle(w, node->getVertex(), nextNode->getVertex());
 				if (index) *index = nextNode->getIndex();
-				found = true;
+				return true;
 			}
 			node = nextNode;
+			nextNode = node->getNextNode();
 		}
-		return found;
+		if (!node->isPreFaceDeleted()) {
+			nextNode = w->getFaceLink();
+			*f = Triangle(w, node->getVertex(), nextNode->getVertex());
+			if (index) *index = nextNode->getIndex();
+			return true;
+		}
+
+		return false;
 	}
 
 	int TriMeshDataStructure::getTriangleIndex(Vertex *a, Vertex *b, Vertex *c) const {
@@ -254,109 +258,6 @@ namespace ODER {
 			node->getVertex() == c)
 			return node->getIndex();
 		return -1;
-	}
-
-	bool TriMeshDataStructure::findIntersectedFace(Vertex *a, const DelVector& bb, Triangle *f) const {
-		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return false;
-		DelVector aa = a->vert;
-		constexpr Predicator<REAL> predicator;
-
-		TriVertexListNode *parent = a->getFaceLink();
-		TriVertexListNode *child = parent->getNextNode();
-		Vertex *c = NULL, *d = NULL;
-		
-		while (child != NULL) {
-			if (child && !child->isPreFaceDeleted()) {
-				c = parent->getVertex();
-				d = child->getVertex();
-				if(!c->isGhost() && !d->isGhost()) break;
-			}
-			parent = child;
-			child = child->getNextNode();
-		}
-		if (child == NULL) {
-			child = a->getFaceLink();
-			if (!child->isPreFaceDeleted()) {
-				c = parent->getVertex();
-				d = child->getVertex();
-				if (c->isGhost() || d->isGhost()) return false;
-			}
-			else 
-				return false;
-		}
-
-		REAL ori0 = predicator.orientCoplane(aa, bb, c->vert);
-		REAL ori1 = predicator.orientCoplane(aa, bb, d->vert);
-		while (true) {
-			if ((ori0 > 0) != (ori1 > 0) || ori0 == 0 || ori1 == 0){
-				REAL ori2 = predicator.orientCoplane(aa, c->vert, d->vert);
-				REAL ori3 = predicator.orientCoplane(bb, c->vert, d->vert);
-				if ((ori2 > 0) != (ori3 > 0) || ori2 == 0 || ori3 == 0)
-					break;
-			}
-
-			bool nextSuccess = false;
-			parent = child;
-			child = parent->getNextNode();
-			c = d;
-
-			if (child == NULL) break;
-			if (!child->isPreFaceDeleted()) {
-				d = child->getVertex();
-				if (!d->isGhost()) {
-					nextSuccess = true;
-					ori0 = ori1;
-					ori1 = predicator.orientCoplane(aa, bb, d->vert);
-				}
-			}
-
-			if(!nextSuccess) {
-				child = child->getNextNode();
-				while (child != NULL) {
-					parent = child;
-					child = parent->getNextNode();
-					if (child && !child->isPreFaceDeleted()) {
-						c = parent->getVertex();
-						d = child->getVertex();
-						if (!c->isGhost() && !d->isGhost()) break;
-					}
-				}
-
-				if (child != NULL) {
-					ori0 = predicator.orientCoplane(aa, bb, c->vert);
-					ori1 = predicator.orientCoplane(aa, bb, d->vert);
-				}
-				else
-					break;
-			}
-		}
-
-		if (child == NULL) {
-			child = a->getFaceLink();
-			if (!child->isPreFaceDeleted()) {
-				c = parent->getVertex();
-				d = child->getVertex();
-				if (c->isGhost() || d->isGhost()) return false;
-
-				ori0 = predicator.orientCoplane(aa, bb, c->vert);
-				ori1 = predicator.orientCoplane(aa, bb, d->vert);
-
-				if ((ori0 > 0) == (ori1 > 0) && ori0 != 0 && ori1 != 0)
-					return false;
-				else {
-					REAL ori2 = predicator.orientCoplane(aa, c->vert, d->vert);
-					REAL ori3 = predicator.orientCoplane(bb, c->vert, d->vert);
-					if ((ori2 > 0) == (ori3 > 0) && ori2 != 0 && ori3 != 0)
-						return false;
-				}
-			}
-			else
-				return false;
-		}
-
-		*f = Triangle(a, c, d);
-
-		return true;
 	}
 
 	TriMeshDataStructure::TriMeshConstIterator::TriMeshConstIterator(const std::vector<Vertex *>::const_iterator& iter,
@@ -398,6 +299,7 @@ namespace ODER {
 	}
 
 	void TriMeshDataStructure::TriMeshConstIterator::findNext() {
+		if (vertIter == vertEnd) return;
 		do {
 			if (child != (*vertIter)->getFaceLink()) {
 				parent = child;
@@ -429,6 +331,41 @@ namespace ODER {
 					current = Triangle(center, b, c);
 					return;
 				}
+			}
+		} while (true);
+	}
+
+	TriMeshDataStructure::TriMeshConstCirculator::TriMeshConstCirculator(Vertex *v) {
+		vert = v;
+		link = NULL;
+
+		TriVertexListNode *node = vert->getFaceLink();
+		TriVertexListNode *nextNode = NULL;
+
+		//find the first tiangle
+		while (nextNode != NULL) {
+			if (!nextNode->isPreFaceDeleted()) {
+				current = Triangle(vert, node->getVertex(), nextNode->getVertex());
+				return;
+			}
+			node = nextNode;
+			nextNode = node->getNextNode();
+		}
+		if (!node->isPreFaceDeleted()) {
+			nextNode = vert->getFaceLink();
+			current = Triangle(vert, node->getVertex(), nextNode->getVertex());
+		}
+	}
+
+	void TriMeshDataStructure::TriMeshConstCirculator::findNext() {
+		do {
+			TriVertexListNode *parent = link;
+			link = link->getNextNode();
+			if (link == NULL) link = vert->getFaceLink();
+
+			if (!link->isPreFaceDeleted()) {
+				current = Triangle(vert, parent->getVertex(), link->getVertex());
+				return;
 			}
 		} while (true);
 	}
@@ -748,7 +685,7 @@ namespace ODER {
 								parent = NULL;
 							}
 						}
-						//child and grandchild are all deletd
+						//child and grandchild are all deleted
 						else if (grandchild && grandchild->isPreFaceDeleted()) {
 							parent->setNextNode(grandchild);
 							nodePool->Dealloc(child);
@@ -1577,6 +1514,7 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::TetMeshConstIterator::findNext() {
+		if (vertIter == vertEnd) return;
 		do {
 			if (child != linkHead->getLink()) {
 				parent = child;
@@ -1632,6 +1570,8 @@ namespace ODER {
 	}
 
 	void TetMeshDataStructure::SegmentConstIterator::findNext() {
+		if (edgeVertIter == edgeVertEnd) return;
+
 		edgeNode = edgeNode->getNextNode();
 		if (edgeNode) segment.v[1] = edgeNode->getEndVertex();
 		else {
@@ -1649,6 +1589,83 @@ namespace ODER {
 				edgeNode = NULL;
 				segment = Segment(NULL, NULL);
 			}
+		}
+	}
+
+	TetMeshDataStructure::TetMeshFacetConstCirculator::TetMeshFacetConstCirculator(const Segment& s, const TetMeshDataStructure *dataStructrue) {
+		ori = s.v[0]; dest = s.v[1];
+		ds = dataStructrue;
+		linkListHead = NULL;
+		listNode = NULL;
+		initAdjacentVert = NULL;
+		movingVert = NULL;
+		reverse = false;
+
+		bool flip = false;
+		if (!ds->edgeOrderCheck(ori, dest)) {
+			flip = true;
+			std::swap(ori, dest);
+		}
+
+		//find the first tet
+		if (ds->fastSegmentQueryCheck(s)) {
+			if (ori->hasEdgeList()) {
+				EdgeListNode *linkHead = ori->getEdgeList();
+				while (linkHead != NULL && linkHead->getEndVertex() != dest)
+					linkHead = linkHead->getNextNode();
+
+				if (linkHead != NULL) {
+					linkListHead = linkHead;
+					listNode = linkHead->getLink();
+					if (!flip) current = Triangle(ori, dest, listNode->getVertex());
+					else current = Triangle(dest, ori, listNode->getVertex());
+				}
+			}
+		}
+		else {
+			EdgeListNode *node = ori->getEnforcedEdgeList();
+			while (node != NULL && node->getEndVertex() != dest)
+				node = node->getNextNode();
+
+			if (node) {
+				Vertex *c = node->getOtherVertex();
+				if (ds->Contain(Triangle(dest, ori, c))) {
+					initAdjacentVert = c;
+					movingVert = c;
+					if (!flip) current = Triangle(ori, dest, c);
+					else current = Triangle(dest, ori, c);
+				}
+			}
+		}
+	}
+
+	void TetMeshDataStructure::TetMeshFacetConstCirculator::findNext() {
+		if (linkListHead) {
+			listNode = listNode->getNextNode();
+			if (listNode == NULL) listNode = linkListHead->getLink();
+			current.v[2] = listNode->getVertex();
+		}
+		else {
+			Vertex *c = NULL;
+			if (ds->Adjacent(Triangle(dest, ori, movingVert), &c))
+				movingVert = c;
+			else {
+				reverse = !reverse;
+				if (reverse) {
+					if (ds->Adjacent(Triangle(ori, dest, initAdjacentVert), &movingVert))
+						std::swap(dest, ori);
+					else {
+						movingVert = initAdjacentVert;
+						reverse = !reverse;
+					}
+				}
+				else {
+					movingVert = initAdjacentVert;
+					std::swap(dest, ori);
+				}
+			}
+
+			current.v[2] = movingVert;
 		}
 	}
 
