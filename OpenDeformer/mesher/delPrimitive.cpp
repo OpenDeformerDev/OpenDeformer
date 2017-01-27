@@ -340,11 +340,12 @@ namespace ODER {
 		link = NULL;
 
 		TriVertexListNode *node = vert->getFaceLink();
-		TriVertexListNode *nextNode = NULL;
+		TriVertexListNode *nextNode = node->getNextNode();
 
 		//find the first tiangle
 		while (nextNode != NULL) {
 			if (!nextNode->isPreFaceDeleted()) {
+				link = nextNode;
 				current = Triangle(vert, node->getVertex(), nextNode->getVertex());
 				return;
 			}
@@ -353,6 +354,7 @@ namespace ODER {
 		}
 		if (!node->isPreFaceDeleted()) {
 			nextNode = vert->getFaceLink();
+			link = nextNode;
 			current = Triangle(vert, node->getVertex(), nextNode->getVertex());
 		}
 	}
@@ -406,6 +408,39 @@ namespace ODER {
 				}
 			}
 		}
+	}
+
+	void TriMeshDataStructure::addSegment(Vertex *a, Vertex *b) {
+		if (a->getLabel() > b->getLabel()) std::swap(a, b);
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return;
+
+		TriVertexListNode *node = a->getFaceLink();
+		while (node != NULL && node->getVertex() != b)
+			node = node->getNextNode();
+		if (node) node->setEdgeMark();
+	}
+
+	void TriMeshDataStructure::deleteSegment(Vertex *a, Vertex *b) {
+		if (a->getLabel() > b->getLabel()) std::swap(a, b);
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return;
+
+		TriVertexListNode *node = a->getFaceLink();
+		while (node != NULL && node->getVertex() != b)
+			node = node->getNextNode();
+		if (node) node->unSetEdgeMark();
+	}
+
+	bool TriMeshDataStructure::isSegment(const Segment& s) const {
+		Vertex *a = s.v[0], *b = s.v[1];
+		if (a->getLabel() > b->getLabel()) std::swap(a, b);
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Facet)) return false;
+
+		TriVertexListNode *node = a->getFaceLink();
+		while (node != NULL && node->getVertex() != b)
+			node = node->getNextNode();
+		if (node) return node->isEdgeMarked();
+
+		return false;
 	}
 
 	bool TriMeshDataStructure::getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const {
@@ -510,6 +545,7 @@ namespace ODER {
 					}
 				}
 				else {
+					Assert(foundNode[0]->getVertex() != c);
 					newNode->setVertex(c);
 					newNode->setIndex(index);
 					newNode->setNextNode(foundNode[0]->getNextNode());
@@ -1607,7 +1643,7 @@ namespace ODER {
 			std::swap(ori, dest);
 		}
 
-		//find the first tet
+		//find the first facet
 		if (ds->fastSegmentQueryCheck(s)) {
 			if (ori->hasEdgeList()) {
 				EdgeListNode *linkHead = ori->getEdgeList();
@@ -1629,7 +1665,7 @@ namespace ODER {
 
 			if (node) {
 				Vertex *c = node->getOtherVertex();
-				if (ds->Contain(Triangle(dest, ori, c))) {
+				if (c && ds->Contain(Triangle(dest, ori, c))) {
 					initAdjacentVert = c;
 					movingVert = c;
 					if (!flip) current = Triangle(ori, dest, c);

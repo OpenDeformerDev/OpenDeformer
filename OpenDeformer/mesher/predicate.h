@@ -1745,7 +1745,7 @@ template<class FT> FT Predicator<FT>::inOrthoSpherePerturbed(const VectorBase<FT
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight) const{
 	FT test = inOrthoSphere(a, aWeight, b, bWeight, c, cWeight, d, dWeight, e, eWeight);
 
-	if (test != 0.0)
+	if (test != FT(0))
 		return test;
 
 	int swaps = 0;
@@ -2174,12 +2174,13 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 		n.z = orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
 		nLen2 = n.x * n.x + n.y * n.y + n.z * n.z;
 	}
-	FT scale = sqrt(maxLen2) / sqrt(nLen2);
+	FT scale = sqrt(maxLen2 / nLen2);
 	n.x *= scale; n.y *= scale; n.z *= scale;
 
 	Assert(!isnan(n.x) && !isnan(n.y) && !isnan(n.z));
 
 	VectorBase<FT> above(corner.x + n.x, corner.y + n.y, corner.z + n.z);
+	Assert(above.x != corner.x || above.y != corner.y || above.z != corner.z);
 	return above;
 }
 

@@ -13,10 +13,8 @@
 #include "datastructure.h"
 #include "aabb.h"
 #include "meshRelabeler.h"
-#include <unordered_set>
 #include <vector>
 #include <deque>
-#include <stack>
 
 namespace ODER{
 	class DelTriangulator{
@@ -59,7 +57,7 @@ namespace ODER{
 		TriMeshDataStructure meshRep;
 		Vertex *ghost;
 
-		std::unordered_set<Segment, segment_unordered_hash> segments;
+		std::vector<Segment> segments;
 
 		TriMeshDataStructure cavityRep;
 	};
@@ -99,7 +97,7 @@ namespace ODER{
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep);
 
 		void constrainedRefinment();
-		void refineSubSegment(const Segment& s, Vertex *entwinedParent, bool encorachedFacetTest, bool skinnyTetTestEnable);
+		void refineSubSegment(const Segment& s, Vertex *parent, bool entwinement, bool encorachedFacetTest, bool skinnyTetTestEnable);
 		void refineSubPolygon(const Triangle& f, bool skinnyTetTestEnable);
 		void refineTetrahedron(const Tetrahedron& tet, bool& processed);
 		 
@@ -140,6 +138,7 @@ namespace ODER{
 				missingFacetTest = false;
 				rejected = false;
 				insertRadiusTest = false;
+				parent = NULL;
 			}
 			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFacetTest, missingFacetTest, insertRadiusTest;
 			mutable bool rejected;

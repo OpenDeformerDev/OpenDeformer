@@ -8,8 +8,6 @@
 #include "oder.h"
 #include "latool.h"
 #include "allocator.h"
-#include <unordered_map>
-#include <unordered_set>
 #include <set>
 #include <numeric>
 
@@ -46,6 +44,7 @@ namespace ODER {
 		Vertex_Facet = 1 << 3,
 		Vertex_Volume = 1 << 4,
 		Vertex_Acute = 1 << 5,
+		Vertex_Refined = 1 << 6,
 
 		Vertex_FixedSegment = Vertex_Fixed | Vertex_Segment,
 		Vertex_FixedFacet = Vertex_Fixed | Vertex_Facet,
@@ -54,6 +53,10 @@ namespace ODER {
 		Vertex_FreeSegment = Vertex_Free | Vertex_Segment,
 		Vertex_FreeFacet = Vertex_Free | Vertex_Facet,
 		Vertex_FreeVolume = Vertex_Free | Vertex_Facet,
+
+		Vertex_RefinedFreeSegment = Vertex_FreeSegment | Vertex_Refined,
+		Vertex_RefinedFreeFacet = Vertex_FreeFacet | Vertex_Refined,
+		Vertex_RefinedFreeVolume = Vertex_FreeVolume | Vertex_Refined,
 
 		Vertex_LowDimension = Vertex_Segment | Vertex_Facet,
 	};
@@ -70,7 +73,7 @@ namespace ODER {
 			: vert{ vv.x, vv.y, vv.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
 			vertexPointer(NULL), pointers(0), type(t) {}
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: vert(vv), weight(w), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
+			: vert(vv), weight(w), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
 			constexpr REAL max = std::numeric_limits<REAL>::max();
 			vert.x = max; vert.y = max; vert.z = max;
@@ -146,10 +149,10 @@ namespace ODER {
 			return (Vertex *)(currentVert & (~0x3));
 		}
 		TriVertexListNode *getNextNode() const {
-			return next;
+			return (TriVertexListNode *)(next & (~0x1));
 		}
 		void setNextNode(TriVertexListNode *nextNode) {
-			next = nextNode;
+			next = uintptr_t(nextNode) | (next & 0x1);
 		}
 		void setDeletedMark() {
 			currentVert |= 0x1;
@@ -166,8 +169,17 @@ namespace ODER {
 		void unSetMark() {
 			currentVert &= (~0x2);
 		}
-		void setIndex(int index) { 
+		void setIndex(int index) {
 			faceIndex = index;
+		}
+		void setEdgeMark() {
+			next |= 0x1;
+		}
+		void unSetEdgeMark() {
+			next &= (~0x1);
+		}
+		bool isEdgeMarked() const {
+			return (next & 0x1) == 0x1;
 		}
 		int getIndex() const { 
 			return faceIndex; 
@@ -177,7 +189,7 @@ namespace ODER {
 		}
 	private:
 		uintptr_t currentVert;
-		TriVertexListNode *next;
+		uintptr_t next;
 		int faceIndex;
 	};
 
@@ -432,6 +444,13 @@ namespace ODER {
 		void Reserve(size_t n) { vertices.reserve(n); }
 		std::vector<Triangle> getTriangles(bool ghost) const;
 		void getTriangles(bool ghost, std::vector<Triangle>& triangles) const;
+
+		//Ensure: edge ab or ba must in mesh
+		void addSegment(Vertex *a, Vertex *b);
+		//Ensure: edge ab or ba must in mesh
+		void deleteSegment(Vertex *a, Vertex *b);
+		bool isSegment(const Segment& s) const;
+
 		~TriMeshDataStructure();
 
 		class TriMeshConstIterator {
@@ -1021,12 +1040,10 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::TetMeshFacetConstCirculator::operator==(const TetMeshFacetConstCirculator& right) const {
 		if (ori == right.ori && dest == right.dest) {
-			if (linkListHead && right.linkListHead) {
+			if (linkListHead && right.linkListHead)
 				return listNode == right.listNode;
-			}
-			else if (initAdjacentVert && right.initAdjacentVert) {
+			else if (initAdjacentVert && right.initAdjacentVert)
 				return movingVert == right.movingVert;
-			}
 		}
 		return false;
 	}

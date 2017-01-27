@@ -155,7 +155,16 @@ namespace ODER {
 			}
 			else if (bcLen2 < acLen2) v = &bc;
 
-			return *u % *v;
+			VectorBase<FT> n = *u % *v;
+
+			if (n.length2() == FT(0)) {
+				constexpr Predicator<FT> predicator;
+				n.x = predicator.orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
+				n.y = predicator.orient2d(a.z, a.x, b.z, b.x, c.z, c.x);
+				n.z = predicator.orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
+			}
+
+			return n;
 		}
 
 		template<class FT> VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a,
@@ -197,8 +206,11 @@ namespace ODER {
 				n.z = predicator.orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
 				nLen2 = n.length2();
 			}
-			FT scale = sqrt(maxLen2) / sqrt(nLen2);
-			return corner + (scale * n);
+			FT scale = sqrt(maxLen2 / nLen2);
+			VectorBase<FT> above =  corner + (scale * n);
+			Assert(above.x != corner.x || above.y != corner.y || above.z != corner.z);
+
+			return above;
 		}
 
 		template<class FT> inline FT interiorAngle(const VectorBase<FT>& o, const VectorBase<FT>& a, const VectorBase<FT>& b) {

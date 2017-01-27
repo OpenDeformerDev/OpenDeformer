@@ -5,8 +5,8 @@
 #ifndef ODER_CORE_MESHER_H
 #define ODER_CORE_MESHER_H
 
-#include "mesh.h"
 #include "oder.h"
+#include "mesh.h"
 
 namespace ODER{
 	class Mesher{
