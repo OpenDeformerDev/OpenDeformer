@@ -164,19 +164,21 @@ namespace ODER{
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, const SurfaceVertexInsertionFlags& vifs);
 
 		void digCavity(Vertex *u, const Triangle& f, TetMeshDataStructure& meshRep,
-			const VolumeVertexInsertionFlags& vifs, Tetrahedron *rt = NULL);
+			const VolumeVertexInsertionFlags& vifs, int depth, Tetrahedron *rt = NULL);
 		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, const SurfaceVertexInsertionFlags& vifs);
 		void triangulateCavity(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 
-		bool Encroached(const Segment &s) const;
+		bool Encroached(const Segment &s, Vertex **encroachedVert = NULL) const;
 		bool Encroached(const Triangle &f, Vertex **encroachedVert) const;
 		bool Encroached(const Segment &s, Vertex *v) const;
 		bool Encroached(const Triangle &f, Vertex *v) const;
+		bool Encroached(const Triangle &f, const DelVector &orthocenter, REAL radius, Vertex *v) const;
 
 		size_t getPolygonVertices(int facetIndex, Vertex ***verts) const;
 		bool Adjacent(const Segment &s, Vertex *v) const;
-		bool Adjacent(int facetIndex, Vertex *v) const;
 		bool Adjacent(const Segment &s, int facetIndex) const;
+		bool Adjacent(int facetIndex, Vertex *v) const;
+		bool mayIneligible(int facetIndex, Vertex *v) const;
 
 		bool skinnyTetTest(Tetrahedron& t) const;
 
@@ -192,11 +194,9 @@ namespace ODER{
 
 		void propagateClean(const Triangle &f, int depth);
 
-		REAL maxRatio;
-		REAL maxRadius;
 		static Predicator<REAL> predicator;
 
-		std::priority_queue<Tetrahedron, std::vector<Tetrahedron>, std::function<bool(const Tetrahedron&, const Tetrahedron&)>> skinnyTets;
+		std::deque<Tetrahedron> skinnyTets;
 		std::deque<Triangle> mayEncroachedFacets, mayMissingFacets;
 		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
 		std::vector<Segment> markedSegments;

@@ -908,7 +908,11 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::Contain(const Segment &s) const {
 		Tetrahedron t;
-		return adjacent2SegmentFast(s, &t);
+		if (matchVertexFlag(s.v[0]->getVertexType(), VertexType::Vertex_Segment) && 
+			matchVertexFlag(s.v[1]->getVertexType(), VertexType::Vertex_Segment)) 
+			return adjacent2SegmentFast(s, &t);
+
+		return false;
 	}
 
 	inline bool TetMeshDataStructure::fastVertexQueryCheck(Vertex *u) const {
@@ -921,7 +925,7 @@ namespace ODER {
 
 	inline bool TetMeshDataStructure::isSegment(const Segment &s) const {
 		Vertex *a = s.v[0], *b = s.v[1];
-		if (a == NULL || b == NULL || !matchVertexFlag(a->type, VertexType::Vertex_Segment) || !matchVertexFlag(b->type, VertexType::Vertex_Segment))
+		if (!matchVertexFlag(a->type, VertexType::Vertex_Segment) || !matchVertexFlag(b->type, VertexType::Vertex_Segment))
 			return false;
 		if (!edgeOrderCheck(a, b)) std::swap(a, b);
 		EdgeListNode *node = a->getEnforcedEdgeList();

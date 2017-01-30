@@ -86,6 +86,8 @@ public:
 	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
+	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
+
 	Plane getProjectionPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 private:
@@ -100,8 +102,6 @@ private:
 	FT inSphereAdaptive(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e, FT norm) const;
 
 	FT inSphereExact(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
-
-	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
 
 	FT inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, 
 		const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const;
