@@ -7,12 +7,9 @@
 
 #include "predicate.h"
 #include "delPrimitive.h"
-#include "memory.h"
 #include "mesher.h"
-#include "tetmesh.h"
-#include "datastructure.h"
 #include "aabb.h"
-#include "meshRelabeler.h"
+#include "geometer.h"
 #include <vector>
 #include <deque>
 
@@ -108,15 +105,16 @@ namespace ODER{
 			std::vector<Segment>& regionBoundaries, std::vector<Triangle>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
-			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted);
+			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, 
+			bool encorachedFacetTest = false);
 		void findMissingRegion(const Triangle& missed, std::vector<Vertex *> &regionVertices, 
 			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces);
 		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
 			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces, int depth);
-		bool findCavity(const std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces,
+		bool findCavity(const std::vector<Segment>& regionBoundary, const std::vector<Triangle>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
-			std::vector<Tetrahedron>& deleted);
+			std::vector<Tetrahedron>& deleted, bool encorachedFacetTest);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Triangle>& regionFaces, Segment& cross) const;
 		bool triangulateCavity(const std::vector<Triangle>& regionFaces, std::vector<Triangle>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Triangle& encroached);
@@ -246,6 +244,18 @@ namespace ODER{
 		size_t count = *(size_t *)p;
 		*verts = (Vertex **)(p + 1);
 		return count;
+	}
+
+	inline bool DelMesher::Encroached(const Segment &s, Vertex *v) const {
+		return predicator.inDiametricBall(v->vert, s.v[0]->vert, s.v[1]->vert) <= 0;
+	}
+
+	inline bool DelMesher::Encroached(const Triangle &f, Vertex *v) const {
+		DelVector center;
+		REAL r = REAL(0);
+		Geometer::Circumcircle(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, &center, &r);
+
+		return Encroached(f, center, r, v);
 	}
 }
 

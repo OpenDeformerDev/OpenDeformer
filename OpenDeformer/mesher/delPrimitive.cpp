@@ -2,22 +2,8 @@
 #include "predicate.h"
 #include "delPrimitive.h"
 #include "geometer.h"
-#include "memory.h"
-#include <numeric>
 
 namespace ODER {
-	void Triangle::sortVertices() {
-		int min = v[0]->getLabel() < v[1]->getLabel() ? (v[0]->getLabel() < v[2]->getLabel() ? 0 : 2) : (v[1]->getLabel() < v[2]->getLabel() ? 1 : 2);
-		if (min == 1) {
-			std::swap(v[0], v[1]);
-			std::swap(v[1], v[2]);
-		}
-		else if (min == 2) {
-			std::swap(v[0], v[1]);
-			std::swap(v[0], v[2]);
-		}
-	}
-
 	void Triangle::initVertices(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered) {
 		if (ordered) {
 			int min = v0->getLabel() < v1->getLabel() ? (v0->getLabel() < v2->getLabel() ? 0 : 2) : (v1->getLabel() < v2->getLabel() ? 1 : 2);
@@ -35,6 +21,18 @@ namespace ODER {
 		}
 		else {
 			v[0] = v0; v[1] = v1; v[2] = v2;
+		}
+	}
+
+	void Triangle::sortVertices() {
+		int min = v[0]->getLabel() < v[1]->getLabel() ? (v[0]->getLabel() < v[2]->getLabel() ? 0 : 2) : (v[1]->getLabel() < v[2]->getLabel() ? 1 : 2);
+		if (min == 1) {
+			std::swap(v[0], v[1]);
+			std::swap(v[1], v[2]);
+		}
+		else if (min == 2) {
+			std::swap(v[0], v[1]);
+			std::swap(v[0], v[2]);
 		}
 	}
 
@@ -59,8 +57,7 @@ namespace ODER {
 		DelVector cb = v[1]->vert - v[2]->vert;
 		DelVector ba = v[0]->vert - v[1]->vert;
 
-		Geometer::Orthosphere(v[0]->vert, v[0]->weight, v[1]->vert, v[1]->weight, v[2]->vert, v[2]->weight, 
-			v[3]->vert, v[3]->weight, (DelVector *)NULL, &r);
+		Geometer::Circumsphere(v[0]->vert, v[1]->vert, v[2]->vert, v[3]->vert, (DelVector *)NULL, &r);
 
 		REAL minEdgeLength = sqrt(std::min({da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2()}));
 		REAL relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,
@@ -202,22 +199,27 @@ namespace ODER {
 
 	void TriMeshDataStructure::setMark(Vertex *u, Vertex *v) {
 		TriVertexListNode *node = NULL;
-		if (getAdjacentListNode(u, v, &node))
+		if (getMarkedNode(u, v, &node))
 			node->setMark();
 	}
 
 	void TriMeshDataStructure::unSetMark(Vertex *u, Vertex *v) {
 		TriVertexListNode *node = NULL;
-		if (getAdjacentListNode(u, v, &node))
+		if (getMarkedNode(u, v, &node)) 
 			node->unSetMark();
 	}
 
 	bool TriMeshDataStructure::isMarked(Vertex *u, Vertex *v) const {
 		TriVertexListNode *node = NULL;
-		return getAdjacentListNode(u, v, &node) && node->isMarked();
+
+		return getMarkedNode(u, v, &node) && node->isMarked();
 	}
 
 	bool TriMeshDataStructure::Adjacent(const Segment &s, Vertex **w, int *index) const {
+		if (!matchVertexFlag(s.v[0]->getVertexType(), VertexType::Vertex_Facet) ||
+			!matchVertexFlag(s.v[1]->getVertexType(), VertexType::Vertex_Facet))
+			return false;
+
 		TriVertexListNode *node = NULL;
 		if (getAdjacentListNode(s.v[0], s.v[1], &node) && !node->isPreFaceDeleted()) {
 			*w = node->getVertex();
@@ -444,7 +446,6 @@ namespace ODER {
 	}
 
 	bool TriMeshDataStructure::getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const {
-		if (!matchVertexFlag(u->type, VertexType::Vertex_Facet)) return false;
 		TriVertexListNode *node = u->getFaceLink();
 		bool found = false;
 		while (node != NULL) {
@@ -453,6 +454,21 @@ namespace ODER {
 				if (nextNode == NULL)
 					nextNode = u->getFaceLink();
 				*w = nextNode;
+				found = true;
+				break;
+			}
+			node = node->getNextNode();
+		}
+
+		return found;
+	}
+
+	bool TriMeshDataStructure::getMarkedNode(Vertex* u, Vertex* v, TriVertexListNode **w) const {
+		TriVertexListNode *node = u->getFaceLink();
+		bool found = false;
+		while (node != NULL) {
+			if (node->getVertex() == v) {
+				*w = node;
 				found = true;
 				break;
 			}
@@ -1035,25 +1051,36 @@ namespace ODER {
 
 	void TetMeshDataStructure::setMark(Vertex *u, Vertex *v, Vertex *w) {
 		Triangle f(u, v, w, true);
-
 		TetVertexListNode *node = NULL;
-		if (getAdjacentListNode(f, &node))
-			node->setMark();
+
+		int condition = getMarkedNode(f, &node);
+		if (condition > 0) {
+			if (condition == 1) node->setForwardMark();
+			else node->setBackwardMark();
+		}
 	}
 
 	void TetMeshDataStructure::unSetMark(Vertex *u, Vertex *v, Vertex *w) {
 		Triangle f(u, v, w, true);
-
 		TetVertexListNode *node = NULL;
-		if (getAdjacentListNode(f, &node))
-			node->unSetMark();
+
+		int condition = getMarkedNode(f, &node);
+		if (condition > 0) {
+			if (condition == 1) node->unSetForwardMark();
+			else node->unSetBackwardMark();
+		}
 	}
 
 	bool TetMeshDataStructure::isMarked(Vertex *u, Vertex *v, Vertex *w) const {
 		Triangle f(u, v, w, true);
 		TetVertexListNode *node = NULL;
 
-		return getAdjacentListNode(f, &node) && node->isMarked();
+		int condition = getMarkedNode(f, &node);
+		if (condition > 0) {
+			if (condition == 1) return node->isForwardMarked();
+			else return node->isBackwardMarked();
+		}
+		return false;
 	}
 
 	bool TetMeshDataStructure::Adjacent(const Triangle &f, Vertex **z) const {
@@ -1135,6 +1162,46 @@ namespace ODER {
 				}
 			}
 		}
+		return found;
+	}
+
+
+	int TetMeshDataStructure::getMarkedNode(const Triangle& f, TetVertexListNode **marked) const {
+		int found = 0;
+		bool ab = parityCheck(f.v[0], f.v[1]);
+		bool ac = parityCheck(f.v[0], f.v[2]);
+
+		if (ab)
+			found = getMarkedNode(f.v[0], f.v[1], f.v[2], marked);
+		else if (ac)
+			found = getMarkedNode(f.v[2], f.v[0], f.v[1], marked);
+		else
+			found = getMarkedNode(f.v[1], f.v[2], f.v[0], marked);
+
+		return found;
+	}
+
+	int TetMeshDataStructure::getMarkedNode(Vertex *w, Vertex *x, Vertex *y, TetVertexListNode **marked) const {
+		int found = 0;
+		bool swap = edgeOrderCheck(x, w);
+		if (swap) std::swap(x, w);
+		if (w->hasEdgeList()) {
+			EdgeListNode *linkHead = w->getEdgeList();
+			while (linkHead != NULL && linkHead->getEndVertex() != x) {
+				linkHead = linkHead->getNextNode();
+			}
+			if (linkHead != NULL) {
+				TetVertexListNode *node = linkHead->getLink();
+				while (node != NULL && found == 0) {
+					if (node->getVertex() == y) {
+						*marked = node;
+						found = swap ? 1 : 2;
+					}
+					node = node->getNextNode();
+				}
+			}
+		}
+
 		return found;
 	}
 

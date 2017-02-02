@@ -50,13 +50,23 @@ namespace ODER {
 			A[3] = u[0], A[4] = u[1], A[5] = u[2],
 			A[6] = v[0], A[7] = v[1], A[8] = v[2];
 
+			FT tLen2 = t.length2();
+			FT uLen2 = u.length2();
+			FT vLen2 = v.length2();
 			FT rhs[3];
-			rhs[0] = t.length2()*FT(0.5);
-			rhs[1] = u.length2()*FT(0.5);
-			rhs[2] = v.length2()*FT(0.5);
+			rhs[0] = tLen2 * FT(0.5);
+			rhs[1] = uLen2 * FT(0.5);
+			rhs[2] = vLen2 * FT(0.5);
 
 			VectorBase<FT> rr;
 			gaussianElimination3x3(A, rhs, &rr[0]);
+
+			if (rr.hasInfs() || rr.hasNaNs()) {
+				constexpr Predicator<FT> predicator;
+				FT det = predicator.orient3d(a, b, c, d);
+				rr = (tLen2 * (u % v) + uLen2 * (v % t) + vLen2 * (t % u))
+					/ (FT(2.0) * det);
+			}
 
 			if (center)
 				*center = d + rr;
@@ -104,13 +114,23 @@ namespace ODER {
 			A[3] = u[0], A[4] = u[1], A[5] = u[2],
 			A[6] = v[0], A[7] = v[1], A[8] = v[2];
 
+			FT tLen2 = t.length2() + dWeight - aWeight;
+			FT uLen2 = u.length2() + dWeight - bWeight;
+			FT vLen2 = v.length2() + dWeight - cWeight;
 			FT rhs[3];
-			rhs[0] = (t.length2() + dWeight - aWeight)*FT(0.5);
-			rhs[1] = (u.length2() + dWeight - bWeight)*FT(0.5);
-			rhs[2] = (v.length2() + dWeight - cWeight)*FT(0.5);
+			rhs[0] = tLen2 * FT(0.5);
+			rhs[1] = uLen2 * FT(0.5);
+			rhs[2] = vLen2 * FT(0.5);
 
 			VectorBase<FT> rr;
 			gaussianElimination3x3(A, rhs, &rr[0]);
+
+			if (rr.hasInfs() || rr.hasNaNs()) {
+				constexpr Predicator<FT> predicator;
+				FT det = predicator.orient3d(a, b, c, d);
+				rr = (tLen2 * (u % v) + uLen2 * (v % t) + vLen2 * (t % u))
+					/ (FT(2.0) * det);
+			}
 
 			if (center)
 				*center = d + rr;

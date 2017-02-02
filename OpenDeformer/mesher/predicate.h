@@ -1,14 +1,11 @@
 /*****************************************************************************/
 /*                                                                           */
-/*    This file contains implementation of algorithms for exact addition     */
-/*    and multiplication of floating-point numbers, and predicates for       */
+/*    Part of this file contains implementation of predicates for            */
 /*    robustly performing the orientation and incircle tests used in         */
-/*    computational geometry.  The algorithms and underlying theory are      */
-/*    described in Jonathan Richard Shewchuk. "Adaptive Precision FTing-     */
-/*    Point Arithmetic and Fast Robust Geometric Predicates."  Technical     */
-/*    Report CMU-CS-96-140, School of Computer Science, Carnegie Mellon      */
-/*    University, Pittsburgh, Pennsylvania, May 1996.  (Submitted to         */
-/*    Discrete & Computational Geometry.)                                    */
+/*    computational geometry. The algorithms and underlying theory           */
+/*    are described in Shewchuk J R, "Adaptive Precision Floating-           */
+/*    Point Arithmetic and Fast Robust Geometric Predicates," Discrete       */
+/*	  and Computational Geometry, 18(3): 305-363, 1997.                      */
 /*                                                                           */
 /*****************************************************************************/
 
@@ -45,9 +42,13 @@ public:
 
 	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
-	FT inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& n) const;
+	FT inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const;
 
-	FT inSphere(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
+	FT inCirclePerturbed(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const;
+
+	FT inSphere(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT> &c, const VectorBase<FT> &d, const VectorBase<FT> &e) const;
+
+	FT inSpherePerturbed(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
 
 	FT inOrthoCircle(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 		                const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const;
@@ -63,6 +64,8 @@ public:
 
 	FT inOrthoSphereExact(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 		const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &e, FT eWeight) const;
+
+	FT inDiametricBall(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT> &b) const;
 
 	bool fastCoPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
 		VectorBase<FT> n = (b - a) % (c - a);
@@ -86,8 +89,6 @@ public:
 	bool Intersection(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 		const VectorBase<FT>& p, const VectorBase<FT>& q) const;
 
-	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
-
 	Plane getProjectionPlane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 private:
@@ -102,6 +103,8 @@ private:
 	FT inSphereAdaptive(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e, FT norm) const;
 
 	FT inSphereExact(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& e) const;
+
+	bool inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const;
 
 	FT inSegmentRangeHalfAdaptive(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b, 
 		const VectorBase<FT>& ab, const VectorBase<FT>& au, FT norm) const;
@@ -1620,6 +1623,20 @@ template<class FT> FT Predicator<FT>::inOrthoSphereExact(const VectorBase<FT> &a
 	return fin[finLength - 1];
 }
 
+template<class FT> FT Predicator<FT>::inDiametricBall(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT> &b) const {
+	VectorBase<FT> ua(a.x - u.x, a.y - u.y, a.z - u.z);
+	VectorBase<FT> ub(b.x - u.x, b.y - u.y, b.z - u.z);
+
+	FT aubx = ua.x * ub.x, auby = ua.y * ub.y, aubz = ua.z * ub.z;
+	FT aubLen = aubx + auby + aubz;
+	FT aubNorm = fabs(aubx) + fabs(auby) + fabs(aubz);
+
+	if (fabs(aubLen) >= inSegRangeErrorBoundA * aubNorm)
+		return aubLen;
+
+	return inSegmentRangeHalfAdaptive(a, u, b, ub, ua, aubNorm);
+}
+
 template<class FT> bool Predicator<FT>::inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const {
 	VectorBase<FT> ab(b.x - a.x, b.y - a.y, b.z - a.z);
 	VectorBase<FT> au(u.x - a.x, u.y - a.y, u.z - a.z);
@@ -1712,6 +1729,70 @@ template<class FT> FT Predicator<FT>::inSegmentRangeHalfAdaptive(const VectorBas
 	return fin[finLen - 1];
 }
 
+template<class FT> FT Predicator<FT>::inCirclePerturbed(const VectorBase<FT>& a, const VectorBase<FT>& b, 
+	const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const {
+	FT test = inSphere(above, a, b, c, d);
+
+	if (test != FT(0))
+		return test;
+
+	int swaps = 0;
+	int count = 0;
+	VectorBase<FT> v[4];
+	v[0] = a, v[1] = b, v[2] = c, v[3] = d;
+	int num = 4;
+	do {
+		count = 0;
+		num--;
+		for (int i = 0; i < num; i++) {
+			if (v[i] > v[i + 1]) {
+				std::swap(v[i], v[i + 1]);
+				count++;
+			}
+		}
+		swaps += count;
+	} while (count > 0);
+
+	FT ori = orient3d(v[1], v[2], v[3], above);
+	if ((swaps % 2) != 0) ori = -ori;
+	return ori;
+}
+
+template<class FT> FT Predicator<FT>::inSpherePerturbed(const VectorBase<FT> &a, const VectorBase<FT> &b,
+	const VectorBase<FT> &c, const VectorBase<FT> &d, const VectorBase<FT> &e) const {
+	FT test = inSphere(a, b, c, d, e);
+
+	if (test != FT(0))
+		return test;
+
+	int swaps = 0;
+	int count = 0;
+	VectorBase<FT> v[5];
+	v[0] = a, v[1] = b, v[2] = c, v[3] = d, v[4] = e;
+	int num = 5;
+	do {
+		count = 0;
+		num--;
+		for (int i = 0; i < num; i++) {
+			if (v[i] > v[i + 1]) {
+				std::swap(v[i], v[i + 1]);
+				count++;
+			}
+		}
+		swaps += count;
+	} while (count > 0);
+
+	FT oriA = orient3d(v[1], v[2], v[3], v[4]);
+	if (oriA != 0.0) {
+		if ((swaps % 2) != 0) oriA = -oriA;
+		return oriA;
+	}
+
+	FT oriB = -orient3d(v[0], v[2], v[3], v[4]);
+	if ((swaps % 2) != 0) oriB = -oriB;
+	return oriB;
+}
+
 template<class FT> FT Predicator<FT>::inOrthoCirclePerturbed(const VectorBase<FT> &a, FT aWeight, const VectorBase<FT> &b, FT bWeight,
 	const VectorBase<FT> &c, FT cWeight, const VectorBase<FT> &d, FT dWeight, const VectorBase<FT> &above) const{
 	FT test = inOrthoSphere(above, FT(0), a, aWeight, b, bWeight, c, cWeight, d, dWeight);
@@ -1781,7 +1862,7 @@ template<class FT> bool Predicator<FT>::inHalfSpace3D(const VectorBase<FT> &u, c
 	if (orient > FT(0))
 		return true;
 	else if (orient == FT(0))
-		return inSphere(calculateAbovePoint(a, b, c), a, b, c, u) > FT(0);
+		return inCirclePerturbed(a, b, c, u, calculateAbovePoint(a, b, c)) > FT(0);
 	else
 		return false;
 }
@@ -2177,13 +2258,10 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	FT scale = sqrt(maxLen2 / nLen2);
 	n.x *= scale; n.y *= scale; n.z *= scale;
 
-	Assert(!isnan(n.x) && !isnan(n.y) && !isnan(n.z));
-
 	VectorBase<FT> above(corner.x + n.x, corner.y + n.y, corner.z + n.z);
 	Assert(above.x != corner.x || above.y != corner.y || above.z != corner.z);
 	return above;
 }
-
 }
 
 #if defined(_MSC_VER)

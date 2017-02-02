@@ -7,13 +7,15 @@
 
 #include "oder.h"
 #include "latool.h"
+#include <numeric>
 
 namespace ODER{
 	template<class FT> struct AABB{
 		using Point = VectorBase<FT>;
 		AABB(){
-			pMin = Point(FLT_MAX, FLT_MAX, FLT_MAX);
-			pMax = Point(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+			constexpr FT max = std::numeric_limits<FT>::max();
+			pMin = Point(max, max, max);
+			pMax = Point(-max, -max, -max);
 		}
 		AABB(const Point& p) :pMin(p), pMax(p){}
 		AABB(const Point& p1, const Point& p2){
@@ -52,11 +54,20 @@ namespace ODER{
 				p.y >= pMin.y && p.y <= pMax.y &&
 				p.z >= pMin.z && p.z <= pMax.z);
 		}
-		void Expand(float delta){
+
+		void Expand(FT delta){
 			VectorBase<FT> v = VectorBase<FT>(delta, delta, delta);
 			pMin -= v;
 			pMax += v;
 		}
+
+		void Scale(FT factor) {
+			VectorBase<FT> d = (factor * FT(0.5)) * (pMax - pMin);
+			VectorBase<FT> mid = FT(0.5) * (pMax + pMin);
+			pMin = mid - d;
+			pMax = mid + d;
+		}
+
 		int maxExtent() const{
 			VectorBase<FT> d = pMax - pMin;
 			return d.x > d.y ? (d.x > d.z ? 0 : 2) : (d.y > d.z ? 1 : 2);

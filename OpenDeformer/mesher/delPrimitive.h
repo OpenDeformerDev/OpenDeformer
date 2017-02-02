@@ -7,15 +7,15 @@
 
 #include "oder.h"
 #include "latool.h"
+#include "memory.h"
 #include "allocator.h"
-#include <set>
 #include <numeric>
 
 #define REAL double
 
 #define NEXT_F(i) (((i)+1)%3)
 #define NEXT_T(i) (((i)+1)%4)
-#define SQRTF_2 REAL(1.41422)
+#define SQRTF_2 REAL(1.4142135623730950488016887242096980785696718753769480732)
 
 namespace ODER {
 	using DelVector = VectorBase<REAL>;
@@ -75,13 +75,13 @@ namespace ODER {
 		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
 			: vert(vv), weight(w), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
-			constexpr REAL max = std::numeric_limits<REAL>::max();
-			vert.x = max; vert.y = max; vert.z = max;
-			weight = -max;
+			constexpr REAL inf = std::numeric_limits<REAL>::infinity();
+			vert.x = inf; vert.y = inf; vert.z = inf;
+			weight = -inf;
 			label = VertexLabeler::getSpecilGhostLabel();
 			pointers = 0;
 			vertexPointer = NULL;
-			relaxedInsetionRadius = max;
+			relaxedInsetionRadius = inf;
 		}
 		bool isGhost() const {
 			return label == VertexLabeler::getSpecilGhostLabel();
@@ -146,13 +146,13 @@ namespace ODER {
 			currentVert = uintptr_t(vert);
 		}
 		Vertex *getVertex() const {
-			return (Vertex *)(currentVert & (~0x3));
+			return (Vertex *)(currentVert & (~0x1));
 		}
 		TriVertexListNode *getNextNode() const {
-			return (TriVertexListNode *)(next & (~0x1));
+			return (TriVertexListNode *)(next & (~0x3));
 		}
 		void setNextNode(TriVertexListNode *nextNode) {
-			next = uintptr_t(nextNode) | (next & 0x1);
+			next = uintptr_t(nextNode) | (next & 0x3);
 		}
 		void setDeletedMark() {
 			currentVert |= 0x1;
@@ -164,28 +164,28 @@ namespace ODER {
 			return (currentVert & 0x1) == 0x1;
 		}
 		void setMark() {
-			currentVert |= 0x2;
+			next |= 0x1;
 		}
 		void unSetMark() {
-			currentVert &= (~0x2);
+			next &= (~0x1);
+		}
+		bool isMarked() {
+			return (next & 0x1) == 0x1;
+		}
+		void setEdgeMark() {
+			next |= 0x2;
+		}
+		void unSetEdgeMark() {
+			next &= (~0x2);
+		}
+		bool isEdgeMarked() const {
+			return (next & 0x2) == 0x2;
 		}
 		void setIndex(int index) {
 			faceIndex = index;
 		}
-		void setEdgeMark() {
-			next |= 0x1;
-		}
-		void unSetEdgeMark() {
-			next &= (~0x1);
-		}
-		bool isEdgeMarked() const {
-			return (next & 0x1) == 0x1;
-		}
 		int getIndex() const { 
 			return faceIndex; 
-		}
-		bool isMarked() {
-			return (currentVert & 0x2) == 0x2;
 		}
 	private:
 		uintptr_t currentVert;
@@ -201,13 +201,13 @@ namespace ODER {
 			currentVert = uintptr_t(vert);
 		}
 		Vertex *getVertex() const {
-			return (Vertex *)(currentVert & (~0x3));
+			return (Vertex *)(currentVert & (~0x1));
 		}
 		TetVertexListNode *getNextNode() const {
-			return next;
+			return (TetVertexListNode *)(next & (~0x3));
 		}
 		void setNextNode(TetVertexListNode *nextNode) {
-			next = nextNode;
+			next = uintptr_t(nextNode) | (next & 0x3);
 		}
 		void setDeletedMark() {
 			currentVert |= 0x1;
@@ -218,18 +218,27 @@ namespace ODER {
 		bool isPreFaceDeleted() const {
 			return (currentVert & 0x1) == 0x1;
 		}
-		void setMark() {
-			currentVert |= 0x2;
+		void setForwardMark() {
+			next |= 0x1;
 		}
-		void unSetMark() {
-			currentVert &= (~0x2);
+		void unSetForwardMark() {
+			next &= (~0x1);
 		}
-		bool isMarked() {
-			return (currentVert & 0x2) == 0x2;
+		bool isForwardMarked() {
+			return (next & 0x1) == 0x1;
+		}
+		void setBackwardMark() {
+			next |= 0x2;
+		}
+		void unSetBackwardMark() {
+			next &= (~0x2);
+		}
+		bool isBackwardMarked() {
+			return (next & 0x2) == 0x2;
 		}
 	private:
 		uintptr_t currentVert;
-		TetVertexListNode *next;
+		uintptr_t next;
 	};
 
 	class EdgeListNode {
@@ -526,6 +535,7 @@ namespace ODER {
 		TriMeshConstCirculator getIncidentTriangles(Vertex *v) const { return TriMeshConstCirculator(v); }
 	private:
 		bool getAdjacentListNode(Vertex* u, Vertex* v, TriVertexListNode **w) const;
+		bool getMarkedNode(Vertex* u, Vertex* v, TriVertexListNode **w) const;
 		void insertToTopology(Vertex *a, Vertex *b, Vertex *c, int index);
 		void removeFromTopology(Vertex *a, Vertex *b, Vertex *c);
 		static bool verticesOrderCheck(const Vertex *a, const Vertex *b, const Vertex *c);
@@ -690,6 +700,8 @@ namespace ODER {
 	private:
 		bool getAdjacentListNode(const Triangle& f, TetVertexListNode **z) const;
 		bool getAdjacentListNode(Vertex* w, Vertex *x, Vertex *y, TetVertexListNode **z) const;
+		int getMarkedNode(const Triangle& f, TetVertexListNode **marked) const;
+		int getMarkedNode(Vertex *w, Vertex *x, Vertex *y, TetVertexListNode **marked) const;
 		void insertToTopology(const Segment& s, Vertex *mayC, Vertex *mayD);
 		void removeFromTopology(const Segment &s, Vertex *mayC, Vertex *mayD);
 		void addSupplyVerts(Vertex *a, Vertex *b, Vertex *c, Vertex *d, int mode);		
@@ -879,9 +891,11 @@ namespace ODER {
 	}
 
 	inline bool TriMeshDataStructure::Contain(const Triangle &f) const {
-		Vertex *w = NULL;
-		bool find = Adjacent(Segment(f.v[0], f.v[1]), &w);
-		if (find) return w == f.v[2];
+		if (matchVertexFlag(f.v[2]->getVertexType(), VertexType::Vertex_Facet)) {
+			Vertex *w = NULL;
+			if (Adjacent(Segment(f.v[0], f.v[1]), &w)) 
+				return w == f.v[2];
+		}
 
 		return false;
 	}

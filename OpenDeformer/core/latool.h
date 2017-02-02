@@ -108,6 +108,11 @@ namespace ODER{
 		bool hasNaNs() const{
 			return isnan(x) || isnan(y) || isnan(z);
 		}
+
+		bool hasInfs() const {
+			return isinf(x) || isinf(y) || isinf(z);
+		}
+
 		FT x, y, z;
 	};
 
