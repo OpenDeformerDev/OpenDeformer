@@ -203,7 +203,8 @@ namespace ODER {
 
 			if (bcLen2 < abLen2) {
 				if (abLen2 < acLen2) {
-					v = &bc; 
+					v = &bc;
+					corner = c;
 					maxLen2 = acLen2;
 				}
 				else {
@@ -213,6 +214,7 @@ namespace ODER {
 			}
 			else if (bcLen2 < acLen2) {
 				v = &bc;
+				corner = c;
 				maxLen2 = acLen2;
 			}
 			else corner = b;

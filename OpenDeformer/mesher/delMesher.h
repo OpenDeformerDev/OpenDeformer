@@ -9,7 +9,6 @@
 #include "delPrimitive.h"
 #include "mesher.h"
 #include "aabb.h"
-#include "geometer.h"
 #include <vector>
 #include <deque>
 
@@ -19,12 +18,12 @@ namespace ODER{
 		DelTriangulator() = default;
 		~DelTriangulator() = default;
 		void generateSubPolygons(Vertex **vertices, int *segments, int vertexCount, int segmentCount, 
-			const Triangle& ref, bool boundaryOnly, std::vector<Triangle>& output);
+			const DelVector& above, bool boundaryOnly, std::vector<Triangle>& output);
 		void generateSubPolygons(Vertex **vertices, Segment *segments, int vertexCount, int segmentCount, 
-			const Triangle& ref, bool boundaryOnly, std::vector<Triangle>& output);
-		void insertSegments(const Triangle *triangles, const Segment *segments, int triangleCount, int segmentCount, std::vector<Triangle>& output);
+			const DelVector& above, bool boundaryOnly, std::vector<Triangle>& output);
+		void insertSegments(const Triangle *triangles, const Segment *segments, int triangleCount, int segmentCount, 
+			const DelVector& above, std::vector<Triangle>& output);
 	private:
-		DelVector calculateAbovePoint(int vertexCount, Vertex** vertices, const Triangle& ref);
 		void insertSegment(const Segment& s);
 		void triangulateHalfHole(const std::vector<Vertex *>& vertices);
 		void findCavity(const Segment& s, std::vector<Vertex *>& positive, std::vector<Vertex *>& negtive);
@@ -89,6 +88,7 @@ namespace ODER{
 		Triangle findPosition(Vertex *u, const Triangle& f) const;
 		Triangle findPositionWithOcclusion(Vertex *u, const Triangle& f) const;
 
+		DelVector calculateAbovePoint(const std::vector<Vertex *> &vertices, const Triangle& ref);
 		void detectAcuteVertices() const;
 		void constrainedTriangulation();
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep);
@@ -163,14 +163,14 @@ namespace ODER{
 
 		void digCavity(Vertex *u, const Triangle& f, TetMeshDataStructure& meshRep,
 			const VolumeVertexInsertionFlags& vifs, int depth, Tetrahedron *rt = NULL);
-		void digCavity(Vertex *u, const DelVector& above, const Segment &s, int index, const SurfaceVertexInsertionFlags& vifs);
+		void digCavity(Vertex *u, const Segment &s, const DelVector& above, int index, const SurfaceVertexInsertionFlags& vifs);
 		void triangulateCavity(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 
 		bool Encroached(const Segment &s, Vertex **encroachedVert = NULL) const;
 		bool Encroached(const Triangle &f, Vertex **encroachedVert) const;
 		bool Encroached(const Segment &s, Vertex *v) const;
 		bool Encroached(const Triangle &f, Vertex *v) const;
-		bool Encroached(const Triangle &f, const DelVector &orthocenter, REAL radius, Vertex *v) const;
+		bool Encroached(const DelVector &orthocenter, REAL radius, Vertex *v) const;
 
 		size_t getPolygonVertices(int facetIndex, Vertex ***verts) const;
 		bool Adjacent(const Segment &s, Vertex *v) const;
@@ -199,6 +199,7 @@ namespace ODER{
 		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
 		std::vector<Segment> markedSegments;
 		std::vector<uintptr_t *> verticesPerPolygon;
+		std::vector<DelVector> abovePoints;
 
 		std::vector<TriangleWithIndex> tobeDeletedFaces;
 		std::vector<SegmentWithIndex> newSegsOfFaces;
@@ -250,12 +251,9 @@ namespace ODER{
 		return predicator.inDiametricBall(v->vert, s.v[0]->vert, s.v[1]->vert) <= 0;
 	}
 
-	inline bool DelMesher::Encroached(const Triangle &f, Vertex *v) const {
-		DelVector center;
-		REAL r = REAL(0);
-		Geometer::Circumcircle(f.v[0]->vert, f.v[1]->vert, f.v[2]->vert, &center, &r);
-
-		return Encroached(f, center, r, v);
+	inline bool DelMesher::Encroached(const DelVector &circumcenter, REAL radiusSquare, Vertex *v) const {
+		constexpr REAL epsilon = REAL(1e-8);
+		return !v->isGhost() && ((v->vert - circumcenter).length2() - radiusSquare) <= epsilon * epsilon * radiusSquare;
 	}
 }
 

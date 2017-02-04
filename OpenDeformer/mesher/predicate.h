@@ -38,9 +38,9 @@ public:
 
 	FT orient3d(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d) const;
 
-	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
+	FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const;
 
-	inline FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
+	FT orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const;
 
 	FT inCircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, const VectorBase<FT>& d, const VectorBase<FT>& above) const;
 
@@ -604,7 +604,7 @@ template<class FT> FT Predicator<FT>::orient3dAdaptive(const VectorBase<FT>& a, 
 	return finNow[finLength - 1];
 }
 
-template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
+template<class FT> inline FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c) const {
 	FT xy = orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
 	if (xy != 0) return xy;
 	FT xz = orient2d(a.x, a.z, b.x, b.z, c.x, c.z);
@@ -612,7 +612,7 @@ template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, con
 	return orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
 }
 
-template<class FT> FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const {
+template<class FT> inline FT Predicator<FT>::orientCoplane(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, Plane hint) const {
 	switch (hint) {
 	case Plane::Plane_XY:
 		return orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
@@ -2230,6 +2230,7 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	if (bcLen2 < abLen2) {
 		if (abLen2 < acLen2) {
 			v = &bc;
+			corner = c;
 			maxLen2 = acLen2;
 		}
 		else {
@@ -2239,6 +2240,7 @@ template<class FT> VectorBase<FT> Predicator<FT>::calculateAbovePoint(const Vect
 	}
 	else if (bcLen2 < acLen2) {
 		v = &bc;
+		corner = c;
 		maxLen2 = acLen2;
 	}
 	else corner = b;
