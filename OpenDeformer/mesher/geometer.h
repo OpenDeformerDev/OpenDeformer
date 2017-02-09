@@ -13,11 +13,43 @@
 
 namespace ODER {
 	namespace Geometer {
+		template<class FT> VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
+			const VectorBase<FT>& b, const VectorBase<FT>& c) {
+			VectorBase<FT> ab = b - a;
+			VectorBase<FT> ac = c - a;
+			VectorBase<FT> bc = c - b;
+			FT abLen2 = ab.length2();
+			FT acLen2 = ac.length2();
+			FT bcLen2 = bc.length2();
+
+			VectorBase<FT> *u = &ab;
+			VectorBase<FT> *v = &ac;
+
+			if (bcLen2 < abLen2) {
+				if (abLen2 < acLen2) v = &bc;
+				else {
+					u = &ac; v = &bc;
+				}
+			}
+			else if (bcLen2 < acLen2) v = &bc;
+
+			VectorBase<FT> n = *u % *v;
+
+			if (n.length2() == FT(0)) {
+				constexpr Predicator<FT> predicator;
+				n.x = predicator.orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
+				n.y = predicator.orient2d(a.z, a.x, b.z, b.x, c.z, c.x);
+				n.z = predicator.orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
+			}
+
+			return n;
+		}
+
 		template<class FT> void Circumcircle(const VectorBase<FT>& a, const VectorBase<FT>& b, const VectorBase<FT>& c, 
 			VectorBase<FT> *center, FT *r = NULL){
 			VectorBase<FT> ca = a - c;
 			VectorBase<FT> cb = b - c;
-			VectorBase<FT> n = ca%cb;
+			VectorBase<FT> n = triangleNormal(a, b, c);
 
 			FT A[9];
 			A[0] = ca[0], A[1] = ca[1], A[2] = ca[2],
@@ -152,39 +184,6 @@ namespace ODER {
 				FT distance = abLen*FT(0.5) + extraDis;
 				*r = sqrt(distance*distance - aWeight);
 			}
-		}
-
-
-		template<class FT> VectorBase<FT> triangleNormal(const VectorBase<FT>& a,
-			const VectorBase<FT>& b, const VectorBase<FT>& c) {
-			VectorBase<FT> ab = b - a;
-			VectorBase<FT> ac = c - a;
-			VectorBase<FT> bc = c - b;
-			FT abLen2 = ab.length2();
-			FT acLen2 = ac.length2();
-			FT bcLen2 = bc.length2();
-
-			VectorBase<FT> *u = &ab;
-			VectorBase<FT> *v = &ac;
-
-			if (bcLen2 < abLen2) {
-				if (abLen2 < acLen2) v = &bc;
-				else {
-					u = &ac; v = &bc;
-				}
-			}
-			else if (bcLen2 < acLen2) v = &bc;
-
-			VectorBase<FT> n = *u % *v;
-
-			if (n.length2() == FT(0)) {
-				constexpr Predicator<FT> predicator;
-				n.x = predicator.orient2d(a.y, a.z, b.y, b.z, c.y, c.z);
-				n.y = predicator.orient2d(a.z, a.x, b.z, b.x, c.z, c.x);
-				n.z = predicator.orient2d(a.x, a.y, b.x, b.y, c.x, c.y);
-			}
-
-			return n;
 		}
 
 		template<class FT> VectorBase<FT> calculateAbovePoint(const VectorBase<FT>& a,

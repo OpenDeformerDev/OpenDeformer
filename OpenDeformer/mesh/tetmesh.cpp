@@ -22,6 +22,11 @@ namespace ODER{
 		}
 	}
 
+	Element* TetMesh::getElement(int elementIndex, MarterialType type) const {
+		Element *ret = getMaterialElement(type);
+		ret->setNodeIndexs(elementIndex);
+		return ret;
+	}
 
 	Facet* TetMesh::getFacet() const{
 		return new TetFacet((TetMesh *)this);

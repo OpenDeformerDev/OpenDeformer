@@ -106,7 +106,7 @@ namespace ODER{
 			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, 
-			bool encorachedFacetTest = false);
+			bool encorachedFacetTest = false, bool skinnyTest = false);
 		void findMissingRegion(const Triangle& missed, std::vector<Vertex *> &regionVertices, 
 			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces);
 		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
@@ -119,7 +119,7 @@ namespace ODER{
 		bool triangulateCavity(const std::vector<Triangle>& regionFaces, std::vector<Triangle>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Triangle& encroached);
 		void propagateCleanCavity(const Triangle& f, TetMeshDataStructure& cavityRep, int depth);
-		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool encroachedSegTest, bool setInsertionRadius);
+		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool encroachedSegTest, bool setInsertionRadius = false, bool skinnyTest = false);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
 		Vertex* allocVertex(const Vertex &vert);
@@ -157,6 +157,7 @@ namespace ODER{
 			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 		void insertVertexOnSurface(Vertex *u, const Triangle& f, const Tetrahedron& tet,
 			TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
+		//Caution: Do not dealloc the deleted vertex for memory reuse
 		void deleteVertex(Vertex *u, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs = VolumeVertexInsertionFlags());
 		void insertSurfaceVertex(Vertex *u, const Triangle &f, const SurfaceVertexInsertionFlags& vifs);
 		void insertSurfaceSegmentVertex(Vertex *u, const Segment &s, const SurfaceVertexInsertionFlags& vifs);
@@ -194,7 +195,7 @@ namespace ODER{
 
 		static Predicator<REAL> predicator;
 
-		std::deque<Tetrahedron> skinnyTets;
+		std::deque<Tetrahedron> maySkinnyTets;
 		std::deque<Triangle> mayEncroachedFacets, mayMissingFacets;
 		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
 		std::vector<Segment> markedSegments;
@@ -236,8 +237,8 @@ namespace ODER{
 	}
 
 	inline bool DelMesher::skinnyTetTest(Tetrahedron& t) const {
-		t.setRationAndRadius();
-		return t.getREration() > criteria.maxTetRatio || t.getRadius() > criteria.maxTetRadius;
+		t.setGeometricProperties();
+		return t.getRelaxedRadiusEdgeRation() > criteria.maxTetRatio || t.getRadius() > criteria.maxTetRadius;
 	}
 
 	inline size_t DelMesher::getPolygonVertices(int facetIndex, Vertex ***verts) const {

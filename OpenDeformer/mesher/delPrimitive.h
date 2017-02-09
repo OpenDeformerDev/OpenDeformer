@@ -336,10 +336,10 @@ namespace ODER {
 	struct Tetrahedron {
 		Tetrahedron() {
 			v[0] = v[1] = v[2] = v[3] = NULL;
-			reRation = r = 0.f;
+			reRation = radius = REAL(-1);
 		}
 		Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered = false);
-		void setRationAndRadius();
+		void setGeometricProperties();
 		void sortVertices();
 		bool operator==(const Tetrahedron& t) const {
 			return v[0] == t.v[0] &&
@@ -353,12 +353,14 @@ namespace ODER {
 				v[2] != t.v[2] ||
 				v[3] != t.v[3];
 		}
-		inline REAL getREration() const { return reRation; }
-		inline REAL getRadius() const { return r; }
+		REAL getRelaxedRadiusEdgeRation() const { return reRation; }
+		REAL getRadius() const { return radius; }
+		DelVector getCircumcenter() const { return circumcenter; }
 		Vertex *v[4];
 	private:
 		REAL reRation;
-		REAL r;
+		REAL radius;
+		DelVector circumcenter;
 	};
 
 	struct face_compare {

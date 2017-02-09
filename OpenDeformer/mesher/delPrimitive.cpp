@@ -37,19 +37,22 @@ namespace ODER {
 	}
 
 	Tetrahedron::Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered) {
-		reRation = r = REAL(0);
+		reRation = radius = REAL(-1);
 		v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
 		if (ordered)
 			sortVertices();
 	}
 
-	void Tetrahedron::setRationAndRadius() {
+	void Tetrahedron::setGeometricProperties() {
+		if (radius >= 0) return;
+
 		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost() || v[3]->isGhost()) {
 			reRation = REAL(0);
-			r = REAL(0);
+			radius = REAL(0);
+			constexpr REAL inf = std::numeric_limits<REAL>::infinity();
+			circumcenter = DelVector(inf, inf, inf);
 			return;
 		}
-
 		DelVector da = v[0]->vert - v[3]->vert;
 		DelVector db = v[1]->vert - v[3]->vert;
 		DelVector dc = v[2]->vert - v[3]->vert;
@@ -57,13 +60,13 @@ namespace ODER {
 		DelVector cb = v[1]->vert - v[2]->vert;
 		DelVector ba = v[0]->vert - v[1]->vert;
 
-		Geometer::Circumsphere(v[0]->vert, v[1]->vert, v[2]->vert, v[3]->vert, (DelVector *)NULL, &r);
+		Geometer::Circumsphere(v[0]->vert, v[1]->vert, v[2]->vert, v[3]->vert, &circumcenter, &radius);
 
-		REAL minEdgeLength = sqrt(std::min({da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2()}));
+		REAL minEdgeLength = sqrt(std::min({ da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2() }));
 		REAL relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,
 			v[2]->relaxedInsetionRadius, v[3]->relaxedInsetionRadius }));
 
-		reRation = r / relaxedLength;
+		reRation = radius / relaxedLength;
 	}
 
 	void Tetrahedron::sortVertices() {
@@ -118,6 +121,7 @@ namespace ODER {
 		if (deadVerticesStack == NULL) {
 			newVert = vertPool->Alloc(1, point, weight, VertexType::Vertex_Facet);
 			newVert->setLabel(labeler.getLabel());
+			vertices.push_back(newVert);
 		}
 		else {
 			newVert = deadVerticesStack;
@@ -126,7 +130,6 @@ namespace ODER {
 			Construct(newVert, point, weight, VertexType::Vertex_Facet);
 			newVert->setLabel(lable);
 		}
-		vertices.push_back(newVert);
 
 		return newVert;
 	}
@@ -812,6 +815,7 @@ namespace ODER {
 		if (deadVerticesStack == NULL) {
 			newVert = vertPool->Alloc(1, point, weight, VertexType(Vertex_Volume | extraType));
 			newVert->setLabel(labeler.getLabel());
+			vertices.push_back(newVert);
 		}
 		else {
 			newVert = deadVerticesStack;
@@ -820,7 +824,6 @@ namespace ODER {
 			Construct(newVert, point, weight, VertexType(Vertex_Volume | extraType));
 			newVert->setLabel(label);
 		}
-		vertices.push_back(newVert);
 
 		uintptr_t *pointers = NULL;
 		if (matchVertexFlag(extraType, VertexType::Vertex_Facet)) {
