@@ -94,8 +94,8 @@ namespace ODER{
 		void triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStructure& meshRep);
 
 		void constrainedRefinment();
-		void refineSubSegment(const Segment& s, Vertex *parent, bool entwinement, bool encorachedFacetTest, bool skinnyTetTestEnable);
-		void refineSubPolygon(const Triangle& f, bool skinnyTetTestEnable);
+		void refineSubSegment(const Segment& s, Vertex *parent, bool entwinement, bool refineFaceTestEnable, bool skinnyTetTestEnable);
+		void refineSubPolygon(TriangleWithGeometry& f, bool skinnyTetTestEnable);
 		void refineTetrahedron(const Tetrahedron& tet, bool& processed);
 		 
 		//segment recovery
@@ -106,7 +106,7 @@ namespace ODER{
 			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
 			std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, 
-			bool encorachedFacetTest = false, bool skinnyTest = false);
+			bool refineFacetTest = false, bool skinnyTest = false);
 		void findMissingRegion(const Triangle& missed, std::vector<Vertex *> &regionVertices, 
 			std::vector<Segment>& regionBoundary, std::vector<Triangle>& regionFaces);
 		void propagateFindRegion(const Segment& edge, std::vector<Vertex *> &regionVertices,
@@ -114,12 +114,12 @@ namespace ODER{
 		bool findCavity(const std::vector<Segment>& regionBoundary, const std::vector<Triangle>& regionFaces,
 			std::vector<Vertex *>& positiveVertices, std::vector<Triangle>& positiveFaces,
 			std::vector<Vertex *>& negativeVertices, std::vector<Triangle>& negativeFaces,
-			std::vector<Tetrahedron>& deleted, bool encorachedFacetTest);
+			std::vector<Tetrahedron>& deleted, bool refineFacetTest);
 		bool findCrossEdge(const Segment& boundary, const std::vector<Triangle>& regionFaces, Segment& cross) const;
 		bool triangulateCavity(const std::vector<Triangle>& regionFaces, std::vector<Triangle>& boundaryFaces,
 			std::vector<Vertex *>& cavityVertices, std::vector<Tetrahedron>& deleted, std::vector<Tetrahedron>& inserted, Triangle& encroached);
 		void propagateCleanCavity(const Triangle& f, TetMeshDataStructure& cavityRep, int depth);
-		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool encroachedSegTest, bool setInsertionRadius = false, bool skinnyTest = false);
+		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool refineSegTest, bool setInsertionRadius = false, bool skinnyTest = false);
 
 		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
 		Vertex* allocVertex(const Vertex &vert);
@@ -130,15 +130,15 @@ namespace ODER{
 				cdt = false;
 				skinnyTetTest = false;
 				trueInsertion = true;
-				encroachSegTest = false;
+				refineSegTest = false;
 				missingSegTest = false;
-				encroachFacetTest = false;
+				refineFacetTest = false;
 				missingFacetTest = false;
 				rejected = false;
 				insertRadiusTest = false;
 				parent = NULL;
 			}
-			bool cdt, skinnyTetTest, trueInsertion, encroachSegTest, missingSegTest, encroachFacetTest, missingFacetTest, insertRadiusTest;
+			bool cdt, skinnyTetTest, trueInsertion, refineSegTest, missingSegTest, refineFacetTest, missingFacetTest, insertRadiusTest;
 			mutable bool rejected;
 			mutable Vertex *parent;
 		};
@@ -146,10 +146,10 @@ namespace ODER{
 			SurfaceVertexInsertionFlags() {
 				trueInsertion = true;
 				deletionRecord = false;
-				encroachmentTest = false;
+				refineTest = false;
 				missingTest = false;
 			}
-			bool trueInsertion, deletionRecord, encroachmentTest, missingTest;
+			bool trueInsertion, deletionRecord, refineTest, missingTest;
 		};
 		void insertVertex(Vertex *u, const Tetrahedron& tet, TetMeshDataStructure& meshRep, 
 			const VolumeVertexInsertionFlags& vifs = VolumeVertexInsertionFlags(), Tetrahedron *rt = NULL);
@@ -168,9 +168,9 @@ namespace ODER{
 		void triangulateCavity(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, const VolumeVertexInsertionFlags& vifs);
 
 		bool Encroached(const Segment &s, Vertex **encroachedVert = NULL) const;
-		bool Encroached(const Triangle &f, Vertex **encroachedVert) const;
+		bool Encroached(TriangleWithGeometry& f, Vertex **encroachedVert) const;
 		bool Encroached(const Segment &s, Vertex *v) const;
-		bool Encroached(const Triangle &f, Vertex *v) const;
+		bool Encroached(TriangleWithGeometry &f, Vertex *v) const;
 		bool Encroached(const DelVector &orthocenter, REAL radius, Vertex *v) const;
 
 		size_t getPolygonVertices(int facetIndex, Vertex ***verts) const;
@@ -196,8 +196,9 @@ namespace ODER{
 		static Predicator<REAL> predicator;
 
 		std::deque<Tetrahedron> maySkinnyTets;
-		std::deque<Triangle> mayEncroachedFacets, mayMissingFacets;
-		std::deque<Segment> mayEncroachedSegs, mayMissingSegs;
+		std::deque<Triangle> mayMissingFacets;
+		std::deque<TriangleWithGeometry> mayRefineFacets;
+		std::deque<Segment> mayRefineSegs, mayMissingSegs;
 		std::vector<Segment> markedSegments;
 		std::vector<uintptr_t *> verticesPerPolygon;
 		std::vector<DelVector> abovePoints;
@@ -222,13 +223,13 @@ namespace ODER{
 
 	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight, VertexType type){
 		Vertex *newVertex = meshRep.allocVertex(vert, weight, type);
-		Assert(boundBox.Inside(newVertex->vert));
+		Assert(boundBox.Inside(newVertex->point));
 		return newVertex;
 	}
 
 	inline Vertex* DelMesher::allocVertex(const Vertex &vertex){
-		Vertex *newVertex = meshRep.allocVertex(vertex.vert, vertex.weight, vertex.getVertexType());
-		Assert(boundBox.Inside(newVertex->vert));
+		Vertex *newVertex = meshRep.allocVertex(vertex.point, vertex.weight, vertex.getVertexType());
+		Assert(boundBox.Inside(newVertex->point));
 		return newVertex;
 	}
 
@@ -249,12 +250,12 @@ namespace ODER{
 	}
 
 	inline bool DelMesher::Encroached(const Segment &s, Vertex *v) const {
-		return predicator.inDiametricBall(v->vert, s.v[0]->vert, s.v[1]->vert) <= 0;
+		return predicator.inDiametricBall(v->point, s.v[0]->point, s.v[1]->point) <= 0;
 	}
 
 	inline bool DelMesher::Encroached(const DelVector &circumcenter, REAL radiusSquare, Vertex *v) const {
 		constexpr REAL epsilon = REAL(1e-8);
-		return !v->isGhost() && ((v->vert - circumcenter).length2() - radiusSquare) <= epsilon * epsilon * radiusSquare;
+		return !v->isGhost() && ((v->point - circumcenter).length2() - radiusSquare) <= epsilon * epsilon * radiusSquare;
 	}
 }
 

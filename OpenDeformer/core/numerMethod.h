@@ -264,19 +264,38 @@ namespace ODER{
 	template<int blockLength, int blockWidth>
 	void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 		const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
-		const SparseVector& src, double *dest){
+		const SparseVector& src, double *dest) {
 
 		const double *values = mat.values;
 
 		const auto end = src.cend();
 		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter) {
-			const int column = vecIter->first;
-			const double entry = vecIter->second;
+			const int column = *vecIter.indexIterator;
+			const double entry = *vecIter.valueIterator;
 
 			const std::vector<std::pair<int, int>>& rowIndexPairs = fullIndices[column];
 
 			for (const auto& pair : rowIndexPairs)
 				dest[pair.first] += values[pair.second] * entry;
+		}
+	}
+
+	template<int blockLength, int blockWidth>
+	void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+		const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
+		const SparseVector& src, FastSparseVector& dest){
+
+		const double *values = mat.values;
+
+		const auto end = src.cend();
+		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter) {
+			const int column = *vecIter.indexIterator;
+			const double entry = *vecIter.valueIterator;
+
+			const std::vector<std::pair<int, int>>& rowIndexPairs = fullIndices[column];
+
+			for (const auto& pair : rowIndexPairs) 
+				dest.Add(pair.first, values[pair.second] * entry);
 		}
 	}
 

@@ -345,53 +345,167 @@ namespace ODER{
 		float w;
 	};
 
-	//not thread safe
-	class SparseVector{
+	class SparseVector {
 	public:
-		using IndexValPair = std::pair<int, double>;
-		using IndexValConstIter = RecycledList<IndexValPair>::const_iterator;
-		using IndexValIter = RecycledList<IndexValPair>::iterator;
-		SparseVector(){}
-		SparseVector(const SparseVector&) = delete;
-		SparseVector& operator=(const SparseVector&) = delete;
-		SparseVector(SparseVector&&) = default;
-		SparseVector& operator=(SparseVector&&) = default;
-		double operator*(const SparseVector& vec) const;
-		double operator*(const double *vec) const;
+		SparseVector(): indices(NULL), values(NULL), size(0), capability(0) {}
+		SparseVector(const SparseVector& vec) = delete;
+		SparseVector& operator=(const SparseVector& vec) = delete;
+		SparseVector(SparseVector&& vec);
+		SparseVector& operator=(SparseVector&& vec);
+		double operator*(const FastSparseVector &vec) const;
 		void Set(int index, double val){
-			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
-				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter == indices.end() || iter->first != index)
-				indices.insert(iter, IndexValPair(index, val));
-			else
-				iter->second = val;
+			for (size_t i = 0; i < size; i++) {
+				if (index == indices[i]) {
+					values[i] = val;
+					return;
+				}
+			}
+			emplaceBack(index, val);
 		}
+
 		void Add(int index, double val){
-			auto iter = std::lower_bound(indices.begin(), indices.end(), index, 
-				[](const IndexValPair& lhs, int rhs){ return lhs.first < rhs; });
-			if (iter == indices.end() || iter->first != index)
-				indices.insert(iter, IndexValPair(index, val));
-			else
-				iter->second += val;
+			for (size_t i = 0; i < size; i++) {
+				if (index == indices[i]) {
+					values[i] += val;
+					return;
+				}
+			}
+			emplaceBack(index, val);
 		}
-		IndexValIter Set(const IndexValIter& pos, int index, double val){
-			return indices.insert(pos, IndexValPair(index, val));
-		}
-		IndexValConstIter Set(const IndexValConstIter& pos, int index, double val){
-			return indices.insert(pos, IndexValPair(index, val));
-		}
+
 		void emplaceBack(int index, double val){
-			indices.emplace_back(index, val);
+			if (size >= capability) enlargeVector();
+			indices[size] = index; values[size] = val;
+			size += 1;
 		}
-		IndexValConstIter Delete(const IndexValConstIter& iter){ return indices.erase(iter); }
-		IndexValIter Delete(const IndexValIter& iter){ return indices.erase(iter); }
-		IndexValConstIter cbegin() const { return indices.cbegin(); }
-		IndexValConstIter cend() const { return indices.cend(); }
-		IndexValIter begin() { return indices.begin(); }
-		IndexValIter end() { return indices.end(); }
-		void Clear(){ indices.clear(); }
+
+		template<class indexPtr, class valPtr> struct IndexValueIterator {
+			using indexPointer = indexPtr;
+			using valuePointer = valPtr;
+
+			IndexValueIterator(indexPointer idexptr, valuePointer valptr): indexIterator(idexptr), valueIterator(valptr) {}
+			IndexValueIterator(const IndexValueIterator&) = default;
+			IndexValueIterator& operator=(IndexValueIterator&) = default;
+			IndexValueIterator(IndexValueIterator&&) = default;
+			IndexValueIterator& operator=(IndexValueIterator&&) = default;
+
+			IndexValueIterator& operator++() {
+				++indexIterator; ++valueIterator;
+				return *this;
+			}
+			IndexValueIterator operator++(int) {
+				IndexValueIterator temp = *this;
+				++(*this);
+				return temp;
+			}
+			IndexValueIterator& operator--() {
+				--indexIterator; --valueIterator;
+				return *this;
+			}
+			IndexValueIterator operator--(int) {
+				IndexValueIterator temp = *this;
+				--(*this);
+				return temp;
+			}
+
+			bool operator==(const IndexValueIterator& x) const { return indexIterator == x.indexIterator && valueIterator == x.valueIterator; }
+			bool operator!=(const IndexValueIterator& x) const { return indexIterator != x.indexIterator || valueIterator != x.valueIterator;}
+
+			indexPointer indexIterator;
+			valuePointer valueIterator;
+		};
+
+		using IndexValConstIter = IndexValueIterator<const int*, const double*>;
+		using IndexValIter = IndexValueIterator<int*, double*>;
+		IndexValConstIter cbegin() const { return IndexValConstIter(indices, values); }
+		IndexValConstIter cend() const { return IndexValConstIter(indices + size, values + size); }
+		IndexValIter begin() { return IndexValIter(indices, values); }
+		IndexValIter end() { return IndexValIter(indices + size, values + size); }
+		void Clear(){ size = 0; }
+		void Reserve(size_t count) { 
+			if (count > capability) {
+				capability = count;
+				reallocSpace(count);
+			}
+		}
+		~SparseVector() {
+			free(indices);
+			free(values);
+		}
 	private:
-		RecycledList<IndexValPair> indices;
+		void reallocSpace(size_t capability);
+		void enlargeVector() {
+			capability = std::max(size_t(1), capability + capability / 2 + 1);
+			reallocSpace(capability);
+		}
+
+		int *indices;
+		double *values;
+
+		size_t size;
+		size_t capability;
+	};
+
+	class FastSparseVector {
+	public:
+		using IndexIterator = const int*;
+		FastSparseVector(): column(0), filledCount(0), values(NULL), mask(NULL), filledIndices(NULL){}
+		FastSparseVector(int col);
+		FastSparseVector(const FastSparseVector& vec);
+		FastSparseVector& operator=(const FastSparseVector& vec);
+		FastSparseVector(FastSparseVector&& vec);
+		FastSparseVector& operator=(FastSparseVector&& vec);
+		double operator*(const SparseVector &vec) const;
+		void Set(int index, double val) {
+			values[index] = val;
+			if (!mask[index]) {
+				mask[index] = true;
+				filledIndices[filledCount++] = index;
+			}
+		}
+
+		void Add(int index, double val) {
+			values[index] += val;
+			if (!mask[index]) {
+				mask[index] = true;
+				filledIndices[filledCount++] = index;
+			}
+		}
+
+		void Clear() {
+			for (int i = 0; i < filledCount; i++) {
+				int index = filledIndices[i];
+				values[index] = 0;
+				mask[index] = false;
+			}
+		}
+
+		double operator[](int index) const { 
+			Assert(index > -1 && index < column);
+			return values[index]; 
+		}
+
+		void emplace(int index, double val) {
+			values[index] = val;
+			mask[index] = true;
+			filledIndices[filledCount++] = index;
+		}
+
+		IndexIterator indexBegin() const { return filledIndices; }
+
+		IndexIterator indexEnd() const { return filledIndices + filledCount; }
+
+		~FastSparseVector() {
+			delete[] values;
+			delete[] mask;
+		}
+	private:
+		double *values;
+		bool *mask;
+		int *filledIndices;
+
+		int filledCount;
+		int column;
 	};
 
 	/*template<size_t N, size_t...index> struct IndexSequenceGenerator : public IndexSequenceGenerator <N - 1, N - 1, index... > {};
@@ -472,45 +586,25 @@ namespace ODER{
 			0.f, 0.f, 0.f, 1.f);
 	}
 
-	inline double SparseVector::operator*(const SparseVector& vec) const{
-		auto rightIter = vec.cbegin();
-		auto rightEnd = vec.cend();
-		auto leftIter = cbegin();
-		auto leftEnd = cend();
 
-		double dot = 0.0;
-		while (rightIter != rightEnd && leftIter != leftEnd){
-			int gap = rightIter->first - leftIter->first;
-			if (gap == 0){
-				dot += rightIter->second * leftIter->second;
-				++rightIter;
-				++leftIter;
-			}
-			else if (gap > 0)
-				++leftIter;
-			else
-				++rightIter;
-		}
 
-		return dot;
-	}
-
-	inline double SparseVector::operator*(const double* vec) const {
+	inline double SparseVector::operator*(const FastSparseVector &vec) const {
 		auto iter = cbegin();
 		auto end = cend();
 
 		double dot = 0.0;
 		while (iter != end) {
-			dot += vec[iter->first] * iter->second;
+			dot += vec[*iter.indexIterator] * (*iter.valueIterator);
 			++iter;
 		}
 
 		return dot;
 	}
 
-	inline double operator*(const double *left, const SparseVector& right) {
-		return right * left;
+	inline double FastSparseVector::operator*(const SparseVector &vec) const {
+		return vec * (*this);
 	}
+
 }
 
 #endif

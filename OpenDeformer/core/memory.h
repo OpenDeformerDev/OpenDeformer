@@ -253,6 +253,9 @@ namespace ODER{
 	template<> inline void Initiation(unsigned int *vals, unsigned int size){
 		memset(vals, 0, sizeof(unsigned int) * size);
 	}
+	template<> inline void Initiation(bool *vals, unsigned int size) {
+		memset(vals, 0, sizeof(bool) * size);
+	}
 
 	template<class T> inline void Destory(T* p){
 		p->~T();

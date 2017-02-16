@@ -36,11 +36,13 @@ namespace ODER {
 		}
 	}
 
-	Tetrahedron::Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered) {
-		reRation = radius = REAL(-1);
-		v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
-		if (ordered)
-			sortVertices();
+	void TriangleWithGeometry::setGeometricProperties() {
+		if (radius >= 0) return;
+		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost()) {
+			radius = REAL(0);
+			return;
+		}
+		Geometer::Circumcircle(v[0]->point, v[1]->point, v[2]->point, &circumcenter, &radius);
 	}
 
 	void Tetrahedron::setGeometricProperties() {
@@ -53,14 +55,14 @@ namespace ODER {
 			circumcenter = DelVector(inf, inf, inf);
 			return;
 		}
-		DelVector da = v[0]->vert - v[3]->vert;
-		DelVector db = v[1]->vert - v[3]->vert;
-		DelVector dc = v[2]->vert - v[3]->vert;
-		DelVector ca = v[0]->vert - v[2]->vert;
-		DelVector cb = v[1]->vert - v[2]->vert;
-		DelVector ba = v[0]->vert - v[1]->vert;
+		DelVector da = v[0]->point - v[3]->point;
+		DelVector db = v[1]->point - v[3]->point;
+		DelVector dc = v[2]->point - v[3]->point;
+		DelVector ca = v[0]->point - v[2]->point;
+		DelVector cb = v[1]->point - v[2]->point;
+		DelVector ba = v[0]->point - v[1]->point;
 
-		Geometer::Circumsphere(v[0]->vert, v[1]->vert, v[2]->vert, v[3]->vert, &circumcenter, &radius);
+		Geometer::Circumsphere(v[0]->point, v[1]->point, v[2]->point, v[3]->point, &circumcenter, &radius);
 
 		REAL minEdgeLength = sqrt(std::min({ da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2() }));
 		REAL relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,

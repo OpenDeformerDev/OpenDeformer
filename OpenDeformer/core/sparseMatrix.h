@@ -360,6 +360,73 @@ namespace ODER{
 			}
 		}
 
+		void getColumn(int column, FastSparseVector& vector) const {
+			vector.Clear();
+			constexpr int regularSize = blockLength * blockWidth;
+			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
+
+			int blockIndex = column / blockLength;
+			int blockStartColumn = blockIndex * blockLength;
+			if (blockIndex < numBlockColumn) {
+				int offset = column - blockStartColumn;
+				int index = blockPcol[blockIndex], end = blockPcol[blockIndex + 1];
+
+				if (index == end) return;
+
+				const double *vals = values + blockColumnOris[blockIndex];
+				if (blockRows[index] == blockStartColumn) {
+					int start = diagIndices[offset];
+					for (int i = 0; i < blockLength - offset; i++) {
+						if (vals[start + i] != 0.0)
+							vector.emplace(column + i, vals[start + i]);
+					}
+					index++;
+					vals += diagSize;
+				}
+
+				if (index == end) return;
+
+				while (index < end - 1) {
+					int row = blockRows[index++];
+					int start = offset*blockWidth;
+					for (int i = 0; i < blockWidth; i++) {
+						if (vals[start + i] != 0.0)
+							vector.emplace(row + i, vals[start + i]);
+					}
+					vals += regularSize;
+				}
+
+				int row = blockRows[index];
+				int mayDegenWidth = numColumns - row;
+				if (mayDegenWidth >= blockWidth) {
+					int start = offset * blockWidth;
+					for (int i = 0; i < blockWidth; i++) {
+						if (vals[start + i] != 0.0)
+							vector.emplace(row + i, vals[start + i]);
+					}
+				}
+				else {
+					int start = offset * mayDegenWidth;
+					for (int i = 0; i < mayDegenWidth; i++) {
+						if (vals[start + i] != 0.0)
+							vector.emplace(row + i, vals[start + i]);
+					}
+				}
+			}
+			else {
+				int start = column - blockStartColumn + numBlockColumn;
+				int rowIndexStart = blockPcol[start];
+				int entryCount = blockPcol[start + 1] - rowIndexStart;
+
+				const int* row = blockRows + rowIndexStart;
+				const double* val = values + blockColumnOris[start];
+				for (int i = 0; i < entryCount; i++) {
+					if (val[i] != 0.0)
+						vector.emplace(row[i], val[i]);
+				}
+			}
+		}
+
 		void addEntry(int row, int column, double data) {
 			Assert(row >= column);
 			constexpr int regularSize = blockLength * blockWidth;
@@ -636,8 +703,12 @@ namespace ODER{
 			const double *src, double *dest);
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
-			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
+			const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
 			const SparseVector& src, double *dest);
+		template<int blockLength, int blockWidth>
+		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
+			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
+			const SparseVector& src, FastSparseVector& dest);
 	};
 }
 

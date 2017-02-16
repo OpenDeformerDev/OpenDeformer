@@ -69,14 +69,14 @@ namespace ODER {
 	struct Vertex {
 		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
 			vertexPointer(NULL), pointers(0), type(VertexType::Vertex_Undefined){}
-		template<class FT> explicit Vertex(const VectorBase<FT>& vv, VertexType t = VertexType::Vertex_Undefined)
-			: vert{ vv.x, vv.y, vv.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
+		template<class FT> explicit Vertex(const VectorBase<FT>& p, VertexType t = VertexType::Vertex_Undefined)
+			: point{ p.x, p.y, p.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
 			vertexPointer(NULL), pointers(0), type(t) {}
-		explicit Vertex(const DelVector& vv, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: vert(vv), weight(w), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
+		explicit Vertex(const DelVector& p, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
+			: point(p), weight(w), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
 			constexpr REAL inf = std::numeric_limits<REAL>::infinity();
-			vert.x = inf; vert.y = inf; vert.z = inf;
+			point.x = inf; point.y = inf; point.z = inf;
 			weight = -inf;
 			label = VertexLabeler::getSpecilGhostLabel();
 			pointers = 0;
@@ -112,7 +112,7 @@ namespace ODER {
 		void setOriSegmentIndex(int index);
 		int getOriSegmentIndex() const;
 
-		DelVector vert;
+		DelVector point;
 		REAL weight;
 		REAL relaxedInsetionRadius;
 	private:
@@ -295,11 +295,12 @@ namespace ODER {
 		bool operator==(const Segment &s) const {
 			return v[0] == s.v[0] && v[1] == s.v[1];
 		}
+		REAL getLength() const { return (v[0]->point - v[1]->point).length(); }
 		Vertex *v[2];
 	};
 
 	struct SegmentWithIndex : public Segment {
-		SegmentWithIndex() : index(-1) {}
+		SegmentWithIndex() : Segment(), index(-1) {}
 		SegmentWithIndex(Vertex *v0, Vertex *v1, int index, bool ordered = false)
 			: Segment(v0, v1, ordered), index(index) {}
 
@@ -326,11 +327,25 @@ namespace ODER {
 	};
 
 	struct TriangleWithIndex : public Triangle {
-		TriangleWithIndex() :index(-1) {}
+		TriangleWithIndex() : Triangle(), index(-1) {}
 		TriangleWithIndex(Vertex *v0, Vertex *v1, Vertex *v2, int index, bool ordered = false)
-			: Triangle(v0, v1, v2), index(index) {}
+			: Triangle(v0, v1, v2, ordered), index(index) {}
 
 		int index;
+	};
+
+	struct TriangleWithGeometry : public Triangle {
+	public:
+		TriangleWithGeometry() : Triangle(), radius(-1) {}
+		TriangleWithGeometry(Vertex *v0, Vertex *v1, Vertex *v2, bool ordered = false) : 
+			Triangle(v0, v1, v2, ordered), radius(-1) {}
+		TriangleWithGeometry(const Triangle& f): Triangle(f), radius(-1) {}
+		void setGeometricProperties();
+		REAL getRadius() const { return radius; }
+		DelVector getCircumcenter() const { return circumcenter; }
+	private:
+		REAL radius;
+		DelVector circumcenter;
 	};
 
 	struct Tetrahedron {
@@ -338,7 +353,11 @@ namespace ODER {
 			v[0] = v[1] = v[2] = v[3] = NULL;
 			reRation = radius = REAL(-1);
 		}
-		Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered = false);
+		Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered = false) {
+			reRation = radius = REAL(-1);
+			v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
+			if (ordered) sortVertices();
+		}
 		void setGeometricProperties();
 		void sortVertices();
 		bool operator==(const Tetrahedron& t) const {

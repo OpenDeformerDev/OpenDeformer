@@ -37,14 +37,17 @@ namespace ODER{
 
 		double *factors = &invDiagonal[0];
 		SparseVector *vecs = new SparseVector[columnCount];
-		double *temp = new double[columnCount];
 
-		for (int i = 0; i < columnCount; i++)
+		//work space
+		FastSparseVector temp(columnCount);
+
+		for (int i = 0; i < columnCount; i++) {
+			vecs[i].Reserve(32);
 			vecs[i].emplaceBack(i, 1.0);
+		}
 
 		int count = 0;
 		for (int i = 0; i < columnCount - 1; i++){
-			Initiation(temp, columnCount);
 			SpMSV(mat, matFullIndices, vecs[i], temp);
 
 			double diag = vecs[i] * temp;
@@ -63,41 +66,38 @@ namespace ODER{
 			}
 			pcol.push_back(count);
 
-			auto end = vecs[i].cend();
+			//clean work space
+			temp.Clear();
+
 			for (int j = i + 1; j < columnCount; j++){
 				double factor = factors[j];
-				if (factor != 0.0){
+				if (factor != 0){
 					factor *= inv;
-					auto jEnd = vecs[j].end();
-					auto jIter = vecs[j].begin();
-					for (auto iter = vecs[i].cbegin(); iter != end; ++iter){
-						while (jIter != jEnd && jIter->first < iter->first) ++jIter;
+					//copy vecs[j];
+					for (auto iter = vecs[j].cbegin(); iter != vecs[j].cend(); ++iter)
+						temp.Set(*(iter.indexIterator), *(iter.valueIterator));
 
-						if (jIter != jEnd && jIter->first == iter->first){
-							double entry = jIter->second - factor * iter->second;
-							if (fabs(entry) > sainvEpsilon)
-								jIter->second = entry;
-							else
-								jIter = vecs[j].Delete(jIter);
-						}
-						else{
-							double entry = -factor * iter->second;
-							if (fabs(entry) > sainvEpsilon)
-								vecs[j].Set(jIter, iter->first, entry);
-						}
+					for (auto iter = vecs[i].cbegin(); iter != vecs[i].cend(); ++iter)
+						temp.Add(*(iter.indexIterator), -factor * (*(iter.valueIterator)));
 
+					//drop vecs[j]
+					vecs[j].Clear();
+					for (auto colIter = temp.indexBegin(); colIter != temp.indexEnd(); ++colIter) {
+						int col = *colIter;
+						double val = temp[col];
+						if (fabs(val) > sainvEpsilon) vecs[j].emplaceBack(col, val);
 					}
+
+					temp.Clear();
 				}
 			}
 		}
 
 		int lastColumn = columnCount - 1;
-		Initiation(temp, columnCount);
 		SpMSV(mat, matFullIndices, vecs[lastColumn], temp);
 		invDiagonal[lastColumn] = 1.0 / (vecs[lastColumn] * temp);
 
 		delete[] vecs;
-		delete[] temp;
 	}
 
 	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{

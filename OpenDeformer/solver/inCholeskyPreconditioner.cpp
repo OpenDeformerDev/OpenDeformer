@@ -2,6 +2,7 @@
 #include "inCholeskyPreconditioner.h"
 #include "sparseMatrix.h"
 #include "latool.h"
+#include "datastructure.h"
 
 namespace ODER{
 	InCholeskyPreconditioner::InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double eps) : epsilon(eps){
@@ -13,16 +14,16 @@ namespace ODER{
 		incompleteCholeskyDecomposition(mat);
 	}
 
-	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const SparseVector& vec, double *diags){
+	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, RecycledList<std::pair<int, int>> *list){
 		values.emplace_back(0.0);
 		rows.emplace_back(columnIndex);
-		auto iter = vec.cbegin(), vecEnd = vec.cend();
-		double diag = iter->second;
+		auto indexIter = vec.indexBegin(), indexEnd = vec.indexEnd();
+		double diag = diags[columnIndex];
 
 		int count = 1;
-		while (++iter != vecEnd){
-			int row = iter->first;
-			double val = iter->second;
+		while (++indexIter != indexEnd){
+			int row = *indexIter;
+			double val = vec[row];
 			if (val != 0.0){
 				if (val * val < epsilon * diag * diags[row]){
 					val = fabs(val);
@@ -37,9 +38,15 @@ namespace ODER{
 				}
 			}
 		}
+
 		int start = pcol[columnIndex];
 		int end = start + count;
 		pcol.emplace_back(end);
+
+		if (count > 1) {
+			int row = rows[start + 1];
+			list[row - 1].emplace_back(std::make_pair(columnIndex, start + 1));
+		}
 
 		double diagRoot = sqrt(diag);
 		values[start] = diagRoot;
@@ -69,27 +76,39 @@ namespace ODER{
 		double *diags = new double[columnCount];
 		mat.getDiagonal(diags);
 
-		SparseVector w;
+		RecycledList<std::pair<int, int>> *list = new RecycledList<std::pair<int, int>>[columnCount - 1];
+
+		FastSparseVector w; 
 		mat.getColumn(0, w);
-		proccessSingleColumn(0, w, diags);
+		proccessSingleColumn(0, w, diags, list);
 
 		for (int i = 1; i < columnCount; i++){
 			mat.getColumn(i, w);
-			w.begin()->second = diags[i];
+			w.Set(i, diags[i]);
 
-			for (int j = 0; j < i; j++){
-				int *start = &rows[pcol[j]], *end = &rows[pcol[j + 1] - 1] + 1;
-				int *rowIter = std::lower_bound(start, end, i);
-				if (rowIter != end && *rowIter == i){
-					int offset = pcol[j] + rowIter - start;
-					double upper = values[offset];
-					while (rowIter < end)
-						w.Add(*rowIter++, -upper * values[offset++]);
-				}
+			auto iter = list[i - 1].cbegin();
+			auto end = list[i - 1].cend();
+
+			while (iter != end) {
+				int j = iter->first;
+				int trueIndex = iter->second;
+				int nextIndex = trueIndex + 1;
+
+				double upper = values[trueIndex];
+				for (int k = nextIndex; k < pcol[j + 1]; k++)
+					w.Add(rows[k], -upper * values[k]);
+
+				if (nextIndex < pcol[j + 1])
+					list[rows[nextIndex] - 1].emplace_back(std::make_pair(j, nextIndex));
+
+				iter = list[i - 1].erase(iter);
 			}
-			proccessSingleColumn(i, w, diags);
+
+			proccessSingleColumn(i, w, diags, list);
 		}
+
 		delete[] diags;
+		delete[] list;
 	}
 
 	void InCholeskyPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{

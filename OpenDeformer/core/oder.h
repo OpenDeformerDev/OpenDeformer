@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifndef NDEBUG
 #define ODER_DEBUG
@@ -57,6 +58,7 @@ namespace ODER{
 	template<class FT> struct VectorBase;
 	using Vector = VectorBase<float>;
 	class SparseVector;
+	class FastSparseVector;
 	template<class FT> struct Tensor2;
 	struct Quaternion;
 	class MechMaterial;
