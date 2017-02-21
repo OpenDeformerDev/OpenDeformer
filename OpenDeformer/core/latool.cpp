@@ -121,81 +121,42 @@ namespace ODER{
 	}
 
 	void SparseVector::reallocSpace(size_t count) {
-		values = (double *)realloc(values, sizeof(double) * count);
-		if (values == NULL) {
-			double *temp = (double *)malloc(sizeof(double) * count);
-			memcpy(temp, values, sizeof(double) * size);
-			values = temp;
+		double *valuesTmp = (double *)realloc(values, sizeof(double) * count);
+		if (valuesTmp == NULL) {
+			valuesTmp = (double *)malloc(sizeof(double) * count);
+			memcpy(valuesTmp, values, sizeof(double) * size);
 		}
+		values = valuesTmp;
 
-		indices = (int *)realloc(indices, sizeof(int) * count);
-		if (indices == NULL) {
-			int *temp = (int *)malloc(sizeof(int) * count);
-			memcpy(temp, indices, sizeof(int) * size);
-			indices = temp;
+		int *indicesTmp = (int *)realloc(indices, sizeof(int) * count);
+		if (indicesTmp == NULL) {
+			indicesTmp = (int *)malloc(sizeof(int) * count);
+			memcpy(indicesTmp, indices, sizeof(int) * size);
 		}
+		indices = indicesTmp;
 	}
 
 	FastSparseVector::FastSparseVector(int col) {
 		column = col;
-		filledCount = 0;
-		values = new double[column];
-		mask = new bool[column];
-		filledIndices = new int[column];
+		indexIndicators = new int[column];
+		Initiation(indexIndicators, column);
+		vector.Reserve(column + 1);
 
-		Initiation(values, column);
-		Initiation(mask, column);
+		vector.emplaceBack(-1, 0);
 	}
 
-	FastSparseVector::FastSparseVector(const FastSparseVector& vec) {
+	FastSparseVector::FastSparseVector(FastSparseVector&& vec): vector(std::move(vec.vector)) {
 		column = vec.column;
-		filledCount = vec.filledCount;
-		values = new double[column];
-		mask = new bool[column];
-		filledIndices = new int[column];
-
-		memcpy(values, vec.values, sizeof(double) * column);
-		memcpy(mask, vec.mask, sizeof(bool) * column);
-		memcpy(filledIndices, vec.filledIndices, sizeof(int) * filledCount);
-	}
-
-	FastSparseVector& FastSparseVector::operator=(const FastSparseVector& vec) {
-		delete[] values;
-		delete[] mask;
-		delete[] filledIndices;
-
-		column = vec.column;
-		filledCount = vec.filledCount;
-		values = new double[column];
-		mask = new bool[column];
-		filledIndices = new int[column];
-
-		memcpy(values, vec.values, sizeof(double) * column);
-		memcpy(mask, vec.mask, sizeof(bool) * column);
-		memcpy(filledIndices, vec.filledIndices, sizeof(int) * filledCount);
-
-		return *this;
-	}
-
-	FastSparseVector::FastSparseVector(FastSparseVector&& vec) {
-		column = vec.column;
-		filledCount = vec.filledCount;
-		values = vec.values;
-		mask = vec.mask;
-		filledIndices = vec.filledIndices;
+		indexIndicators = vec.indexIndicators;
 
 		vec.column = 0;
-		vec.values = NULL;
-		vec.mask = NULL;
-		vec.filledIndices = NULL;
+		vec.indexIndicators = NULL;
 	}
 
 	FastSparseVector& FastSparseVector::operator=(FastSparseVector&& vec) {
+		std::swap(vector, vec.vector);
 		std::swap(column, vec.column);
-		std::swap(filledCount, vec.filledCount);
-		std::swap(values, vec.values);
-		std::swap(mask, vec.mask);
-		std::swap(filledIndices, vec.filledIndices);
+		std::swap(indexIndicators, vec.indexIndicators);
 
 		return *this;
 	}

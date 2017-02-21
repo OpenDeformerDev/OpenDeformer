@@ -33,71 +33,119 @@ namespace ODER{
 
 	void InLDLTPreconditioner::incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat){
 		int columnCount = mat.getNumColumns();
-		pcol.push_back(0);
-
-		double *factors = &invDiagonal[0];
-		SparseVector *vecs = new SparseVector[columnCount];
+		MemoryPool<InvMatRowListNode, std::alignment_of<InvMatRowListNode>::value> nodePool(columnCount);
+		InvMatRowListNode *listPerRow = new InvMatRowListNode[columnCount];
+		std::vector<InvMatRowListNode *> *invRowNodes = new std::vector<InvMatRowListNode *>[columnCount];
 
 		//work space
-		FastSparseVector temp(columnCount);
+		FastSparseVector vec(columnCount);
+		FastSparseVector lowerColumn(columnCount);
+		SparseVector invColumn;
+		invColumn.Reserve(32);
 
+		constexpr int preAlloced = 32;
 		for (int i = 0; i < columnCount; i++) {
-			vecs[i].Reserve(32);
-			vecs[i].emplaceBack(i, 1.0);
+			InvMatRowListNode *node = nodePool.Alloc();
+			node->row = i;  node->col = i; node->value = 1.0;
+			listPerRow[i].prev = node;
+			listPerRow[i].next = node;
+			node->prev = &listPerRow[i];
+			node->next = &listPerRow[i];
+
+			invRowNodes[i].reserve(std::min(i + 1, preAlloced));
+			invRowNodes[i].push_back(node);
 		}
 
 		int count = 0;
+		pcol.push_back(0);
 		for (int i = 0; i < columnCount - 1; i++){
-			SpMSV(mat, matFullIndices, vecs[i], temp);
+			for (auto node : invRowNodes[i]) {
+				invColumn.emplaceBack(node->row, node->value);
+				node->prev->next = node->next;
+			    node->next->prev = node->prev;
+				nodePool.Dealloc(node);
+			}
+			invRowNodes[i].clear();
+			invRowNodes[i].shrink_to_fit();
 
-			double diag = vecs[i] * temp;
+			SpMSV(mat, matFullIndices, invColumn, vec);
+			double diag =  vec * invColumn;
 			double inv = 1.0 / diag;
 			invDiagonal[i] = inv;
 
-			for (int j = i + 1; j < columnCount; j++){
-				double entry = vecs[j] * temp;
-				double lower = entry * inv;
+			for (auto iter = vec.cbegin(); iter != vec.cend(); ++iter) {
+				int index = *iter.indexIterator;
+				double value = *iter.valueIterator;
+				if (value != 0) {
+					InvMatRowListNode *node = listPerRow[index].next;
+					InvMatRowListNode *end = &listPerRow[index];
+					while (node != end) {
+						lowerColumn.Add(node->col, value * node->value);
+						node = node->next;
+					}
+				}
+			}
+
+			for (auto iter = lowerColumn.cbegin(); iter != lowerColumn.cend(); ++iter) {
+				int j = *iter.indexIterator;
+				double lower = (*iter.valueIterator) * inv;
 				if (fabs(lower) > ldltEpsilon){
 					values.push_back(lower);
 					rows.push_back(j);
 					++count;
 				}
-				factors[j] = entry;
 			}
 			pcol.push_back(count);
 
-			//clean work space
-			temp.Clear();
-
-			for (int j = i + 1; j < columnCount; j++){
-				double factor = factors[j];
-				if (factor != 0){
+			vec.Clear();
+			for (auto iter = lowerColumn.cbegin(); iter != lowerColumn.cend(); ++iter) {
+				int j = *iter.indexIterator;
+				double factor = *iter.valueIterator;
+				if (factor != 0) {
 					factor *= inv;
-					//copy vecs[j];
-					for (auto iter = vecs[j].cbegin(); iter != vecs[j].cend(); ++iter)
-						temp.Set(*(iter.indexIterator), *(iter.valueIterator));
-
-					for (auto iter = vecs[i].cbegin(); iter != vecs[i].cend(); ++iter)
-						temp.Add(*(iter.indexIterator), -factor * (*(iter.valueIterator)));
-
-					//drop vecs[j]
-					vecs[j].Clear();
-					for (auto colIter = temp.indexBegin(); colIter != temp.indexEnd(); ++colIter) {
-						int col = *colIter;
-						double val = temp[col];
-						if (fabs(val) > sainvEpsilon) vecs[j].emplaceBack(col, val);
+					//copy invRowNodes[j] and clean node
+					for (auto node : invRowNodes[j]) {
+						vec.emplaceBack(node->row, node->value);
+						node->prev->next = node->next;
+						node->next->prev = node->prev;
+						nodePool.Dealloc(node);
 					}
+					invRowNodes[j].clear();
 
-					temp.Clear();
+					for (auto iter = invColumn.cbegin(); iter != invColumn.cend(); ++iter)
+						vec.Add(*(iter.indexIterator), -factor * (*(iter.valueIterator)));
+
+					//drop invRowNodes[j]
+					for (auto iter = vec.cbegin(); iter != vec.cend(); ++iter) {
+						int index = *iter.indexIterator;
+						double val = *iter.valueIterator;
+						if (fabs(val) > sainvEpsilon) {
+							//insert to linked list
+							InvMatRowListNode *node = nodePool.Alloc();
+							node->row = index; node->col = j; node->value = val;
+
+							node->next = listPerRow[index].next;
+							node->prev = &listPerRow[index];
+							listPerRow[index].next->prev = node;
+							listPerRow[index].next = node;
+							invRowNodes[j].push_back(node);
+						}
+					}
+					vec.Clear();
 				}
 			}
+			invColumn.Clear();
+			lowerColumn.Clear();
 		}
 
 		int lastColumn = columnCount - 1;
-		SpMSV(mat, matFullIndices, vecs[lastColumn], temp);
-		invDiagonal[lastColumn] = 1.0 / (vecs[lastColumn] * temp);
+		for (auto node : invRowNodes[lastColumn])
+			invColumn.emplaceBack(node->row, node->value);
+		SpMSV(mat, matFullIndices, invColumn, vec);
+		invDiagonal[lastColumn] = 1.0 / (vec * invColumn);
 
-		delete[] vecs;
+		delete[] listPerRow;
+		delete[] invRowNodes;
 	}
 
 	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{

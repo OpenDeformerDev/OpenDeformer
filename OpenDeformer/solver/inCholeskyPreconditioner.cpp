@@ -14,45 +14,54 @@ namespace ODER{
 		incompleteCholeskyDecomposition(mat);
 	}
 
-	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, RecycledList<std::pair<int, int>> *list){
-		values.emplace_back(0.0);
-		rows.emplace_back(columnIndex);
-		auto indexIter = vec.indexBegin(), indexEnd = vec.indexEnd();
+	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, 
+		std::pair<int, int> *list, std::vector<std::pair<int, double>>& factorized){
 		double diag = diags[columnIndex];
+		factorized.clear();
 
-		int count = 1;
-		while (++indexIter != indexEnd){
-			int row = *indexIter;
-			double val = vec[row];
+		double epsilon2 = epsilon * epsilon;
+		auto pairIter = vec.cbegin(), pairEnd = vec.cend();
+		while (++pairIter != pairEnd){
+			int row = *pairIter.indexIterator;
+			double val = *pairIter.valueIterator;
 			if (val != 0.0){
-				if (val * val < epsilon * diag * diags[row]){
+				if (val * val < epsilon2 * diag * diags[row]){
 					val = fabs(val);
 					double scale = sqrt(diag / diags[row]);
 					diag += val * scale;
 					diags[row] += val / scale;
 				}
-				else{
-					values.emplace_back(val);
-					rows.emplace_back(row);
-					count++;
-				}
+				else
+					factorized.emplace_back(row, val);
 			}
 		}
 
 		int start = pcol[columnIndex];
-		int end = start + count;
+		int end = start + 1 + factorized.size();
 		pcol.emplace_back(end);
 
-		if (count > 1) {
-			int row = rows[start + 1];
-			list[row - 1].emplace_back(std::make_pair(columnIndex, start + 1));
+		std::sort(factorized.begin(), factorized.end(), 
+			[](const std::pair<int, double>& left, const std::pair<int, double>& right) { return left.first < right.first; });
+
+		if (!factorized.empty()) {
+			int row = factorized[0].first;
+			list[columnIndex] = list[row];
+			list[row] = std::make_pair(columnIndex, start + 1);
 		}
 
 		double diagRoot = sqrt(diag);
-		values[start] = diagRoot;
+		values.emplace_back(diagRoot);
+		rows.emplace_back(columnIndex);
+
 		double invDiagRoot = 1.0 / diagRoot;
-		for (int i = start + 1; i < end; i++)
-			values[i] *= invDiagRoot;
+		for (auto pair : factorized) {
+			int row = pair.first;
+			double val = pair.second * invDiagRoot;
+
+			rows.emplace_back(row);
+			values.emplace_back(pair.second * invDiagRoot);
+			diags[row] -= val * val;
+		}
 	}
 
 	void InCholeskyPreconditioner::resetPreconditionerSystem(const BlockedSymSpMatrix& mat){
@@ -76,36 +85,43 @@ namespace ODER{
 		double *diags = new double[columnCount];
 		mat.getDiagonal(diags);
 
-		RecycledList<std::pair<int, int>> *list = new RecycledList<std::pair<int, int>>[columnCount - 1];
+		std::pair<int, int> *list = new std::pair<int, int>[columnCount];
+		Initiation(list, columnCount, std::make_pair(-1, -1));
+		std::vector<std::pair<int, double>> factorized;
+		factorized.reserve(32);
 
-		FastSparseVector w; 
+		FastSparseVector w(columnCount);
 		mat.getColumn(0, w);
-		proccessSingleColumn(0, w, diags, list);
+		proccessSingleColumn(0, w, diags, list, factorized);
 
-		for (int i = 1; i < columnCount; i++){
+		for (int i = 1; i < columnCount - 1; i++){
 			mat.getColumn(i, w);
-			w.Set(i, diags[i]);
 
-			auto iter = list[i - 1].cbegin();
-			auto end = list[i - 1].cend();
-
-			while (iter != end) {
-				int j = iter->first;
-				int trueIndex = iter->second;
+			auto pair = list[i];
+			while (pair.first >= 0) {
+				int j = pair.first;
+				int trueIndex = pair.second;
 				int nextIndex = trueIndex + 1;
 
 				double upper = values[trueIndex];
 				for (int k = nextIndex; k < pcol[j + 1]; k++)
 					w.Add(rows[k], -upper * values[k]);
 
-				if (nextIndex < pcol[j + 1])
-					list[rows[nextIndex] - 1].emplace_back(std::make_pair(j, nextIndex));
-
-				iter = list[i - 1].erase(iter);
+				pair = list[j];
+				if (nextIndex < pcol[j + 1]) {
+					int row = rows[nextIndex];
+					list[j] = list[row];
+					list[row] = std::make_pair(j, nextIndex);
+				}
 			}
 
-			proccessSingleColumn(i, w, diags, list);
+			proccessSingleColumn(i, w, diags, list, factorized);
 		}
+
+		//proccess the last column
+		values.emplace_back(sqrt(diags[columnCount - 1]));
+		rows.emplace_back(columnCount - 1);
+		pcol.emplace_back(pcol[columnCount - 1] + 1);
 
 		delete[] diags;
 		delete[] list;

@@ -379,6 +379,8 @@ namespace ODER{
 			size += 1;
 		}
 
+		size_t Size() const { return size; }
+
 		template<class indexPtr, class valPtr> struct IndexValueIterator {
 			using indexPointer = indexPtr;
 			using valuePointer = valPtr;
@@ -439,72 +441,73 @@ namespace ODER{
 			reallocSpace(capability);
 		}
 
+
 		int *indices;
 		double *values;
 
 		size_t size;
 		size_t capability;
+		friend class FastSparseVector;
 	};
 
 	class FastSparseVector {
 	public:
-		using IndexIterator = const int*;
-		FastSparseVector(): column(0), filledCount(0), values(NULL), mask(NULL), filledIndices(NULL){}
+		FastSparseVector(): indexIndicators(NULL), column(0) {}
 		FastSparseVector(int col);
-		FastSparseVector(const FastSparseVector& vec);
-		FastSparseVector& operator=(const FastSparseVector& vec);
+		FastSparseVector(const FastSparseVector&) = delete;
+		FastSparseVector& operator=(const FastSparseVector&) = delete;
 		FastSparseVector(FastSparseVector&& vec);
 		FastSparseVector& operator=(FastSparseVector&& vec);
 		double operator*(const SparseVector &vec) const;
 		void Set(int index, double val) {
-			values[index] = val;
-			if (!mask[index]) {
-				mask[index] = true;
-				filledIndices[filledCount++] = index;
-			}
+			int indicator = indexIndicators[index];
+			if (indicator != 0)
+				vector.values[indicator] = val;
+			else
+				emplaceBack(index, val);
 		}
 
 		void Add(int index, double val) {
-			values[index] += val;
-			if (!mask[index]) {
-				mask[index] = true;
-				filledIndices[filledCount++] = index;
-			}
+			int indicator = indexIndicators[index];
+			if (indicator != 0)
+				vector.values[indicator] += val;
+			else
+				emplaceBack(index, val);
 		}
 
 		void Clear() {
-			for (int i = 0; i < filledCount; i++) {
-				int index = filledIndices[i];
-				values[index] = 0;
-				mask[index] = false;
-			}
+			for (size_t i = 1; i < vector.size; i++)
+				indexIndicators[vector.indices[i]] = 0;
+			vector.size = 1;
 		}
 
 		double operator[](int index) const { 
-			Assert(index > -1 && index < column);
-			return values[index]; 
+			return vector.values[indexIndicators[index]];
 		}
 
-		void emplace(int index, double val) {
-			values[index] = val;
-			mask[index] = true;
-			filledIndices[filledCount++] = index;
+		void emplaceBack(int index, double val) {
+			indexIndicators[index] = vector.size;
+			vector.indices[vector.size] = index;
+			vector.values[vector.size] = val;
+			vector.size += 1;
 		}
 
-		IndexIterator indexBegin() const { return filledIndices; }
+		size_t Size() const { return vector.Size() - 1; }
 
-		IndexIterator indexEnd() const { return filledIndices + filledCount; }
+		using IndexValConstIter = SparseVector::IndexValConstIter;
+		using IndexValIter = SparseVector::IndexValIter;
+		IndexValConstIter cbegin() const { return ++vector.cbegin(); }
+		IndexValConstIter cend() const { return vector.cend(); }
+		IndexValIter begin() { return ++vector.begin(); }
+		IndexValIter end() { return vector.end(); }
 
 		~FastSparseVector() {
-			delete[] values;
-			delete[] mask;
+			delete[] indexIndicators;
 		}
 	private:
-		double *values;
-		bool *mask;
-		int *filledIndices;
+		SparseVector vector;
 
-		int filledCount;
+		int *indexIndicators;
 		int column;
 	};
 
@@ -589,14 +592,9 @@ namespace ODER{
 
 
 	inline double SparseVector::operator*(const FastSparseVector &vec) const {
-		auto iter = cbegin();
-		auto end = cend();
-
-		double dot = 0.0;
-		while (iter != end) {
-			dot += vec[*iter.indexIterator] * (*iter.valueIterator);
-			++iter;
-		}
+		double dot = 0;
+		for (size_t i = 0; i < size; i++)
+			dot += values[i] * vec[indices[i]];
 
 		return dot;
 	}

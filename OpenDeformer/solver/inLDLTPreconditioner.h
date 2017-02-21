@@ -24,6 +24,15 @@ namespace ODER{
 	private:
 		void incompleteLDLTDecomposition(const BlockedSymSpMatrix& mat);
 
+		struct InvMatRowListNode {
+			InvMatRowListNode() : prev(NULL), next(NULL), row(-1), col(-1), value(0.0) {}
+			InvMatRowListNode *prev;
+			InvMatRowListNode *next;
+
+			int row, col;
+			double value;
+		};
+
 		std::vector<double> values;
 		std::vector<int> rows;
 		std::vector<int> pcol;

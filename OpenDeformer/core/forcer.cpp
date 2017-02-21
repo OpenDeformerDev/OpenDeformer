@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "forcer.h"
+#include "element.h"
+#include "latool.h"
 #include "nodeIndexer.h"
 
 namespace ODER{

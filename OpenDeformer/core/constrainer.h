@@ -6,12 +6,9 @@
 #define ODER_CORE_CONSTRAINER_H
 
 #include "oder.h"
-#include "memory.h"
 #include "latool.h"
-#include "sparseMatrix.h"
+#include "memory.h"
 #include "mesh.h"
-#include "forcer.h"
-#include "element.h"
 #include <set>
 #include <vector>
 

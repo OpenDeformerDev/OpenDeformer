@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "constrainer.h"
+#include "element.h"
 
 namespace ODER{
 	void Constrainer::setConstrain(int nodeIndex, ConstrainType constrainType){

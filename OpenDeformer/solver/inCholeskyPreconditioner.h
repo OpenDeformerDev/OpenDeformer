@@ -21,7 +21,8 @@ namespace ODER{
 		~InCholeskyPreconditioner() = default;
 	private:
 		void incompleteCholeskyDecomposition(const BlockedSymSpMatrix& mat);
-		void proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, RecycledList<std::pair<int, int>> *list);
+		void proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, 
+			std::pair<int, int> *list, std::vector<std::pair<int, double>>& factorized);
 
 		std::vector<double> values;
 		std::vector<int> rows;

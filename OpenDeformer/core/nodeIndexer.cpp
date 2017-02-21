@@ -2,6 +2,7 @@
 #include "nodeIndexer.h"
 #include "constrainer.h"
 #include "mesh.h"
+#include "element.h"
 
 namespace ODER{
 	NodeIndexer::NodeIndexer(const Constrainer& constrainer){
