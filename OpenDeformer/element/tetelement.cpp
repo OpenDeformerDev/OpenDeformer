@@ -32,9 +32,9 @@ namespace ODER{
 	}
 
 	void TetFacet::getSurfVirtualWorks(double surfForce[3], double *result) const{
-		Vector3d a = mesh->getVertex(vertIndexs[0]) + mesh->getVertexDisplacement(vertIndexs[0]);  
-		Vector3d b = mesh->getVertex(vertIndexs[1]) + mesh->getVertexDisplacement(vertIndexs[1]);
-		Vector3d c = mesh->getVertex(vertIndexs[2]) + mesh->getVertexDisplacement(vertIndexs[2]);
+		Vector3d a = mesh->getVertex(vertIndexs[0]) + mesh->getVertexDisplacementConst(vertIndexs[0]);  
+		Vector3d b = mesh->getVertex(vertIndexs[1]) + mesh->getVertexDisplacementConst(vertIndexs[1]);
+		Vector3d c = mesh->getVertex(vertIndexs[2]) + mesh->getVertexDisplacementConst(vertIndexs[2]);
 		double factor = getTriArea(a, b, c) / 3.0;
 		constexpr int numVertPerSur = 3;
 		for (int i = 0; i < numVertPerSur; i++){
@@ -223,9 +223,9 @@ namespace ODER{
 	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, double *gradients) const{
 		Initiation(gradients, 9);
 
-		Vector3d v0 = mesh->getVertex(nodeIndexs[0]) + mesh->getVertexDisplacement(nodeIndexs[0]);
+		Vector3d v0 = mesh->getVertex(nodeIndexs[0]) + mesh->getVertexDisplacementConst(nodeIndexs[0]);
 		for (int i = 1; i < 4; i++) {
-			Vector3d ax = (mesh->getVertex(nodeIndexs[i]) + mesh->getVertexDisplacement(nodeIndexs[i])) - v0;
+			Vector3d ax = (mesh->getVertex(nodeIndexs[i]) + mesh->getVertexDisplacementConst(nodeIndexs[i])) - v0;
 			for (int j = 0; j < 3; j++) {
 				double d = ax[j];
 				for (int k = 0; k < 3; k++)
