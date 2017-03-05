@@ -15,6 +15,8 @@ namespace ODER{
 
 		void setNodeIndexs(int elementIndex){ nodeIndexs = mesh->getElementNodeReference(elementIndex); }
 		int getNodeIndex(int localIndex) const{ return nodeIndexs[localIndex]; }
+		int getLocalMatrixIndex(int aNodeIndex, int aNodeAxis, int bNodeIndex, int bNodeAxis) const;
+		int getLocalMatrixIndex(int aNodeDofIndex, int bNodeDofIndex) const;
 		virtual ~Element() = default;
 
 	protected:
@@ -77,6 +79,17 @@ namespace ODER{
 		virtual void generateNodalVirtualWorks(const double *precompute, const double *stresses, double *result) const = 0;
 		virtual ~InvertibleHyperelasticElement() = default;
 	};
+
+	inline int Element::getLocalMatrixIndex(int aNodeDofIndex, int bNodeDofIndex) const {
+		int numNodeElement = mesh->getNodePerElementCount();
+		if (aNodeDofIndex > bNodeDofIndex) std::swap(aNodeDofIndex, bNodeDofIndex);
+		int diagIndex = aNodeDofIndex * numNodeElement * 3 - (((aNodeDofIndex - 1) * aNodeDofIndex) / 2);
+		return diagIndex + bNodeDofIndex - aNodeDofIndex;
+	}
+
+	inline int Element::getLocalMatrixIndex(int aNodeIndex, int aNodeAxis, int bNodeIndex, int bNodeAxis) const {
+		return getLocalMatrixIndex(aNodeIndex * 3 + aNodeAxis, bNodeIndex * 3 + bNodeAxis);
+	}
 
 }
 

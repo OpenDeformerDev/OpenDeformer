@@ -70,6 +70,7 @@ namespace ODER{
 		}
 		int getNumColumns() const { return numColumns; }
 		std::vector<std::unordered_map<int, int>> getIndices() const;
+		int getNumEntries() const { return pcol[numColumns]; }
 		~SparseMatrix();
 	private:
 		int numColumns;
@@ -404,11 +405,9 @@ namespace ODER{
 			}
 		}
 
-		void addEntry(int row, int column, double data, 
-			const std::vector<std::unordered_map<int, int>>& indices) {
-			auto pair = indices[column].find(row);
-			Assert(pair != indices[column].cend());
-			values[pair->second] += data;
+		void addEntry(int index, double data) {
+			Assert(index >= 0 && index < getNumEntries());
+			values[index] += data; 
 		}
 
 		void getDiagonal(double* diags) const{
@@ -622,6 +621,7 @@ namespace ODER{
 		}
 
 		int getNumColumns() const{ return numColumns; }
+		int getNumEntries() const { return blockColumnOris[numBlockColumn + numRemainedColumn]; }
 	private:
 
 		int numColumns;

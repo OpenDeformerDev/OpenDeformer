@@ -5,7 +5,8 @@
 #include "datastructure.h"
 
 namespace ODER{
-	InCholeskyPreconditioner::InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double eps) : epsilon(eps){
+	InCholeskyPreconditioner::InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double eps, double relaxedScale) 
+		: epsilon(eps), relaxedScale(relaxedScale){
 		int columnCount = mat.getNumColumns();
 		pcol.reserve(columnCount + 1);
 		values.reserve(columnCount);
@@ -25,11 +26,10 @@ namespace ODER{
 			int row = *pairIter.indexIterator;
 			double val = *pairIter.valueIterator;
 			if (val != 0.0){
-				if (val * val < epsilon2 * diag * diags[row]){
-					val = fabs(val);
-					double scale = sqrt(diag / diags[row]);
-					diag += val * scale;
-					diags[row] += val / scale;
+				if (val * val < fabs(epsilon2 * diag * diags[row])){
+					double compensation = fabs(val) * relaxedScale;
+					diag += compensation;
+					diags[row] += compensation;
 				}
 				else
 					factorized.emplace_back(row, val);
@@ -48,6 +48,8 @@ namespace ODER{
 			list[columnIndex] = list[row];
 			list[row] = std::make_pair(columnIndex, start + 1);
 		}
+
+		if (diag <= 0) diag = epsilon2 * diag * diag;
 
 		double diagRoot = sqrt(diag);
 		values.emplace_back(diagRoot);

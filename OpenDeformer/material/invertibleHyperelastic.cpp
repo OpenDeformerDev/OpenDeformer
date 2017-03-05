@@ -5,6 +5,7 @@
 #include "nodeIndexer.h"
 #include "numerMethod.h"
 #include "tetelement.h"
+#include <iostream>
 
 namespace ODER{
 	InvertibleHyperelasticMaterial::InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh) :
@@ -32,8 +33,7 @@ namespace ODER{
 	}
 
 	void InvertibleHyperelasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-		const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices, 
-		BlockedSymSpMatrix& matrix, double *vws) const {
+		const double *u, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const {
 
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
@@ -89,17 +89,14 @@ namespace ODER{
 				energyGradient, energyHassian, subMatrix);
 			//add matrix entries
 			int entryIndex = 0;
+			const int *localIndices = matrixIndices + subMatrixEntryCount * elementIndex;
 			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
-				int globalRow = elementNodeIndices[subRow];
-				if (globalRow >= 0) {
+				if (elementNodeIndices[subRow] >= 0) {
 					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {
-						int globalColumn = elementNodeIndices[subColumn];
-						double matEntry = subMatrix[entryIndex++];
-						if (globalColumn >= 0 && matEntry != 0.0) {
-							int row = std::max(globalColumn, globalRow);
-							int column = std::min(globalColumn, globalRow);
-							matrix.addEntry(row, column, matEntry, matrixIndices);
-						}
+						if (elementNodeIndices[subColumn] >= 0) 
+							matrix.addEntry(localIndices[entryIndex], subMatrix[entryIndex]);
+
+						entryIndex += 1;
 					}
 				}
 				else

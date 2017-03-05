@@ -11,8 +11,8 @@
 namespace ODER{
 	class InCholeskyPreconditioner : public Preconditioner{
 	public:
-		InCholeskyPreconditioner(double epsilon) : epsilon(epsilon) {}
-		InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double epsilon);
+		InCholeskyPreconditioner(double epsilon, double relaxedScale) : epsilon(epsilon), relaxedScale(relaxedScale){}
+		InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double epsilon, double relaxedScale);
 		InCholeskyPreconditioner(const InCholeskyPreconditioner&&) = delete;
 		InCholeskyPreconditioner& operator=(const InCholeskyPreconditioner&&) = delete;
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
@@ -28,6 +28,7 @@ namespace ODER{
 		std::vector<int> rows;
 		std::vector<int> pcol;
 		double epsilon;
+		double relaxedScale;
 	};
 }
 

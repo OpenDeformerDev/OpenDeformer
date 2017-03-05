@@ -26,7 +26,7 @@ namespace ODER{
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-			const std::vector<std::unordered_map<int, int>> &matrixIndices, BlockedSymSpMatrix& matrix) const;
+			const int *matrixIndices, BlockedSymSpMatrix& matrix) const;
 
 		double getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }

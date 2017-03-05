@@ -3957,6 +3957,7 @@ Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
 	i = 0;
 	int surfVertIndices[3];
 	for (auto f : polygons){
+		std::swap(f.v[0], f.v[1]);
 		surfVertIndices[0] = vertIndices[vi[f.v[0]]];
 		surfVertIndices[1] = vertIndices[vi[f.v[1]]];
 		surfVertIndices[2] = vertIndices[vi[f.v[2]]];

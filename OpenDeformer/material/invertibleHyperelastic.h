@@ -12,8 +12,7 @@ namespace ODER {
 	public:
 		InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh);
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices, 
-			BlockedSymSpMatrix& matrix, double *vws) const;
+			const double *u, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const;
 		virtual ~InvertibleHyperelasticMaterial();
 	private:
 		virtual void getEnergyGradient(const double *invariants, double *gradient) const = 0;

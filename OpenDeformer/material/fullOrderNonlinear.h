@@ -15,13 +15,13 @@ namespace ODER {
 	public:
 		FullOrderNonlinearMaterial(double rho, MarterialType t) : MechMaterial(rho, MarterialType(t | Marterial_NonLinear)) {}
 		virtual void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, const std::vector<std::unordered_map<int, int>> &matrixIndices,
-			SpMatrix& matrix, double *vws) const = 0;
-		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& assmbler) const;
-		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& assmbler) const;
+			const double *u, const int *matrixIndices, SpMatrix& matrix, double *vws) const = 0;
+		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, typename SpMatrix::Assembler& assmbler) const;
+		void getMatrixIndicesPerElement(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, const SpMatrix& assmbler, int **indicesPointer) const;
 	};
 
-	template<class SparseMatrix> void FullOrderNonlinearMaterial<SparseMatrix>::getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& assmbler) const {
+	template<class SpMatrix> void FullOrderNonlinearMaterial<SpMatrix>::getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
+		typename SpMatrix::Assembler& assmbler) const {
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
@@ -47,10 +47,17 @@ namespace ODER {
 		delete element;
 	}
 
-	template<class SparseMatrix> void FullOrderNonlinearMaterial<SparseMatrix>::getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& assmbler) const {
+	template<class SpMatrix> void FullOrderNonlinearMaterial<SpMatrix>::getMatrixIndicesPerElement(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
+		const SpMatrix& mat, int **indicesPointer) const {
+		auto matrixIndices = mat.getIndices();
+
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
+		int indicesPerElementCount = ((3 * numNodesPerElement + 1) * 3 * numNodesPerElement) / 2;
+		*indicesPointer = new int[indicesPerElementCount * mesh->getElementCount()];
+
+		int *localIndices = *indicesPointer;
 		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement * sizeof(int));
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndexs(elementIndex);
@@ -59,19 +66,28 @@ namespace ODER {
 			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
 				int globalRow = elementNodeIndices[subRow];
 				if (globalRow >= 0) {
-					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
+					for (int subColumn = subRow; subColumn < numNodesPerElement * 3; subColumn++) {
 						int globalColumn = elementNodeIndices[subColumn];
 						if (globalColumn >= 0) {
 							int rowIndex = std::max(globalRow, globalColumn);
 							int columnIndex = std::min(globalRow, globalColumn);
-							assmbler.addEntry(rowIndex, columnIndex, 0.0);
+							localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = matrixIndices[columnIndex][rowIndex];
 						}
+						else 
+							localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = -1;
 					}
 				}
+				else {
+					for (int subColumn = subRow; subColumn < numNodesPerElement * 3; subColumn++)
+						localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = -1;
+				}
 			}
+
+			localIndices += indicesPerElementCount;
 		}
 		delete element;
 	}
+
 }
 
 #endif
