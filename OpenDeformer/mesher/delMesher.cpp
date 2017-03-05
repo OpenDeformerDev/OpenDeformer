@@ -642,7 +642,7 @@ void DelTriangulator::digCavity(Vertex *u, const Segment &s, Triangle *rf, int d
 
 Predicator<REAL> DelMesher::predicator;
 
-DelMesher::DelMesher(Vector *surfvs, int *triangles, int numv, int numtri, DelMesherCriteria cri) {
+DelMesher::DelMesher(Vector3f *surfvs, int *triangles, int numv, int numtri, DelMesherCriteria cri) {
 	criteria = cri;
 
 	oriVertices.reserve(numv);
@@ -789,7 +789,7 @@ void DelMesher::triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStru
 }
 
 void DelMesher::constrainedTriangulation() {
-	Geometer::brioSort3d(oriVertices.begin(), oriVertices.end(), [](Vertex *v)->DelVector { return v->point; });
+	//Geometer::brioSort3d(oriVertices.begin(), oriVertices.end(), [](Vertex *v)->DelVector { return v->point; });
 	triangulation3D(oriVertices, meshRep);
 	for (auto iter = meshRep.segmentBegin(); iter != meshRep.segmentEnd(); ++iter) mayMissingSegs.push_back(*iter);
 	std::sort(mayMissingSegs.begin(), mayMissingSegs.end(), 
@@ -3951,7 +3951,7 @@ Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
 	int i = 0;
 	for (auto pair : vi){
 		Vertex *vertex = pair.first;
-		mesh->setVertex(vertIndices[pair.second], Vector{ float(vertex->point.x), float(vertex->point.y), float(vertex->point.z) });
+		mesh->setVertex(vertIndices[pair.second], vertex->point);
 	}
 
 	i = 0;

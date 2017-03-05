@@ -178,6 +178,26 @@ namespace ODER{
 		}
 	}
 
+	void AsymptoticNewmark::updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {
+		double *displacements = new double[totalDofs];
+		getRawDisplacements(displacements);
+
+		auto constrainIter = indexer->getConstrainIterBegin();
+		auto constrainEnd = indexer->getConstrainIterEnd();
+		int displacementIndex = 0;
+		int vertCount = mesh->getNodeCount();
+		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++) {
+			for (int axis = 0; axis < 3; axis++) {
+				if (constrainIter != constrainEnd && (3 * vertIndex + axis) == *constrainIter)
+					constrainIter++;
+				else
+					mesh->getVertexDisplacement(vertIndex)[axis] = displacements[displacementIndex++];
+			}
+		}
+
+		delete[] displacements;
+	}
+
 	AsymptoticNewmark::~AsymptoticNewmark(){
 		freeAligned(a);
 		freeAligned(d);

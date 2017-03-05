@@ -14,8 +14,9 @@ namespace ODER {
 	template<class SpMatrix> class FullOrderNonlinearMaterial : public MechMaterial {
 	public:
 		FullOrderNonlinearMaterial(double rho, MarterialType t) : MechMaterial(rho, MarterialType(t | Marterial_NonLinear)) {}
+		virtual double *getPrecomputes(const Reference<Mesh> &mesh) const { return NULL; };
 		virtual void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, const int *matrixIndices, SpMatrix& matrix, double *vws) const = 0;
+			const double *precomputes, const int *matrixIndices, SpMatrix& matrix, double *vws) const = 0;
 		void getMatrixStructure(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, typename SpMatrix::Assembler& assmbler) const;
 		void getMatrixIndicesPerElement(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, const SpMatrix& assmbler, int **indicesPointer) const;
 	};

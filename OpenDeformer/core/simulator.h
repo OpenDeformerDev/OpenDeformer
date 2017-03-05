@@ -11,20 +11,20 @@
 namespace ODER{
 	class Simulator{
 	public:
-		Simulator():intergrator(NULL), rawDisplacements(NULL){}
-		Simulator(const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, Intergrator *intergrate);
+		Simulator():intergrator(NULL){}
+		Simulator(const Reference<Mesh> m, const Reference<NodeIndexer>& nodeIndexer, Intergrator *intergrate)
+			: mesh(m), indexer(nodeIndexer), intergrator(intergrate) {}
 		Simulator(Simulator &&simulator);
 		Simulator& operator=(Simulator &&simulator);
 		Simulator(const Simulator &simulator) = delete;
 		Simulator& operator=(const Simulator &simulator) = delete;
-		void getVertexPositions(Vector *vertices) const;
+		void getVertexPositions(Vector3f *vertices);
 		void runTimeSteps(int stepCount);
 		~Simulator();
 	private:
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
 		Intergrator *intergrator;
-		double *rawDisplacements;
 	};
 }
 

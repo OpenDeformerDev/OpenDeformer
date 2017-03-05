@@ -59,7 +59,7 @@ namespace ODER{
 		int getDeformGradientsPreEntryCount() const { return 9; }
 		int getQuadraturePointCount() const { return 1; }
 
-		void generateDeformationGradient(const double *precompute, const double *u, double *gradients) const;
+		void generateDeformationGradient(const double *precompute, double *gradients) const;
 		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats, 
 			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const;
 		void generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const;
@@ -70,18 +70,18 @@ namespace ODER{
 		int tensorIndex(int i, int j, int k, int l) const { return i * 27 + j * 9 + k * 3 + l; }
 	};
 
-	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
+	void getTetShapeFunctionDerivatives(const Vector3d& a, const Vector3d& b, const Vector3d& c, const Vector3d& d,
 		double *dn0, double *dn1, double *dn2, double *dn3);
 
-	inline float getTetVolume(const Vector& a, const Vector& b, const Vector& c, const Vector& d) {
-		Vector ab = b - a;
-		Vector ac = c - a;
-		Vector ad = d - a;
+	inline double getTetVolume(const Vector3d& a, const Vector3d& b, const Vector3d& c, const Vector3d& d) {
+		Vector3d ab = b - a;
+		Vector3d ac = c - a;
+		Vector3d ad = d - a;
 
-		return fabsf(ab*(ac%ad)) / 6.f;
+		return fabs(ab*(ac%ad)) / 6.f;
 	}
 
-	inline float getTriArea(const Vector& a, const Vector& b, const Vector& c) {
+	inline double getTriArea(const Vector3d& a, const Vector3d& b, const Vector3d& c) {
 		return ((b - a) % (c - a)).length() * 0.5f;
 	}
 }

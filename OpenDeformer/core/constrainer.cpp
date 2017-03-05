@@ -54,16 +54,16 @@ namespace ODER{
 		}
 	}
 
-	void Constrainer::setConstrains(const Vector& origin, const Vector& normal, ConstrainType constrainType){
-		const float epsilon = 1e-4;
+	void Constrainer::setConstrains(const Vector3d& origin, const Vector3d& normal, ConstrainType constrainType){
+		const double epsilon = 1e-4;
 		Facet *facet = mesh->getFacet();
 
 		for (int i = 0; i < mesh->getFacetCount(); i++){
 			facet->setVertIndexs(i);
 			for (int j = 0; j < mesh->getVertPerFacetCount(); j++){
 				int index = facet->getVertIndex(j);
-				Vector vert = mesh->getVertex(index);
-				if (fabsf((vert - origin)*normal) < epsilon){
+				Vector3d vert = mesh->getVertex(index);
+				if (fabs((vert - origin)*normal) < epsilon){
 					setConstrain(index, constrainType);
 				}
 			}

@@ -3,8 +3,7 @@
 
 namespace ODER {
 	InvertibleStVKMaterial::InvertibleStVKMaterial(double rho, double youngs, double possion,
-		double inversionTrashold, const Reference<Mesh> &mesh)
-		: InvertibleHyperelasticMaterial(rho, inversionTrashold, mesh) {
+		double inversionTrashold) : InvertibleHyperelasticMaterial(rho, inversionTrashold) {
 		lambda = possion * youngs / ((1.0 + possion) * (1.0 - 2.0 * possion));
 		mu = youngs / (2.0 * (1.0 + possion));
 	}

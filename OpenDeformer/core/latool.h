@@ -273,9 +273,9 @@ namespace ODER{
 		friend inline Mat4 operator*(float f, const Mat4 &mat){
 			return mat*f;
 		}
-		Vector operator*(const Vector& v) const{
+		Vector3f operator*(const Vector3f& v) const{
 			float x = v.x, y = v.y, z = v.z;
-			return Vector(m[0][0] * x + m[0][1] * y + m[0][2] * z, m[1][0] * x + m[1][1] * y + m[1][2] * z, m[2][0] * x + m[2][1] * y + m[2][2] * z);
+			return Vector3f(m[0][0] * x + m[0][1] * y + m[0][2] * z, m[1][0] * x + m[1][1] * y + m[1][2] * z, m[2][0] * x + m[2][1] * y + m[2][2] * z);
 		}
 		friend Mat4 Transpose(const Mat4&);
 		friend Mat4 Inverse(const Mat4&);
@@ -283,8 +283,8 @@ namespace ODER{
 	};
 
 	struct Quaternion{
-		Quaternion(){ v = Vector(0.0f, 0.0f, 0.0f); w = 1.0f; }
-		Quaternion(const Vector& vv, float ww) :v(vv), w(ww){};
+		Quaternion(){ v = Vector3f(0.0f, 0.0f, 0.0f); w = 1.0f; }
+		Quaternion(const Vector3f& vv, float ww) :v(vv), w(ww){};
 		Quaternion(const Mat4 &m);
 		Quaternion &operator~(){ //conjugate
 			v = -v;
@@ -341,7 +341,7 @@ namespace ODER{
 			return *this;
 		}
 
-		Vector v;
+		Vector3f v;
 		float w;
 	};
 
@@ -561,12 +561,12 @@ namespace ODER{
 		return ret;
 	}
 
-	inline Mat4 lookAt(const Vector& eye, const Vector& at, const Vector& up){
-		Vector n = Normalize(eye - at);
-		Vector u = Normalize(up%n);
-		Vector v = Normalize(n%u);
+	inline Mat4 lookAt(const Vector3f& eye, const Vector3f& at, const Vector3f& up){
+		Vector3f n = Normalize(eye - at);
+		Vector3f u = Normalize(up%n);
+		Vector3f v = Normalize(n%u);
 
-		Vector trans = -eye;
+		Vector3f trans = -eye;
 
 		float xTrans = u*trans;
 		float yTrans = v*trans;

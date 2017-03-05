@@ -15,7 +15,7 @@ namespace ODER{
 		incompleteCholeskyDecomposition(mat);
 	}
 
-	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags, 
+	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags,
 		std::pair<int, int> *list, std::vector<std::pair<int, double>>& factorized){
 		double diag = diags[columnIndex];
 		factorized.clear();
@@ -40,7 +40,7 @@ namespace ODER{
 		int end = start + 1 + factorized.size();
 		pcol.emplace_back(end);
 
-		std::sort(factorized.begin(), factorized.end(), 
+		std::sort(factorized.begin(), factorized.end(),
 			[](const std::pair<int, double>& left, const std::pair<int, double>& right) { return left.first < right.first; });
 
 		if (!factorized.empty()) {

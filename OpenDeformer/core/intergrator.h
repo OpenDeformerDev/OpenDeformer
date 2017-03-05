@@ -6,7 +6,7 @@
 #define ODER_CORE_INTERGRATOR_H
 
 #include "oder.h"
-#include "memory.h"
+#include "mesh.h"
 #include "nodeIndexer.h"
 
 namespace ODER{
@@ -17,7 +17,7 @@ namespace ODER{
 
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
 		virtual void runOneTimeStep() = 0;
-		virtual void getRawDisplacements(double *displacements) const = 0;
+		virtual void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const = 0;
 		virtual ~Intergrator() = default;
 
 	protected:

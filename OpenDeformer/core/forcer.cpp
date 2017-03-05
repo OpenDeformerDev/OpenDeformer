@@ -49,7 +49,8 @@ namespace ODER{
 		}
 	}
 
-	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, double surfaceForce[3], int surfaceCounts, int *surfaceIndex, const Reference<NodeIndexer> &indexer){
+	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, double surfaceForce[3], int surfaceCounts,
+		const int *surfaceIndex, const Reference<NodeIndexer> &indexer){
 		Facet *facet = mesh->getFacet();
 		const int numVertPerSur = mesh->getVertPerFacetCount();
 		double *result = new double[3 * numVertPerSur];

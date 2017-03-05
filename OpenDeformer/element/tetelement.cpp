@@ -32,7 +32,10 @@ namespace ODER{
 	}
 
 	void TetFacet::getSurfVirtualWorks(double surfForce[3], double *result) const{
-		double factor = getTriArea(mesh->getVertex(vertIndexs[0]), mesh->getVertex(vertIndexs[1]), mesh->getVertex(vertIndexs[2])) / 3.0;
+		Vector3d a = mesh->getVertex(vertIndexs[0]) + mesh->getVertexDisplacement(vertIndexs[0]);  
+		Vector3d b = mesh->getVertex(vertIndexs[1]) + mesh->getVertexDisplacement(vertIndexs[1]);
+		Vector3d c = mesh->getVertex(vertIndexs[2]) + mesh->getVertexDisplacement(vertIndexs[2]);
+		double factor = getTriArea(a, b, c) / 3.0;
 		constexpr int numVertPerSur = 3;
 		for (int i = 0; i < numVertPerSur; i++){
 			for (int j = 0; j < 3; j++)
@@ -91,12 +94,12 @@ namespace ODER{
 
 		for (int a = 0; a < numNodesPerElement; a++){
 			const double *dNas = BMatrixs + entryCountPerB*a;
-			VectorBase<double> dNa(dNas[0], dNas[1], dNas[2]);
+			Vector3d dNa(dNas[0], dNas[1], dNas[2]);
 
 			for (int b = 0; b < numNodesPerElement; b++){
 				const double *dNbs = BMatrixs + entryCountPerB*b;
 
-				Tensor2<double> t = dNa ^ VectorBase<double>(dNbs[0], dNbs[1], dNbs[2]);
+				Tensor2<double> t = dNa ^ Vector3d(dNbs[0], dNbs[1], dNbs[2]);
 				//double contraction in isotropic form
 				double digCommmon = lambda*(t(0, 0) + t(1, 1) + t(2, 2));
 				t(0, 0) = digCommmon + mu2*t(0, 0);
@@ -113,8 +116,8 @@ namespace ODER{
 				for (int c = 0; c < numNodesPerElement; c++){
 					//nlpart
 					const double *dNcs = BMatrixs + entryCountPerB*c;
-					VectorBase<double> dNc(dNcs[0], dNcs[1], dNcs[2]);
-					VectorBase<double> result = t * dNc;
+					Vector3d dNc(dNcs[0], dNcs[1], dNcs[2]);
+					Vector3d result = t * dNc;
 					int nlsubIndex = (indexOffset + c) * 3;
 					nlpart[nlsubIndex + 0] = result[0] * nlFactor;
 					nlpart[nlsubIndex + 1] = result[1] * nlFactor;
@@ -122,7 +125,7 @@ namespace ODER{
 					//nnpart
 					for (int d = 0; d < numNodesPerElement; d++){
 						const double *dNds = BMatrixs + entryCountPerB*d;
-						Tensor2<double> left = VectorBase<double>(dNds[0], dNds[1], dNds[2]) ^ dNc;
+						Tensor2<double> left = Vector3d(dNds[0], dNds[1], dNds[2]) ^ dNc;
 						int nnsubIndex = (indexOffset + c) * 4;
 						nnpart[nnsubIndex + d] = (left & t) * nnFactor;
 					}
@@ -206,9 +209,9 @@ namespace ODER{
 		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
 			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]), drivates, drivates + 3, drivates + 6, drivates + 9);
 		
-		Vector ab = mesh->getVertex(nodeIndexs[1]) - mesh->getVertex(nodeIndexs[0]);
-		Vector ac = mesh->getVertex(nodeIndexs[2]) - mesh->getVertex(nodeIndexs[0]);
-		Vector ad = mesh->getVertex(nodeIndexs[3]) - mesh->getVertex(nodeIndexs[0]);
+		Vector3d ab = mesh->getVertex(nodeIndexs[1]) - mesh->getVertex(nodeIndexs[0]);
+		Vector3d ac = mesh->getVertex(nodeIndexs[2]) - mesh->getVertex(nodeIndexs[0]);
+		Vector3d ad = mesh->getVertex(nodeIndexs[3]) - mesh->getVertex(nodeIndexs[0]);
 
 		Tensor2<double> D(ab.x, ac.x, ad.x,
 			ab.y, ac.y, ad.y,
@@ -217,13 +220,14 @@ namespace ODER{
 		memcpy(deforamtionGradients, &(Inverse(D)(0, 0)), sizeof(double) * 9);
 	}
 
-	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, const double *u, double *gradients) const{
+	void InvertibleHyperelasticTetElement::generateDeformationGradient(const double *precompute, double *gradients) const{
 		Initiation(gradients, 9);
 
+		Vector3d v0 = mesh->getVertex(nodeIndexs[0]) + mesh->getVertexDisplacement(nodeIndexs[0]);
 		for (int i = 1; i < 4; i++) {
-			Vector ax = mesh->getVertex(nodeIndexs[i]) - mesh->getVertex(nodeIndexs[0]);
+			Vector3d ax = (mesh->getVertex(nodeIndexs[i]) + mesh->getVertexDisplacement(nodeIndexs[i])) - v0;
 			for (int j = 0; j < 3; j++) {
-				double d = ax[j] + (u[i * 3 + j] - u[j]);
+				double d = ax[j];
 				for (int k = 0; k < 3; k++)
 					gradients[j * 3 + k] += d * precompute[(i - 1) * 3 + k];
 			}
@@ -243,7 +247,7 @@ namespace ODER{
 		double factor = 1.0 / (36.0 * volume);
 
 		const Tensor2<double> VT(rightOrthoMats);
-		VectorBase<double> dN[4];
+		Vector3d dN[4];
 		for (int i = 0; i < nodePerElementCount; i++) {
 			for (int j = 0; j < 3; j++)
 				dN[i][j] = drivates[i * 3 + j];
@@ -254,7 +258,7 @@ namespace ODER{
 		const Tensor2<double> UT = Transpose(U);
 		Tensor2<double> subMat;
 		for (int aNodeIndex = 0; aNodeIndex < nodePerElementCount; aNodeIndex++) {
-			const VectorBase<double> dNa = dN[aNodeIndex];
+			const Vector3d dNa = dN[aNodeIndex];
 			//generate diag subMat
 			for (int i = 0; i < 3; i++) {
 				for (int j = 0; j < 3; j++) {
@@ -273,7 +277,7 @@ namespace ODER{
 			
 			//generate offdiag subMat
 			for (int bNodeIndex = aNodeIndex + 1; bNodeIndex < nodePerElementCount; bNodeIndex++) {
-				const VectorBase<double> dNb = dN[bNodeIndex];
+				const Vector3d dNb = dN[bNodeIndex];
 				for (int i = 0; i < 3; i++) {
 					for (int j = 0; j < 3; j++) {
 						double entry = 0.0;
@@ -297,7 +301,7 @@ namespace ODER{
 		constexpr double factor = 1.0 / 6.0;
 		Tensor2<double> piolaSress(stress);
 		for (int i = 0; i < nodePerElementCount - 1; i++) {
-			VectorBase<double> vw = piolaSress * VectorBase<double>(derivate[i * 3 + 0], derivate[i * 3 + 1], derivate[i * 3 + 2]) * factor;
+			Vector3d vw = piolaSress * Vector3d(derivate[i * 3 + 0], derivate[i * 3 + 1], derivate[i * 3 + 2]) * factor;
 			memcpy(result + i * 3, &vw[0], sizeof(double) * 3);
 		}
 
@@ -337,9 +341,9 @@ namespace ODER{
 			                          energyHassian[1], energyHassian[3], energyHassian[4],
 			                          energyHassian[2], energyHassian[4], energyHassian[5]);
 
-		const VectorBase<double> vec0(2.0 * diag[0], 4.0 * diag[0] * diagSquare[0], 2.0 * invariant / diag[0]);
-		const VectorBase<double> vec1(2.0 * diag[1], 4.0 * diag[1] * diagSquare[1], 2.0 * invariant / diag[1]);
-		const VectorBase<double> vec2(2.0 * diag[2], 4.0 * diag[2] * diagSquare[2], 2.0 * invariant / diag[2]);
+		const Vector3d vec0(2.0 * diag[0], 4.0 * diag[0] * diagSquare[0], 2.0 * invariant / diag[0]);
+		const Vector3d vec1(2.0 * diag[1], 4.0 * diag[1] * diagSquare[1], 2.0 * invariant / diag[1]);
+		const Vector3d vec2(2.0 * diag[2], 4.0 * diag[2] * diagSquare[2], 2.0 * invariant / diag[2]);
 
 		double gamma00 = vec0 * (hassian * vec0) + 4.0 * delta00;
 		double gamma01 = vec1 * (hassian * vec0) + 4.0 * delta01;
@@ -449,18 +453,17 @@ namespace ODER{
 		}
 	}
 
-	void getTetShapeFunctionDerivatives(const Vector& a, const Vector& b, const Vector& c, const Vector& d,
+	void getTetShapeFunctionDerivatives(const Vector3d& a, const Vector3d& b, const Vector3d& c, const Vector3d& d,
 		double *dn0, double *dn1, double *dn2, double *dn3) {
 
-		Vector da = a - d;
-		Vector db = b - d;
-		Vector dc = c - d;
-		Vector ca = a - c;
-		Vector cb = b - c;
+		Vector3d da = a - d;
+		Vector3d db = b - d;
+		Vector3d dc = c - d;
+		Vector3d ca = a - c;
+		Vector3d cb = b - c;
 
-		Vector dNa, dNb, dNc, dNd;
+		Vector3d dNa, dNb, dNc, dNd;
 
-		Vector dTest = da % dc + db % da + dc % db;
 		if (da * (db % dc) > 0.0) {
 			dNa = db % dc;
 			dNb = dc % da;

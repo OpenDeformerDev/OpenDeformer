@@ -10,10 +10,12 @@
 namespace ODER {
 	class InvertibleHyperelasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix>{
 	public:
-		InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh);
+		InvertibleHyperelasticMaterial(double rho, double inversionTrashold) :
+			FullOrderNonlinearMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Invertible)), trashold(inversionTrashold) {}
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const double *u, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const;
-		virtual ~InvertibleHyperelasticMaterial();
+			const double *precomputes, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const;
+		double *getPrecomputes(const Reference<Mesh> &mesh) const;
+		virtual ~InvertibleHyperelasticMaterial() = default;
 	private:
 		virtual void getEnergyGradient(const double *invariants, double *gradient) const = 0;
 		virtual void getEnergyHassian(const double *invariants, double *hassian) const = 0;
@@ -30,12 +32,6 @@ namespace ODER {
 		void getPiolaKirchhoffStress(const double *diags, const double *leftOrthoMat, const double *rightOrthoMat, 
 			const double *invariants, const double *eneryGradient, double *stress) const;
 
-		double *shapeFunctionDrivativesPrecomputed;
-		double *deformationGradientPrecomputed;
-
-		double *memory;
-
-		InvertibleHyperelasticElement *element;
 		double trashold;
 	}; 
 }

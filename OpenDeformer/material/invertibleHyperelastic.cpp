@@ -8,33 +8,29 @@
 #include <iostream>
 
 namespace ODER{
-	InvertibleHyperelasticMaterial::InvertibleHyperelasticMaterial(double rho, double inversionTrashold, const Reference<Mesh> &mesh) :
-		FullOrderNonlinearMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Invertible)), trashold(inversionTrashold) {
-
-		element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
+	double *InvertibleHyperelasticMaterial::getPrecomputes(const Reference<Mesh> &mesh) const {
+		InvertibleHyperelasticElement *element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
+		const int elementCount = mesh->getElementCount();
 		const int drivativeEntry = element->getDirvateEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
-		const int elementCount = mesh->getElementCount();
-		const int nodePerElementCount = mesh->getNodePerElementCount();
-		const int quadratureCount = element->getQuadraturePointCount();
 
-		shapeFunctionDrivativesPrecomputed = new double[elementCount * drivativeEntry];
-		deformationGradientPrecomputed = new double[elementCount * deformGradientEntry];
-
-		const int workingEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2 +
-			6 * nodePerElementCount + (9 + 3 + 9 + 9 + 3 + 6 + 9) * quadratureCount;
-		memory = new double[workingEntryCount];
+		double *precomputes = new double[elementCount * (drivativeEntry + deformGradientEntry)];
+		double *shapeFunctionDrivativesPrecomputed = precomputes;
+		double *deformationGradientPrecomputed = precomputes + elementCount * drivativeEntry;
 
 		for (int i = 0; i < elementCount; i++) {
 			element->setNodeIndexs(i);
 			element->getPrecomputes(shapeFunctionDrivativesPrecomputed + i * drivativeEntry,
 				deformationGradientPrecomputed + i * deformGradientEntry);
 		}
+
+		delete element;
+		return precomputes;
 	}
 
 	void InvertibleHyperelasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-		const double *u, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const {
-
+		const double *precomputes, const int *matrixIndices, BlockedSymSpMatrix& matrix, double *vws) const {
+		InvertibleHyperelasticElement *element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
 		const int drivativeEntry = element->getDirvateEntryCount();
@@ -42,16 +38,22 @@ namespace ODER{
 		const int quadratureCount = element->getQuadraturePointCount();
 		const int subMatrixEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2;
 
+		const int workingEntryCount = subMatrixEntryCount + 3 * nodePerElementCount + (9 + 3 + 9 + 9 + 3 + 6 + 9) * quadratureCount;
+		double *memory = new double[workingEntryCount];
+		Initiation(memory, workingEntryCount);
+
 		double *subMatrix = memory;
 		double *subVirtualWorks = subMatrix + subMatrixEntryCount;
-		double *nodeDisplacements = subVirtualWorks + 3 * nodePerElementCount;
-		double *gradients = nodeDisplacements + 3 * nodePerElementCount;
+		double *gradients = subVirtualWorks + 3 * nodePerElementCount;
 		double *diags = gradients + 9 * quadratureCount;
 		double *leftOrthoMats = diags + 3 * quadratureCount;
 		double *rightOrthoMats = leftOrthoMats + 9 * quadratureCount;
 		double *energyGradient = rightOrthoMats + 9 * quadratureCount;
 		double *energyHassian = energyGradient + 3 * quadratureCount;
 		double *stresses = energyHassian + 6 * quadratureCount;
+
+		const double *shapeFunctionDrivativesPrecomputed = precomputes;
+		const double *deformationGradientPrecomputed = precomputes + elementCount * drivativeEntry;
 
 		int *elementNodeIndices = (int *)alloca(3 * nodePerElementCount * sizeof(int));
 
@@ -61,16 +63,7 @@ namespace ODER{
 			const double *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
 			const double *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;
 
-		
-			//copy node displacements
-			Initiation(nodeDisplacements, 3 * nodePerElementCount);
-			for (int localIndex = 0; localIndex < nodePerElementCount * 3; localIndex++) {
-				int globalIndex = elementNodeIndices[localIndex];
-				if (globalIndex >= 0)
-					nodeDisplacements[localIndex] = u[globalIndex];
-			}
-
-			element->generateDeformationGradient(gradientPre, nodeDisplacements, gradients);
+			element->generateDeformationGradient(gradientPre, gradients);
 			for (int quadrature = 0; quadrature < quadratureCount; quadrature++) {
 				modifiedDeformGradient(gradients + quadrature * 9, diags + quadrature * 3,
 					leftOrthoMats + quadrature * 3, rightOrthoMats + quadrature * 3);
@@ -112,6 +105,9 @@ namespace ODER{
 			}
 
 		}
+
+		delete element;
+		delete memory;
 	}
 
 	void InvertibleHyperelasticMaterial::modifiedDeformGradient(const double *gradient, double *diags, double *leftOrthoMat, double *rightOrthoMat) const {
@@ -162,8 +158,8 @@ namespace ODER{
 				VT(1, j) *= inverse1;
 				VT(2, j) *= inverse2;
 			}
-			VectorBase<double> another = VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2)) %
-				VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2));
+			Vector3d another = Vector3d(VT(1, 0), VT(1, 1), VT(1, 2)) %
+				Vector3d(VT(2, 0), VT(2, 1), VT(2, 2));
 			memcpy(&VT(0, 0), &another[0], sizeof(double) * 3);
 			break;
 		}
@@ -175,8 +171,8 @@ namespace ODER{
 				VT(0, j) *= inverse0;
 				VT(2, j) *= inverse2;
 			}
-			VectorBase<double> another = VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2)) %
-				VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2));
+			Vector3d another = Vector3d(VT(2, 0), VT(2, 1), VT(2, 2)) %
+				Vector3d(VT(0, 0), VT(0, 1), VT(0, 2));
 			memcpy(&VT(1, 0), &another[0], sizeof(double) * 3);
 			break;
 		}
@@ -185,8 +181,8 @@ namespace ODER{
 			double inverse = 1.0 / eigenVals[2];
 			for (int i = 0; i < 3; i++)
 				VT(2, i) *= inverse;
-			VectorBase<double> v1, v2;
-			coordinateSystem(VectorBase<double>(VT(2, 0), VT(2, 1), VT(2, 2)), v1, v2);
+			Vector3d v1, v2;
+			coordinateSystem(Vector3d(VT(2, 0), VT(2, 1), VT(2, 2)), v1, v2);
 			memcpy(&VT(0, 0), &v1[0], sizeof(double) * 3);
 			memcpy(&VT(1, 0), &v2[0], sizeof(double) * 3);
 			break;
@@ -199,8 +195,8 @@ namespace ODER{
 				VT(0, j) *= inverse0;
 				VT(1, j) *= inverse1;
 			}
-			VectorBase<double> another = VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)) %
-				VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2));
+			Vector3d another = Vector3d(VT(0, 0), VT(0, 1), VT(0, 2)) %
+				Vector3d(VT(1, 0), VT(1, 1), VT(1, 2));
 			memcpy(&VT(2, 0), &another[0], sizeof(double) * 3);
 			break;
 		}
@@ -209,8 +205,8 @@ namespace ODER{
 			double inverse = 1.0 / eigenVals[1];
 			for (int i = 0; i < 3; i++)
 				VT(1, i) *= inverse;
-			VectorBase<double> v1, v2;
-			coordinateSystem(VectorBase<double>(VT(1, 0), VT(1, 1), VT(1, 2)), v1, v2);
+			Vector3d v1, v2;
+			coordinateSystem(Vector3d(VT(1, 0), VT(1, 1), VT(1, 2)), v1, v2);
 			memcpy(&VT(2, 0), &v1[0], sizeof(double) * 3);
 			memcpy(&VT(0, 0), &v2[0], sizeof(double) * 3);
 			break;
@@ -263,13 +259,6 @@ namespace ODER{
 			for (int j = 0; j < 3; j++)
 				stress[i * 3 + j] = leftOrthoMat[i * 3 + 0] * rightMat[0 * 3 + j] + 
 				    leftOrthoMat[i * 3 + 1] * rightMat[1 * 3 + j] + leftOrthoMat[i * 3 + 2] * rightMat[2 * 3 + j];
-	}
-
-	InvertibleHyperelasticMaterial::~InvertibleHyperelasticMaterial() {
-		delete element;
-		delete[] shapeFunctionDrivativesPrecomputed;
-		delete[] deformationGradientPrecomputed;
-		delete[] memory;
 	}
 }
 

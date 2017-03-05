@@ -16,10 +16,12 @@ namespace ODER{
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
-		void getRawDisplacements(double *displacements) const;
+		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const;
 		~AsymptoticNewmark();
 
 	private:
+		void getRawDisplacements(double *displacements) const;
+
 		double *d;
 		double *v;
 		double *a;

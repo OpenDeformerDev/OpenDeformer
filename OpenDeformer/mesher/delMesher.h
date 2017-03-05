@@ -74,7 +74,7 @@ namespace ODER{
 			REAL facetAngleTol;
 		};
 
-		DelMesher(Vector *surfvs, int *triangls, int numv, int numtri, DelMesherCriteria criteria = DelMesherCriteria());
+		DelMesher(Vector3f *surfvs, int *triangls, int numv, int numtri, DelMesherCriteria criteria = DelMesherCriteria());
 		DelMesher(const DelMesher& mesher) = delete;
 		DelMesher& operator=(const DelMesher& mesher) = delete;
 		~DelMesher();

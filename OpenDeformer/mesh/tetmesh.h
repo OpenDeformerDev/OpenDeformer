@@ -20,8 +20,8 @@ namespace ODER{
 		Element* getMaterialElement(MarterialType type) const;
 		Facet* getFacet() const;
 		Element* getElement(int elementIndex, MarterialType type) const;
-		int getCloestNode(const Vector &v)  const { return -1; }
-		int getCloestElement(const Vector &v) const { return -1; }
+		int getCloestNode(const Vector3f &v)  const { return -1; }
+		int getCloestElement(const Vector3f &v) const { return -1; }
 		~TetMesh() = default;
 	};
 }

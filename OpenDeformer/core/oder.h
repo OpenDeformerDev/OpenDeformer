@@ -56,7 +56,8 @@ namespace ODER{
 	struct GeometricElement;
 	struct Facet;
 	template<class FT> struct VectorBase;
-	using Vector = VectorBase<float>;
+	using Vector3f = VectorBase<float>;
+	using Vector3d = VectorBase<double>;
 	class SparseVector;
 	class FastSparseVector;
 	template<class FT> struct Tensor2;

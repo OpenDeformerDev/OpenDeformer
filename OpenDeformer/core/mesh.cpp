@@ -5,9 +5,10 @@
 namespace ODER{
 	Mesh::Mesh(int numN, int numE, int numS, int numNPE, int numVPS)
 		:numNodes(numN), numElements(numE), numSurfaces(numS), numNodesPerElement(numNPE), numVertPerSur(numVPS){
-		vertices = new Vector[numNodes];
+		vertices = new Vector3d[numNodes];
 		elements = new int[numNodesPerElement * numElements];
 		surfaces = new int[numVertPerSur * numSurfaces];
+		displacements = new Vector3d[numNodes];
 	}
 
 	Mesh::Mesh(Mesh&& m) : numNodes(m.numNodes), numElements(m.numElements), numSurfaces(m.numSurfaces),

@@ -16,9 +16,11 @@ namespace ODER{
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const HookeMaterial& mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
-		void getRawDisplacements(double *displacements) const;
+		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const;
 		~LinearNewmark();
 	private:
+		void getRawDisplacements(double *displacements) const;
+
 		double *d;
 		double *v;
 		double *a;

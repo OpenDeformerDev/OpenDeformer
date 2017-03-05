@@ -20,12 +20,11 @@ namespace ODER {
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> * mater, LinearSolver<SpMatrix>* linearSolver);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
-		void getRawDisplacements(double *displacements) const;
+		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
 		~NonlinearImplicitBackwardEuler();
 	private:
-		double *d;
 		double *v;
-		double *pre_v;
+		double *delta_v;
 		double *internalVirtualWork;
 		double *externalVirtualWork;
 		double *rhs;
@@ -34,6 +33,7 @@ namespace ODER {
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
 		const FullOrderNonlinearMaterial<SpMatrix> *material;
+		double *precomputes;
 		LinearSolver<SpMatrix> *solver;
 		SpMatrix *tagentMatrix;
 		SpMatrix *massMatrix;
@@ -43,14 +43,13 @@ namespace ODER {
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, double massDamp, double stiffDamp, double ts,
 		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> *mater, LinearSolver<SpMatrix> *linearSolver) 
 		: Intergrator(DOFS, massDamp, stiffDamp, ts), mesh(m), indexer(nodeIndexer), material(mater), solver(linearSolver){
-		memory = new double[6 * dofs];
-		Initiation(memory, 6 * dofs);
-		d = memory;
-		v = memory + dofs;
-		pre_v = memory + 2 * dofs;
-		internalVirtualWork = memory + 3 * dofs;
-		externalVirtualWork = memory + 4 * dofs;
-		rhs = memory + 5 * dofs;
+		memory = new double[5 * dofs];
+		Initiation(memory, 5 * dofs);
+		v = memory;
+		delta_v = memory + dofs;
+		internalVirtualWork = memory + 2 * dofs;
+		externalVirtualWork = memory + 3 * dofs;
+		rhs = memory + 4 * dofs;
 
 		using AssemblerType = SpMatrix::Assembler;
 		AssemblerType structureAssembler(dofs);
@@ -63,45 +62,55 @@ namespace ODER {
 
 		solver->resetLinearSystem(tagentMatrix);
 		material->generateMassMatrix(mesh, indexer, matrixIndices, *massMatrix);
+		precomputes = material->getPrecomputes(mesh);
 	}
 
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::~NonlinearImplicitBackwardEuler() {
 		delete[] memory;
 		delete[] matrixIndices;
+		delete[] precomputes;
 		delete tagentMatrix;
 		delete massMatrix;
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::runOneTimeStep() {
-		memcpy(pre_v, v, sizeof(double) * dofs);
+		//memcpy(pre_v, v, sizeof(double) * dofs);
 
 		tagentMatrix->setZeros();
 		Initiation(internalVirtualWork, dofs);
 		Initiation(rhs, dofs);
-		material->generateMatrixAndVirtualWorks(mesh, indexer, d, matrixIndices, *tagentMatrix, internalVirtualWork);
+		material->generateMatrixAndVirtualWorks(mesh, indexer, precomputes, matrixIndices, *tagentMatrix, internalVirtualWork);
 		tagentMatrix->Scale(timeStep + stiffnessDamping);
 		tagentMatrix->Add(massDamping, *massMatrix);
-		SpMDV(*tagentMatrix, pre_v, rhs);
+		SpMDV(*tagentMatrix, v, rhs);
 		for (int i = 0; i < dofs; i++)
 			rhs[i] = timeStep * (externalVirtualWork[i] - internalVirtualWork[i] - rhs[i]);
 
 		tagentMatrix->Scale(timeStep);
 		tagentMatrix->Add(1.0, *massMatrix);
 
-		solver->solveLinearSystem(rhs, v);
+		solver->solveLinearSystem(rhs, delta_v);
 
-		for (int i = 0; i < dofs; i++) {
-			v[i] += pre_v[i];
-			d[i] += v[i] * timeStep;
+		for (int i = 0; i < dofs; i++) 
+			v[i] += delta_v[i];
+
+		//update mesh displacements
+		auto constrainIter = indexer->getConstrainIterBegin();
+		auto constrainEnd = indexer->getConstrainIterEnd();
+		int dofIndex = 0;
+		int vertCount = mesh->getNodeCount();
+		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++) {
+			for (int axis = 0; axis < 3; axis++) {
+				if (constrainIter != constrainEnd && (3 * vertIndex + axis) == *constrainIter) 
+					constrainIter++;
+				else
+					mesh->getVertexDisplacement(vertIndex)[axis] += (v[dofIndex++] * timeStep);
+			}
 		}
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::setExternalVirtualWork(const Forcer& forcer) {
 		forcer.getVirtualWorks(dofs, dofs, NULL, externalVirtualWork);
-	}
-
-	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::getRawDisplacements(double *displacements) const {
-		memcpy(displacements, d, sizeof(double) * dofs);
 	}
 }
 
