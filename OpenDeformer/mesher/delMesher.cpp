@@ -725,16 +725,6 @@ DelMesher::DelMesher(Vector3f *surfvs, int *triangles, int numv, int numtri, Del
 		v = v->getPointedVertex();
 		v->setVertexPointer(NULL);
 	}
-
-	detectAcuteVertices();
-
-	//allocate space
-	tobeDeletedFaces.reserve(32);
-	newSegsOfFaces.reserve(32);
-	tobeDeletedTets.reserve(32);
-	newFacesOfTets.reserve(32);
-
-	constrainedTriangulation();
 }
 
 DelMesher::~DelMesher() {
@@ -789,8 +779,18 @@ void DelMesher::triangulation3D(std::vector<Vertex *>& vertices, TetMeshDataStru
 }
 
 void DelMesher::constrainedTriangulation() {
-	//Geometer::brioSort3d(oriVertices.begin(), oriVertices.end(), [](Vertex *v)->DelVector { return v->point; });
+	for (int i = 0; i < oriVertices.size(); i++) oriVertices[i]->setVertexPointer((Vertex *)i);
+	Geometer::brioSort3d(oriVertices.begin(), oriVertices.end(), [](Vertex *v)->DelVector { return v->point; });
 	triangulation3D(oriVertices, meshRep);
+	for (int i = 0; i < oriVertices.size(); i++) {
+		int oriIndex = (int)oriVertices[i]->getPointedVertex();
+		while (oriIndex != i) {
+			std::swap(oriVertices[i], oriVertices[oriIndex]);
+			oriIndex = (int)oriVertices[i]->getPointedVertex();
+		}
+		oriVertices[i]->setVertexPointer(NULL);
+	}
+
 	for (auto iter = meshRep.segmentBegin(); iter != meshRep.segmentEnd(); ++iter) mayMissingSegs.push_back(*iter);
 	std::sort(mayMissingSegs.begin(), mayMissingSegs.end(), 
 		[](const Segment& left, const Segment& right) {
@@ -3895,6 +3895,16 @@ bool DelMesher::mayIneligible(int fIndex, Vertex *v) const {
 }
 
 Reference<Mesh> DelMesher::generateMesh(int *vertexLableMap){
+	detectAcuteVertices();
+
+	//allocate space
+	tobeDeletedFaces.reserve(32);
+	newSegsOfFaces.reserve(32);
+	tobeDeletedTets.reserve(32);
+	newFacesOfTets.reserve(32);
+
+	constrainedTriangulation();
+
 	for (auto t : meshRep) {
 		//set vertices relaxed insertion radius
 		Vertex *a = t.v[0], *b = t.v[1], *c = t.v[2], *d = t.v[3];

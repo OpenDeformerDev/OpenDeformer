@@ -316,7 +316,7 @@ namespace ODER{
 		const FT sqrtTerm = sqrt(invariant);
 		const FT angleCos = (FT(3) * FT(0.5) * squareRoot3) * ((det / invariant) / sqrtTerm);
 
-		if (isnan(angleCos)) {
+		if (isnan(angleCos) || isinf(angleCos)) {
 			eigenvalues[0] = eigenvalues[1] = eigenvalues[2] = aveTrace;
 			Initiation(eigenvectors, 9);
 			eigenvectors[0] = eigenvectors[4] = eigenvectors[8] = FT(1);
@@ -388,17 +388,15 @@ namespace ODER{
 		eigenvalues[2] = eigenVal2 + aveTrace;
 
 		VectorBase<FT> eigenVector1;
-		if (eigenVal1 != eigenVal2) { 
-			const VectorBase<FT> u0 = (trans0 - eigenVal1 * s0) % eigenVector0;
-			const VectorBase<FT> u1 = (trans1 - eigenVal1 * s1) % eigenVector0;
+		const VectorBase<FT> u0 = (trans0 - eigenVal1 * s0) % eigenVector0;
+		const VectorBase<FT> u1 = (trans1 - eigenVal1 * s1) % eigenVector0;
 
-			const FT u0Len2 = u0.length2();
-			const FT u1Len2 = u1.length2();
+		const FT u0Len2 = u0.length2();
+		const FT u1Len2 = u1.length2();
 
-			eigenVector1 = u0Len2 > u1Len2 ? u0 / sqrt(u0Len2) : u1 / sqrt(u1Len2);
-		}
-		else
-			eigenVector1 = s0;
+		if (u0Len2 != FT(0) && u0Len2 != FT(0)) eigenVector1 = u0Len2 > u1Len2 ? u0 / sqrt(u0Len2) : u1 / sqrt(u1Len2);
+		else eigenVector1 = s0;
+
 		memcpy(eigenvectors + 3, &eigenVector1[0], sizeof(FT) * 3);
 
 		VectorBase<FT> eigenVector2 = eigenVector0 % eigenVector1;

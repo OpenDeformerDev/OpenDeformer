@@ -12,8 +12,8 @@
 namespace ODER{
 	class CGSolver : public LinearSolver<BlockedSymSpMatrix>{
 	public:
-		CGSolver(double tol, Preconditioner* precondition = NULL, const BlockedSymSpMatrix* m = NULL)
-			:LinearSolver(m), tolerant(tol), preconditioner(precondition){}
+		CGSolver(double tol, int maxIter, Preconditioner* precondition = NULL, const BlockedSymSpMatrix* m = NULL)
+			:LinearSolver(m), tolerant(tol), maxIteration(maxIter), preconditioner(precondition){}
 		CGSolver(const CGSolver&) = delete;
 		CGSolver& operator=(const CGSolver&) = delete;
 		CGSolver(CGSolver&&) = default;
@@ -23,6 +23,7 @@ namespace ODER{
 		~CGSolver() = default;
 	private:
 		double tolerant;
+		int maxIteration;
 		Preconditioner* preconditioner;
 	};
 }

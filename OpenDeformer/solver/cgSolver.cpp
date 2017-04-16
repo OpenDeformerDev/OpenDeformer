@@ -29,7 +29,8 @@ namespace ODER{
 		double epsilon = Dot(width, rhs, rhs) * tolerant * tolerant;
 		double remainderNorm2 = Dot(width, remainder, remainder);
 
-		while (remainderNorm2 > epsilon){
+		int iter = 0;
+		while (iter++ < maxIteration && remainderNorm2 > epsilon) {
 			// q = mat * direction
 			Initiation(temp, width);
 			SpMDV(*(this->mat), direction, temp);

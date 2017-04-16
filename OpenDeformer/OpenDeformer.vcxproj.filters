@@ -186,6 +186,9 @@
     <ClInclude Include="mesher\geometer.h">
       <Filter>头文件\mesher</Filter>
     </ClInclude>
+    <ClInclude Include="material\invertibleNeoHookean.h">
+      <Filter>头文件\material</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -268,6 +271,9 @@
     </ClCompile>
     <ClCompile Include="mesher\delPrimitive.cpp">
       <Filter>源文件\mesher</Filter>
+    </ClCompile>
+    <ClCompile Include="material\invertibleNeoHookean.cpp">
+      <Filter>源文件\material</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

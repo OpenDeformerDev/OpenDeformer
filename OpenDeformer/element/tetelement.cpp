@@ -403,7 +403,7 @@ namespace ODER{
 			}
 		}
 
-		if(negative) {
+		if (negative) {
 			const Tensor2<double> Q = Transpose(QT);
 			for (int i = 0; i < 3; i++) {
 				for (int j = 0; j < 3; j++)
