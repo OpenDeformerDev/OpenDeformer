@@ -216,8 +216,8 @@ namespace ODER{
 			double inverse = 1.0 / eigenVals[0];
 			for (int i = 0; i < 3; i++)
 				VT(0, i) *= inverse;
-			VectorBase<double> v1, v2;
-			coordinateSystem(VectorBase<double>(VT(0, 0), VT(0, 1), VT(0, 2)), v1, v2);
+			Vector3d v1, v2;
+			coordinateSystem(Vector3d(VT(0, 0), VT(0, 1), VT(0, 2)), v1, v2);
 			memcpy(&VT(1, 0), &v1[0], sizeof(double) * 3);
 			memcpy(&VT(2, 0), &v2[0], sizeof(double) * 3);
 			break;

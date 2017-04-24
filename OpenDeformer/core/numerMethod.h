@@ -403,6 +403,83 @@ namespace ODER{
 		memcpy(eigenvectors + 6, &eigenVector2[0], sizeof(FT) * 3);
 	}
 
+	template<class FT> void properQRDecompostion3x3(const FT *mat, FT* ortho, FT *upperTri) {
+		auto givens = [](FT a, FT b, FT& c, FT& s, FT& r){
+			if (b == FT(0)) {
+				c = a < FT(0) ? FT(-1) : FT(1);
+				s = FT(0);
+				r = fabs(a);
+			}
+			else if (a == FT(0)) {
+				c = FT(0);
+				s = b < FT(0) ? FT(1) : FT(-1);
+				r = fabs(b);
+			}
+			else if (fabs(b) > fabs(a)) {
+				FT tau = -a / b;
+				FT u = sqrt(FT(1) + tau * tau);
+				if (b < FT(0)) u = -u;
+				s = -FT(1) / u;
+				c = s * tau;
+				r = b * u;
+			}
+			else {
+				FT tau = -b / a;
+				FT u = sqrt(FT(1) + tau * tau);
+				if (a < FT(0)) u = -u;
+				c = FT(1) / u;
+				s = c * tau;
+				r = a * u;
+			}
+		};
+
+		FT Q[9], R[9];
+		memcpy(R, mat, sizeof(FT) * 9);
+		Initiation(Q, 9);
+		//three givens transformation
+		FT c = FT(0), s = FT(0), r = FT(0);
+		givens(R[3], R[6], c, s, r);
+		Q[4] = Q[8] = c; Q[5] = s; Q[7] = -s;
+		R[3] = r; R[6] = FT(0);
+		for (int i = 0; i < 2; i++) {
+			FT p = c * R[4 + i] - s * R[7 + i];
+			FT q = s * R[4 + i] + c * R[7 + i];
+			R[4 + i] = p;
+			R[7 + i] = q;
+		}
+
+		givens(R[0], R[3], c, s, r);
+		//update R
+		R[0] = r; R[3] = FT(0);
+		for (int i = 0; i < 2; i++) {
+			FT p = c * R[1 + i] - s * R[4 + i];
+			FT q = s * R[1 + i] + c * R[4 + i];
+			R[1 + i] = p;
+			R[4 + i] = q;
+		}
+		//update Q
+		Q[0] = c; Q[1] = s;
+		Q[3] = Q[4] * -s; Q[4] *= c;
+		Q[6] = Q[7] * -s; Q[7] *= c;
+
+		givens(R[4], R[7], c, s, r);
+		//update R
+		R[4] = r; R[7] = FT(0);
+		FT pp = c * R[5] - s * R[8];
+		FT qq = s * R[5] + c * R[8];
+		R[5] = pp; R[8] = qq;
+		//update Q
+		for (int i = 0; i < 3; i++) {
+			FT p = c * Q[i * 3 + 1] - s * Q[i * 3 + 2];
+			FT q = s * Q[i * 3 + 1] + c * Q[i * 3 + 2];
+			Q[i * 3 + 1] = p;
+			Q[i * 3 + 2] = q;
+		}
+
+		memcpy(ortho, Q, sizeof(FT) * 9);
+		memcpy(upperTri, R, sizeof(FT) * 9);
+	}
+
 	template<class FT> FT Dot(int width, const FT *x, const FT *y) {
 		FT result = FT(0);
 		for (int i = 0; i < width; i++)
