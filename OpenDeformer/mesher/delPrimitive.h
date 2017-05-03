@@ -11,14 +11,13 @@
 #include "allocator.h"
 #include <numeric>
 
-#define REAL double
-
 #define NEXT_F(i) (((i)+1)%3)
 #define NEXT_T(i) (((i)+1)%4)
-#define SQRTF_2 REAL(1.4142135623730950488016887242096980785696718753769480732)
+#define SQRT_2 1.4142135623730950488016887242096980785696718753769480732
 
 namespace ODER {
-	using DelVector = VectorBase<REAL>;
+	using DelReal = double;
+	using DelVector = VectorBase<DelReal>;
 
 	class VertexLabeler {
 	public:
@@ -67,15 +66,15 @@ namespace ODER {
 	class TetMeshDataStructure;
 
 	struct Vertex {
-		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
+		Vertex() : weight(0), relaxedInsetionRadius(std::numeric_limits<DelReal>::max()), label(-1), 
 			vertexPointer(NULL), pointers(0), type(VertexType::Vertex_Undefined){}
 		template<class FT> explicit Vertex(const VectorBase<FT>& p, VertexType t = VertexType::Vertex_Undefined)
-			: point{ p.x, p.y, p.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), 
+			: point{ p.x, p.y, p.z }, weight(0), relaxedInsetionRadius(std::numeric_limits<DelReal>::max()), label(-1), 
 			vertexPointer(NULL), pointers(0), type(t) {}
-		explicit Vertex(const DelVector& p, REAL w = 0, VertexType t = VertexType::Vertex_Undefined)
-			: point(p), weight(w), relaxedInsetionRadius(std::numeric_limits<REAL>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
+		explicit Vertex(const DelVector& p, DelReal w = 0, VertexType t = VertexType::Vertex_Undefined)
+			: point(p), weight(w), relaxedInsetionRadius(std::numeric_limits<DelReal>::max()), label(-1), pointers(0), vertexPointer(NULL), type(t) {}
 		void setGhost() {
-			constexpr REAL inf = std::numeric_limits<REAL>::infinity();
+			constexpr DelReal inf = std::numeric_limits<DelReal>::infinity();
 			point.x = inf; point.y = inf; point.z = inf;
 			weight = -inf;
 			label = VertexLabeler::getSpecilGhostLabel();
@@ -113,8 +112,8 @@ namespace ODER {
 		int getOriSegmentIndex() const;
 
 		DelVector point;
-		REAL weight;
-		REAL relaxedInsetionRadius;
+		DelReal weight;
+		DelReal relaxedInsetionRadius;
 	private:
 		void setEdgeList(EdgeListNode *n);
 		EdgeListNode *getEdgeList();
@@ -295,7 +294,7 @@ namespace ODER {
 		bool operator==(const Segment &s) const {
 			return v[0] == s.v[0] && v[1] == s.v[1];
 		}
-		REAL getLength() const { return (v[0]->point - v[1]->point).length(); }
+		DelReal getLength() const { return (v[0]->point - v[1]->point).length(); }
 		Vertex *v[2];
 	};
 
@@ -341,20 +340,20 @@ namespace ODER {
 			Triangle(v0, v1, v2, ordered), radius(-1) {}
 		TriangleWithGeometry(const Triangle& f): Triangle(f), radius(-1) {}
 		void setGeometricProperties();
-		REAL getRadius() const { return radius; }
+		DelReal getRadius() const { return radius; }
 		DelVector getCircumcenter() const { return circumcenter; }
 	private:
-		REAL radius;
+		DelReal radius;
 		DelVector circumcenter;
 	};
 
 	struct Tetrahedron {
 		Tetrahedron() {
 			v[0] = v[1] = v[2] = v[3] = NULL;
-			reRation = radius = REAL(-1);
+			reRation = radius = DelReal(-1);
 		}
 		Tetrahedron(Vertex *v0, Vertex *v1, Vertex *v2, Vertex *v3, bool ordered = false) {
-			reRation = radius = REAL(-1);
+			reRation = radius = DelReal(-1);
 			v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
 			if (ordered) sortVertices();
 		}
@@ -372,13 +371,13 @@ namespace ODER {
 				v[2] != t.v[2] ||
 				v[3] != t.v[3];
 		}
-		REAL getRelaxedRadiusEdgeRation() const { return reRation; }
-		REAL getRadius() const { return radius; }
+		DelReal getRelaxedRadiusEdgeRation() const { return reRation; }
+		DelReal getRadius() const { return radius; }
 		DelVector getCircumcenter() const { return circumcenter; }
 		Vertex *v[4];
 	private:
-		REAL reRation;
-		REAL radius;
+		DelReal reRation;
+		DelReal radius;
 		DelVector circumcenter;
 	};
 
@@ -451,7 +450,7 @@ namespace ODER {
 	public:
 		TriMeshDataStructure();
 		Vertex *getGhostVertex();
-		Vertex* allocVertex(const DelVector &point, REAL weight);
+		Vertex* allocVertex(const DelVector &point, DelReal weight);
 		void deallocVertex(Vertex *vert);
 		void bindVolumeVertex(Vertex *vert);
 		void unbindVolumeVertex(Vertex *vert);
@@ -573,7 +572,7 @@ namespace ODER {
 	public:
 		TetMeshDataStructure();
 		Vertex* getGhostVertex();
-		Vertex* allocVertex(const DelVector &point, REAL weight, VertexType extraType = VertexType::Vertex_Undefined);
+		Vertex* allocVertex(const DelVector &point, DelReal weight, VertexType extraType = VertexType::Vertex_Undefined);
 		void deallocVertex(Vertex *vert);
 		void addTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);
 		void deleteTetrahedron(Vertex *a, Vertex *b, Vertex *c, Vertex *d);

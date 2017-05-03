@@ -5,7 +5,7 @@
 #include "datastructure.h"
 
 namespace ODER{
-	InCholeskyPreconditioner::InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, double eps, double relaxedScale) 
+	InCholeskyPreconditioner::InCholeskyPreconditioner(const BlockedSymSpMatrix& mat, Scalar eps, Scalar relaxedScale) 
 		: epsilon(eps), relaxedScale(relaxedScale){
 		int columnCount = mat.getNumColumns();
 		pcol.reserve(columnCount + 1);
@@ -15,19 +15,19 @@ namespace ODER{
 		incompleteCholeskyDecomposition(mat);
 	}
 
-	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, double *diags,
-		std::pair<int, int> *list, std::vector<std::pair<int, double>>& factorized){
-		double diag = diags[columnIndex];
+	void InCholeskyPreconditioner::proccessSingleColumn(int columnIndex, const FastSparseVector& vec, Scalar *diags,
+		std::pair<int, int> *list, std::vector<std::pair<int, Scalar>>& factorized){
+		Scalar diag = diags[columnIndex];
 		factorized.clear();
 
-		double epsilon2 = epsilon * epsilon;
+		Scalar epsilon2 = epsilon * epsilon;
 		auto pairIter = vec.cbegin(), pairEnd = vec.cend();
 		while (++pairIter != pairEnd){
 			int row = *pairIter.indexIterator;
-			double val = *pairIter.valueIterator;
-			if (val != 0.0){
+			Scalar val = *pairIter.valueIterator;
+			if (val != Scalar(0)){
 				if (val * val < fabs(epsilon2 * diag * diags[row])){
-					double compensation = fabs(val) * relaxedScale;
+					Scalar compensation = fabs(val) * relaxedScale;
 					diag += compensation;
 					diags[row] += compensation;
 				}
@@ -41,7 +41,7 @@ namespace ODER{
 		pcol.emplace_back(end);
 
 		std::sort(factorized.begin(), factorized.end(),
-			[](const std::pair<int, double>& left, const std::pair<int, double>& right) { return left.first < right.first; });
+			[](const std::pair<int, Scalar>& left, const std::pair<int, Scalar>& right) { return left.first < right.first; });
 
 		if (!factorized.empty()) {
 			int row = factorized[0].first;
@@ -49,16 +49,16 @@ namespace ODER{
 			list[row] = std::make_pair(columnIndex, start + 1);
 		}
 
-		if (diag <= 0) diag = epsilon2 * diag * diag;
+		if (diag <= Scalar(0)) diag = epsilon2 * diag * diag;
 
-		double diagRoot = sqrt(diag);
+		Scalar diagRoot = sqrt(diag);
 		values.emplace_back(diagRoot);
 		rows.emplace_back(columnIndex);
 
-		double invDiagRoot = 1.0 / diagRoot;
+		Scalar invDiagRoot = Scalar(1.0) / diagRoot;
 		for (auto pair : factorized) {
 			int row = pair.first;
-			double val = pair.second * invDiagRoot;
+			Scalar val = pair.second * invDiagRoot;
 
 			rows.emplace_back(row);
 			values.emplace_back(pair.second * invDiagRoot);
@@ -84,12 +84,12 @@ namespace ODER{
 		int columnCount = mat.getNumColumns();
 		pcol.emplace_back(0);
 
-		double *diags = new double[columnCount];
+		Scalar *diags = new Scalar[columnCount];
 		mat.getDiagonal(diags);
 
 		std::pair<int, int> *list = new std::pair<int, int>[columnCount];
 		Initiation(list, columnCount, std::make_pair(-1, -1));
-		std::vector<std::pair<int, double>> factorized;
+		std::vector<std::pair<int, Scalar>> factorized;
 		factorized.reserve(32);
 
 		FastSparseVector w(columnCount);
@@ -105,7 +105,7 @@ namespace ODER{
 				int trueIndex = pair.second;
 				int nextIndex = trueIndex + 1;
 
-				double upper = values[trueIndex];
+				Scalar upper = values[trueIndex];
 				for (int k = nextIndex; k < pcol[j + 1]; k++)
 					w.Add(rows[k], -upper * values[k]);
 
@@ -129,11 +129,11 @@ namespace ODER{
 		delete[] list;
 	}
 
-	void InCholeskyPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{
+	void InCholeskyPreconditioner::solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const{
 		Assert(width != 0);
 
 		int end = pcol[1];
-		double sub = rhs[0] / values[0];
+		Scalar sub = rhs[0] / values[0];
 		result[0] = sub;
 		for (int j = 1; j < width; j++)
 			result[j] = rhs[j];
@@ -142,7 +142,7 @@ namespace ODER{
 
 		for (int column = 1; column < width; column++){
 			int start = pcol[column], end = pcol[column + 1];
-			double sub = result[column] / values[start];
+			Scalar sub = result[column] / values[start];
 			result[column] = sub;
 			for (int row = start + 1; row < end; row++){
 				result[rows[row]] -= values[row] * sub;
@@ -152,7 +152,7 @@ namespace ODER{
 		result[width - 1] /= values[pcol[width - 1]];
 
 		for (int row = width - 2; row >= 0; row--){
-			double dot = 0.0;
+			Scalar dot = Scalar(0);
 			int start = pcol[row], end = pcol[row + 1];
 			for (int column = start + 1; column < end; column++)
 				dot += result[rows[column]] * values[column];

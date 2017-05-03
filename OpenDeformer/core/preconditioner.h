@@ -10,7 +10,7 @@
 namespace ODER{
 	class Preconditioner{
 	public:
-		virtual void solvePreconditionerSystem(int width, const double *rhs, double *result) const = 0;
+		virtual void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const = 0;
 		virtual void resetPreconditionerSystem(const BlockedSymSpMatrix& mat){
 			Severe("unimplemented Preconditioner::resetPreconditionerSystem called");
 		}

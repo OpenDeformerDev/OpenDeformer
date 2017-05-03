@@ -10,7 +10,7 @@
 namespace ODER{
 	class EigenSolver{
 	public:
-		void getEigenValVectors(int dofs, const SparseMatrix &M, const SparseMatrix &K, double *EigValues, double *EigVectors) const;
+		void getEigenValVectors(int dofs, const SparseMatrix &M, const SparseMatrix &K, Scalar *EigValues, Scalar *EigVectors) const;
 	};
 }
 

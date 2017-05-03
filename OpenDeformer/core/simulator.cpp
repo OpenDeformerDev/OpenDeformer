@@ -25,7 +25,7 @@ namespace ODER{
 		intergrator->updateMeshVerticesDisplacements(indexer, mesh);
 		int vertCount = mesh->getNodeCount();
 		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++) {
-			Vector3d vert = mesh->getVertex(vertIndex) + mesh->getVertexDisplacement(vertIndex);
+			Vector3 vert = mesh->getVertex(vertIndex) + mesh->getVertexDisplacement(vertIndex);
 			for (int axis = 0; axis < 3; axis++) {
 				vertices[vertIndex][axis] = float(vert[axis]);
 			}

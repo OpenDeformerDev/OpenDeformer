@@ -10,12 +10,12 @@
 namespace ODER {
 	class InvertibleStVKMaterial : public InvertibleHyperelasticMaterial {
 	public:
-		InvertibleStVKMaterial(double rho, double yonugs, double possion, double inversionTrashold);
+		InvertibleStVKMaterial(Scalar rho, Scalar yonugs, Scalar possion, Scalar inversionTrashold);
 	private:
-		void getEnergyGradient(const double *invariants, double *gradient) const;
-		void getEnergyHassian(const double *invariants, double *hassian) const;
+		void getEnergyGradient(const Scalar *invariants, Scalar *gradient) const;
+		void getEnergyHassian(const Scalar *invariants, Scalar *hassian) const;
 
-		double lambda, mu;
+		Scalar lambda, mu;
 	};
 }
 

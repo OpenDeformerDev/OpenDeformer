@@ -12,7 +12,7 @@
 namespace ODER{
 	class Intergrator{
 	public:
-		Intergrator(int DOFS, double massDamp, double stiffDamp, double ts)
+		Intergrator(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts)
 			:dofs(DOFS), massDamping(massDamp), stiffnessDamping(stiffDamp), timeStep(ts){}
 
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
@@ -22,9 +22,9 @@ namespace ODER{
 
 	protected:
 		int dofs;
-		double massDamping;
-		double stiffnessDamping;
-		double timeStep;
+		Scalar massDamping;
+		Scalar stiffnessDamping;
+		Scalar timeStep;
 	};
 }
 

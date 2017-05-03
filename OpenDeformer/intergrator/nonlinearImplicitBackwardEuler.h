@@ -16,34 +16,34 @@
 namespace ODER {
 	template<class SpMatrix> class NonlinearImplicitBackwardEuler : public Intergrator {
 	public:
-		NonlinearImplicitBackwardEuler(int DOFS, double massDamp, double stiffDamp, double ts,
+		NonlinearImplicitBackwardEuler(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> * mater, LinearSolver<SpMatrix>* linearSolver);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
 		~NonlinearImplicitBackwardEuler();
 	private:
-		double *v;
-		double *delta_v;
-		double *internalVirtualWork;
-		double *externalVirtualWork;
-		double *rhs;
+		Scalar *v;
+		Scalar *delta_v;
+		Scalar *internalVirtualWork;
+		Scalar *externalVirtualWork;
+		Scalar *rhs;
 
-		double *memory;
+		Scalar *memory;
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
 		const FullOrderNonlinearMaterial<SpMatrix> *material;
-		double *precomputes;
+		Scalar *precomputes;
 		LinearSolver<SpMatrix> *solver;
 		SpMatrix *tagentMatrix;
 		SpMatrix *massMatrix;
 		int *matrixIndices;
 	};
 
-	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, double massDamp, double stiffDamp, double ts,
+	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
 		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> *mater, LinearSolver<SpMatrix> *linearSolver) 
 		: Intergrator(DOFS, massDamp, stiffDamp, ts), mesh(m), indexer(nodeIndexer), material(mater), solver(linearSolver){
-		memory = new double[5 * dofs];
+		memory = new Scalar[5 * dofs];
 		Initiation(memory, 5 * dofs);
 		v = memory;
 		delta_v = memory + dofs;
@@ -74,7 +74,7 @@ namespace ODER {
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::runOneTimeStep() {
-		//memcpy(pre_v, v, sizeof(double) * dofs);
+		//memcpy(pre_v, v, sizeof(Scalar) * dofs);
 
 		tagentMatrix->setZeros();
 		Initiation(internalVirtualWork, dofs);

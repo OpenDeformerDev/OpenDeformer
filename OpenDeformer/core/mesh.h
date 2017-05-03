@@ -34,10 +34,10 @@ namespace ODER{
 		int getElementCount() const{ return numElements; }
 		int getVertPerFacetCount() const { return numVertPerSur; }
 		int getFacetCount() const{ return numSurfaces; }
-		const Vector3d& getVertex(int vertIndex) const{ return vertices[vertIndex]; }
-		Vector3d& getVertexDisplacement(int vertIndex) { return displacements[vertIndex]; }
-		const Vector3d& getVertexDisplacementConst(int vertIndex) const { return displacements[vertIndex]; }
-		void setVertex(int vertIndex, const Vector3d& vert){ vertices[vertIndex] = vert; }
+		const Vector3& getVertex(int vertIndex) const{ return vertices[vertIndex]; }
+		Vector3& getVertexDisplacement(int vertIndex) { return displacements[vertIndex]; }
+		const Vector3& getVertexDisplacementConst(int vertIndex) const { return displacements[vertIndex]; }
+		void setVertex(int vertIndex, const Vector3& vert){ vertices[vertIndex] = vert; }
 		int getElementNodeIndex(int elementIndex, int nodeIndex){ return elements[elementIndex*numNodesPerElement + nodeIndex]; }
 		const int* getElementNodeReference(int elementIndex) const{ return &elements[elementIndex*numNodesPerElement]; }
 		const int* getFacetVertReference(int facetIndex) const{ return &surfaces[facetIndex*numVertPerSur]; }
@@ -53,10 +53,10 @@ namespace ODER{
 		const int numNodesPerElement;
 		const int numVertPerSur;
 
-		Vector3d *vertices;
+		Vector3 *vertices;
 		int *elements;
 		int *surfaces;
-		Vector3d *displacements;
+		Vector3 *displacements;
 	};
 }
 

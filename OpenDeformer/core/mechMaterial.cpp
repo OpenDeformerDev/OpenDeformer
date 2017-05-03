@@ -10,7 +10,7 @@ namespace ODER{
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
-		double *subMass = new double[entrys];
+		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
 			element->setNodeIndexs(elementIndex);
 			element->generateSubMassMatrix(subMass);
@@ -18,7 +18,7 @@ namespace ODER{
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++){
 				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++){
-					double entry = density * subMass[k++];
+					Scalar entry = density * subMass[k++];
 					for (int offset = 0; offset < 3; offset++){
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
 						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);
@@ -40,7 +40,7 @@ namespace ODER{
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
-		double *subMass = new double[entrys];
+		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndexs(elementIndex);
 			element->generateSubMassMatrix(subMass);
@@ -48,7 +48,7 @@ namespace ODER{
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
 				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
-					double entry = density*subMass[k++];
+					Scalar entry = density*subMass[k++];
 					for (int offset = 0; offset < 3; offset++) {
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
 						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);
@@ -72,7 +72,7 @@ namespace ODER{
 
 		int indicesPerElementCount = ((3 * numNodesPerElement + 1) * 3 * numNodesPerElement) / 2;
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
-		double *subMass = new double[entrys];
+		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndexs(elementIndex);
 			element->generateSubMassMatrix(subMass);
@@ -81,7 +81,7 @@ namespace ODER{
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
 				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
-					double entry = density * subMass[k++];
+					Scalar entry = density * subMass[k++];
 					for (int offset = 0; offset < 3; offset++) {
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
 						int j_index = indexer->getGlobalIndex(*element, bNodeIndex, offset);

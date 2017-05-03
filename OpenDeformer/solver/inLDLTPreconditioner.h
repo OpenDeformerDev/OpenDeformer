@@ -11,14 +11,14 @@
 namespace ODER{
 	class InLDLTPreconditioner : public Preconditioner{
 	public:
-		InLDLTPreconditioner(double sainvEpsilon, double ldltEpsilon)
+		InLDLTPreconditioner(Scalar sainvEpsilon, Scalar ldltEpsilon)
 			:sainvEpsilon(sainvEpsilon), ldltEpsilon(ldltEpsilon) {}
-		InLDLTPreconditioner(const BlockedSymSpMatrix& mat, double sainvEpsilon, double ldltEpsilon);
+		InLDLTPreconditioner(const BlockedSymSpMatrix& mat, Scalar sainvEpsilon, Scalar ldltEpsilon);
 		InLDLTPreconditioner(const InLDLTPreconditioner&) = delete;
 		InLDLTPreconditioner& operator=(const InLDLTPreconditioner&&) = delete;
 
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
-		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
+		void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const;
 		void Preprocess(const BlockedSymSpMatrix& mat);
 
 	private:
@@ -30,17 +30,17 @@ namespace ODER{
 			InvMatRowListNode *next;
 
 			int row, col;
-			double value;
+			Scalar value;
 		};
 
-		std::vector<double> values;
+		std::vector<Scalar> values;
 		std::vector<int> rows;
 		std::vector<int> pcol;
-		std::vector<double> invDiagonal;
+		std::vector<Scalar> invDiagonal;
 		
 		std::vector<std::vector<std::pair<int, int>>> matFullIndices;
-		double sainvEpsilon;
-		double ldltEpsilon;
+		Scalar sainvEpsilon;
+		Scalar ldltEpsilon;
 	};
 }
 

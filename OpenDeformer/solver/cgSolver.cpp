@@ -11,11 +11,11 @@ namespace ODER{
 			preconditioner->resetPreconditionerSystem(*this->mat);
 	}
 
-	void CGSolver::solveLinearSystem(const double *rhs, double *result) const{
+	void CGSolver::solveLinearSystem(const Scalar *rhs, Scalar *result) const{
 		const int width = this->mat->getNumColumns();
-		double *memory = new double[3 * width];
+		Scalar *memory = new Scalar[3 * width];
 		Initiation(memory, 3 * width);
-		double *remainder = memory, *direction = memory + width, *temp = memory + 2 * width;
+		Scalar *remainder = memory, *direction = memory + width, *temp = memory + 2 * width;
 		// remainder = rhs - mat * result
 		SpMDV(*(this->mat), result, remainder);
 		for (int i = 0; i < width; i++)
@@ -24,17 +24,17 @@ namespace ODER{
 		preconditioner->Preprocess(*this->mat);
 		//M * d = r
 		preconditioner->solvePreconditionerSystem(width, remainder, direction);
-		double delta = Dot(width, remainder, direction);
+		Scalar delta = Dot(width, remainder, direction);
 
-		double epsilon = Dot(width, rhs, rhs) * tolerant * tolerant;
-		double remainderNorm2 = Dot(width, remainder, remainder);
+		Scalar epsilon = Dot(width, rhs, rhs) * tolerant * tolerant;
+		Scalar remainderNorm2 = Dot(width, remainder, remainder);
 
 		int iter = 0;
 		while (iter++ < maxIteration && remainderNorm2 > epsilon) {
 			// q = mat * direction
 			Initiation(temp, width);
 			SpMDV(*(this->mat), direction, temp);
-			double alpha = delta / Dot(width, direction, temp);
+			Scalar alpha = delta / Dot(width, direction, temp);
 			//result = result + alpha * direction
 			//remainder = remainder - alpha * q
 			for (int i = 0; i < width; i++){
@@ -44,9 +44,9 @@ namespace ODER{
 
 			// M * z = remainder
 			preconditioner->solvePreconditionerSystem(width, remainder, temp);
-			double preDelta = delta;
+			Scalar preDelta = delta;
 			delta = Dot(width, remainder, temp);
-			double beta = delta / preDelta;
+			Scalar beta = delta / preDelta;
 			//direction = beta * direction + z
 			for (int i = 0; i < width; i++)
 				direction[i] = beta * direction[i] + temp[i];

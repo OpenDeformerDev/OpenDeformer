@@ -13,13 +13,13 @@
 namespace ODER{
 	class Forcer{
 	public:
-		void addBodyForce(const Reference<Mesh> &mesh, double bodyForce[3], const Reference<NodeIndexer> &indexer);
-		void addSurfaceForceByNode(const Reference<Mesh> &mesh, double nodeForce[3], int nodeCounts, int *nodeIndex, const Reference<NodeIndexer> &indexer);
-		void addSurfaceForceByElement(const Reference<Mesh> &mesh, double elementForce[3], int surfaceCounts, const int *surfaceIndex, const Reference<NodeIndexer> &indexer);
-		void getVirtualWorks(int dofs, int totalDofs, const double *basises, double *vws) const;
+		void addBodyForce(const Reference<Mesh> &mesh, Scalar bodyForce[3], const Reference<NodeIndexer> &indexer);
+		void addSurfaceForceByNode(const Reference<Mesh> &mesh, Scalar nodeForce[3], int nodeCounts, int *nodeIndex, const Reference<NodeIndexer> &indexer);
+		void addSurfaceForceByElement(const Reference<Mesh> &mesh, Scalar elementForce[3], int surfaceCounts, const int *surfaceIndex, const Reference<NodeIndexer> &indexer);
+		void getVirtualWorks(int dofs, int totalDofs, const Scalar *basises, Scalar *vws) const;
 	private:
 		void addConstraint(int constraintCounts);
-		std::map<int, double> virtualWorks;
+		std::map<int, Scalar> virtualWorks;
 	};
 }
 

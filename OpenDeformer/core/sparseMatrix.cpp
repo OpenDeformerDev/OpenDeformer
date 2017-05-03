@@ -2,12 +2,12 @@
 #include "sparseMatrix.h"
 
 namespace ODER{
-	void SparseMatrixAssembler::addEntry(int row, int column, double data){
+	void SparseMatrixAssembler::addEntry(int row, int column, Scalar data){
 		auto found = rowEntries[column].find(row);
 		if (found != rowEntries[column].end())
 			found->second += data;
 		else{
-			std::pair<int, double> entry(row, data);
+			std::pair<int, Scalar> entry(row, data);
 			rowEntries[column].insert(entry);
 		}
 	}
@@ -20,9 +20,9 @@ namespace ODER{
 				rowEntries[i].erase(iter++);
 			do{
 				int newRow = iter->first - 1;
-				double data = iter->second;
+				Scalar data = iter->second;
 				rowEntries[i].erase(iter++);
-				rowEntries[i].insert(iter, std::pair<int, double>(newRow, data));
+				rowEntries[i].insert(iter, std::pair<int, Scalar>(newRow, data));
 			} while (iter != rowEntries[i].end());
 		}
 	}
@@ -43,9 +43,9 @@ namespace ODER{
 				rowEntries[i].erase(iter++);
 			do{
 				int newRow = iter->first - 1;
-				double data = iter->second;
+				Scalar data = iter->second;
 				rowEntries[i].erase(iter++);
-				rowEntries[i].insert(iter, std::pair<int, double>(newRow, data));
+				rowEntries[i].insert(iter, std::pair<int, Scalar>(newRow, data));
 			} while (iter != rowEntries[i].end());
 		}
 	}
@@ -59,7 +59,7 @@ namespace ODER{
 			pcol[i] = pcol[i - 1] + assembler.rowEntries[i - 1].size();
 		}
 
-		value = (double *)allocAligned<double>(pcol[numColumns]);
+		value = (Scalar *)allocAligned<Scalar>(pcol[numColumns]);
 		rows = (int *)allocAligned<int>(pcol[numColumns]);
 
 		int j = 0;

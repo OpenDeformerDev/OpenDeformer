@@ -27,7 +27,7 @@ namespace ODER{
 	public:
 		Constrainer(const Reference<Mesh> &m) :mesh(m){}
 		void setConstrains(int nodeCounts, int *nodeIndices, ConstrainType *constrainTypes = NULL);
-		void setConstrains(const Vector3d& origin, const Vector3d& normal, ConstrainType constrainType = Constrain_XYZ);
+		void setConstrains(const Vector3& origin, const Vector3& normal, ConstrainType constrainType = Constrain_XYZ);
 		void outputConstrains(std::vector<int> &out) const;
 	private:
 		void setConstrain(int nodeIndex, ConstrainType constrainType);

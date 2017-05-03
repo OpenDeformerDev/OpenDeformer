@@ -49,7 +49,7 @@ namespace ODER{
 			return -1;
 		}
 
-		static Predicator<REAL> predicator;
+		static Predicator<DelReal> predicator;
 		TriMeshDataStructure meshRep;
 		Vertex *ghost;
 
@@ -62,16 +62,16 @@ namespace ODER{
 	public:
 		struct DelMesherCriteria {
 			DelMesherCriteria() {
-				constexpr REAL maxVal = std::numeric_limits<REAL>::max();
+				constexpr DelReal maxVal = std::numeric_limits<DelReal>::max();
 				maxTetRadius = maxVal; maxFacetRadius = maxVal; maxSegLength = maxVal;
-				maxTetRatio = REAL(2.0);
-				facetAngleTol = REAL(179.0);
+				maxTetRatio = DelReal(2.0);
+				facetAngleTol = DelReal(179.0);
 			}
-			REAL maxTetRadius;
-			REAL maxFacetRadius;
-			REAL maxSegLength;
-			REAL maxTetRatio;
-			REAL facetAngleTol;
+			DelReal maxTetRadius;
+			DelReal maxFacetRadius;
+			DelReal maxSegLength;
+			DelReal maxTetRatio;
+			DelReal facetAngleTol;
 		};
 
 		DelMesher(Vector3f *surfvs, int *triangls, int numv, int numtri, DelMesherCriteria criteria = DelMesherCriteria());
@@ -121,7 +121,7 @@ namespace ODER{
 		void propagateCleanCavity(const Triangle& f, TetMeshDataStructure& cavityRep, int depth);
 		void refineRegion(const Triangle& regionFacet, bool missingSegTest, bool refineSegTest, bool setInsertionRadius = false, bool skinnyTest = false);
 
-		Vertex* allocVertex(const DelVector &vert, REAL weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
+		Vertex* allocVertex(const DelVector &vert, DelReal weight, VertexType type = VertexType(VertexType::Vertex_Undefined));
 		Vertex* allocVertex(const Vertex &vert);
 		void deallocVertex(Vertex *vert);
 
@@ -171,7 +171,7 @@ namespace ODER{
 		bool Encroached(TriangleWithGeometry& f, Vertex **encroachedVert) const;
 		bool Encroached(const Segment &s, Vertex *v) const;
 		bool Encroached(TriangleWithGeometry &f, Vertex *v) const;
-		bool Encroached(const DelVector &orthocenter, REAL radius, Vertex *v) const;
+		bool Encroached(const DelVector &orthocenter, DelReal radius, Vertex *v) const;
 
 		size_t getPolygonVertices(int facetIndex, Vertex ***verts) const;
 		bool Adjacent(const Segment &s, Vertex *v) const;
@@ -184,16 +184,16 @@ namespace ODER{
 		bool findIntersectedTetrahedron(Vertex *a, const DelVector& bb, Tetrahedron *t) const;
 		Vertex* findSegmentEncroachedReference(Vertex *end, const Tetrahedron& intersected) const;
 
-		void detectCoplanarFaces(const Triangle& f, REAL facetRadianTol,
+		void detectCoplanarFaces(const Triangle& f, DelReal facetRadianTol,
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep) const;
-		void propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, REAL facetRadianTol,
+		void propagateDetectCoplanarFaces(Vertex *ref, const Segment& s, DelReal facetRadianTol,
 			std::vector<Vertex *>& coplanarVertices, std::vector<Segment>& boundaries, TriMeshDataStructure& surfRep, int depth) const;
 		void makeHole(Vertex *u, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep) const;
 		void propagateMakeHole(const Triangle& f, std::vector<Triangle>& boundaries, TetMeshDataStructure& meshRep, int depth) const;
 
 		void propagateClean(const Triangle &f, int depth);
 
-		static Predicator<REAL> predicator;
+		static Predicator<DelReal> predicator;
 
 		std::deque<Tetrahedron> maySkinnyTets;
 		std::deque<Triangle> mayMissingFacets;
@@ -218,10 +218,10 @@ namespace ODER{
 		TriMeshDataStructure surfaceRep;
 
 		DelMesherCriteria criteria;
-		AABB<REAL> boundBox;
+		AABB<DelReal> boundBox;
 	};
 
-	inline Vertex* DelMesher::allocVertex(const DelVector &vert, REAL weight, VertexType type){
+	inline Vertex* DelMesher::allocVertex(const DelVector &vert, DelReal weight, VertexType type){
 		Vertex *newVertex = meshRep.allocVertex(vert, weight, type);
 		Assert(boundBox.Inside(newVertex->point));
 		return newVertex;
@@ -253,8 +253,8 @@ namespace ODER{
 		return predicator.inDiametricBall(v->point, s.v[0]->point, s.v[1]->point) <= 0;
 	}
 
-	inline bool DelMesher::Encroached(const DelVector &circumcenter, REAL radiusSquare, Vertex *v) const {
-		constexpr REAL epsilon = REAL(1e-8);
+	inline bool DelMesher::Encroached(const DelVector &circumcenter, DelReal radiusSquare, Vertex *v) const {
+		constexpr DelReal epsilon = DelReal(1e-8);
 		return !v->isGhost() && ((v->point - circumcenter).length2() - radiusSquare) <= epsilon * epsilon * radiusSquare;
 	}
 }

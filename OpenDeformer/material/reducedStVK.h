@@ -10,17 +10,17 @@
 namespace ODER{
 	class ReducedStVKMaterial :public ReducedHyperelasticMaterial{
 	public:
-		ReducedStVKMaterial(double rho, double lameFirst, double lameSecond, int orders);
+		ReducedStVKMaterial(Scalar rho, Scalar lameFirst, Scalar lameSecond, int orders);
 		void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer);
-		void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces);
+		void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const Scalar *ds, Scalar *forces);
 		~ReducedStVKMaterial();
 	private:
-		void getNodeDisplacements(const double *ds, const int *nodeIndices, VectorBase<double>& d) const;
-		double lambda, mu;
-		double D[3];
-		double *intergration[2];
-		double *stressNonlinear;
+		void getNodeDisplacements(const Scalar *ds, const int *nodeIndices, VectorBase<Scalar>& d) const;
+		Scalar lambda, mu;
+		Scalar D[3];
+		Scalar *intergration[2];
+		Scalar *stressNonlinear;
 	};
 }
 

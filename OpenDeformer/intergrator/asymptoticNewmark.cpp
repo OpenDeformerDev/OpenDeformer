@@ -5,37 +5,37 @@
 #include "numerMethod.h"
 
 namespace ODER{
-	AsymptoticNewmark::AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+	AsymptoticNewmark::AsymptoticNewmark(Scalar beta, Scalar gamma, int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
 		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
 		int orderCount = mater->getNonlinearAsymptoticOrder();
 		int entrys = orderCount*dofs;
-		d = allocAligned<double>(entrys);
-		v = allocAligned<double>(entrys);
-		a = allocAligned<double>(entrys);
-		pre_d = allocAligned<double>(entrys);
-		pre_v = allocAligned<double>(entrys);
-		pre_a = allocAligned<double>(entrys);
-		externalVirtualWork = allocAligned<double>(entrys);
+		d = allocAligned<Scalar>(entrys);
+		v = allocAligned<Scalar>(entrys);
+		a = allocAligned<Scalar>(entrys);
+		pre_d = allocAligned<Scalar>(entrys);
+		pre_v = allocAligned<Scalar>(entrys);
+		pre_a = allocAligned<Scalar>(entrys);
+		externalVirtualWork = allocAligned<Scalar>(entrys);
 
-		memset(d, 0, entrys*sizeof(double));
-		memset(v, 0, entrys*sizeof(double));
-		memset(a, 0, entrys*sizeof(double));
-		memset(pre_d, 0, entrys*sizeof(double));
-		memset(pre_v, 0, entrys*sizeof(double));
-		memset(pre_a, 0, entrys*sizeof(double));
-		memset(externalVirtualWork, 0, entrys*sizeof(double));
+		memset(d, 0, entrys*sizeof(Scalar));
+		memset(v, 0, entrys*sizeof(Scalar));
+		memset(a, 0, entrys*sizeof(Scalar));
+		memset(pre_d, 0, entrys*sizeof(Scalar));
+		memset(pre_v, 0, entrys*sizeof(Scalar));
+		memset(pre_a, 0, entrys*sizeof(Scalar));
+		memset(externalVirtualWork, 0, entrys*sizeof(Scalar));
 
 		mesh = m;
 		indexer = nodeIndexer;
 		material = mater;
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
-		minusBetaDeltaT2 = timeStep*timeStep*0.5 - betaDeltaT2;
+		minusBetaDeltaT2 = timeStep*timeStep*Scalar(0.5) - betaDeltaT2;
 		minusGammaDeltaT = timeStep - gammaDeltaT;
 		totalDofs = indexer->getMatrixOrder(mesh);
-		frequencies2 = allocAligned<double>(dofs);
-		basises = allocAligned<double>(dofs*totalDofs);
+		frequencies2 = allocAligned<Scalar>(dofs);
+		basises = allocAligned<Scalar>(dofs*totalDofs);
 
 		SparseMatrixAssembler M(totalDofs);
 		SparseMatrixAssembler K(totalDofs);
@@ -46,9 +46,9 @@ namespace ODER{
 		slover.getEigenValVectors(dofs, M, K, frequencies2, basises);
 
 		material->preprocessWithReduction(mesh, indexer);
-		loadFactors = allocAligned<double>(orderCount);
-		fullDisplacements = allocAligned<double>(orderCount*totalDofs);
-		vwBuffer = allocAligned<double>(totalDofs);
+		loadFactors = allocAligned<Scalar>(orderCount);
+		fullDisplacements = allocAligned<Scalar>(orderCount*totalDofs);
+		vwBuffer = allocAligned<Scalar>(totalDofs);
 
 #ifdef ODER_DEBUG
 		for (int i = 0; i < dofs; i++){
@@ -60,30 +60,30 @@ namespace ODER{
 
 	void AsymptoticNewmark::setExternalVirtualWork(const Forcer& forcer){
 		forcer.getVirtualWorks(dofs, totalDofs, basises, externalVirtualWork);
-		memcpy(a, externalVirtualWork, dofs*sizeof(double));
+		memcpy(a, externalVirtualWork, dofs*sizeof(Scalar));
 	}
 
 	void AsymptoticNewmark::runOneTimeStep(){
 		int orderCount = material->getNonlinearAsymptoticOrder();
-		memset(fullDisplacements, 0, orderCount*totalDofs*sizeof(double));
-		memcpy(pre_d, d, orderCount*dofs*sizeof(double));
-		memcpy(pre_v, v, orderCount*dofs*sizeof(double));
-		memcpy(pre_a, a, orderCount*dofs*sizeof(double));
+		memset(fullDisplacements, 0, orderCount*totalDofs*sizeof(Scalar));
+		memcpy(pre_d, d, orderCount*dofs*sizeof(Scalar));
+		memcpy(pre_v, v, orderCount*dofs*sizeof(Scalar));
+		memcpy(pre_a, a, orderCount*dofs*sizeof(Scalar));
 
 		//order 1
-		double factor = 0.0;
+		Scalar factor = 0.0;
 		for (int i = 0; i < dofs; i++){
-			double d_pre = pre_d[i];
-			double v_pre = pre_v[i];
-			double a_pre = pre_a[i];
-			double frequency2 = frequencies2[i];
+			Scalar d_pre = pre_d[i];
+			Scalar v_pre = pre_v[i];
+			Scalar a_pre = pre_a[i];
+			Scalar frequency2 = frequencies2[i];
 			//predict d and v
-			double d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
-			double v_predict = v_pre + minusGammaDeltaT*a_pre;
+			Scalar d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
+			Scalar v_predict = v_pre + minusGammaDeltaT*a_pre;
 			//caculating a 
-			double xi = massDamping + stiffnessDamping*frequency2;
-			double righthand = externalVirtualWork[i] - xi*v_predict - frequency2*d_predict;
-			double lefthand = 1.0 + gammaDeltaT*xi + betaDeltaT2*frequency2;
+			Scalar xi = massDamping + stiffnessDamping*frequency2;
+			Scalar righthand = externalVirtualWork[i] - xi*v_predict - frequency2*d_predict;
+			Scalar lefthand = Scalar(1.0) + gammaDeltaT*xi + betaDeltaT2*frequency2;
 			a[i] = righthand / lefthand;
 			//uptate d and v
 			v[i] = v_predict + gammaDeltaT*a[i];
@@ -92,27 +92,27 @@ namespace ODER{
 		}
 
 		//calculate load factor 1
-		double loadFactor0 = 1.0 / sqrt(1.0 + factor);
+		Scalar loadFactor0 = Scalar(1.0) / sqrt(Scalar(1.0) + factor);
 		loadFactors[0] = loadFactor0;
 		//set full order 1 displacement
-		const double *basis = basises;
+		const Scalar *basis = basises;
 		for (int i = 0; i < dofs; i++){
-			double entry = d[i] * loadFactor0;
+			Scalar entry = d[i] * loadFactor0;
 			for (int j = 0; j < totalDofs; j++){
 				fullDisplacements[j] += entry * basis[j];
 			}
 			basis += totalDofs;
 		}
 
-		double loadFactor0_second = loadFactor0*loadFactor0;
+		Scalar loadFactor0_second = loadFactor0*loadFactor0;
 		for (int order = 1; order < orderCount; order++){
 			material->getNodeForces(mesh, indexer, order, totalDofs, fullDisplacements, vwBuffer);
 			//set reduced virtualworks
 			int offset = order*dofs;
-			const double *basis = basises;
-			double *reducedVW = externalVirtualWork + order*dofs;
+			const Scalar *basis = basises;
+			Scalar *reducedVW = externalVirtualWork + order*dofs;
 			for (int i = 0; i < dofs; i++){
-				double entry = 0.0;
+				Scalar entry = 0.0;
 				for (int j = 0; j < totalDofs; j++)
 					entry += basis[j] * vwBuffer[j];
 				externalVirtualWork[offset + i] = entry;
@@ -121,30 +121,30 @@ namespace ODER{
 
 			factor = 0.0;
 			for (int i = 0; i < dofs; i++){
-				double d_pre = pre_d[offset + i];
-				double v_pre = pre_v[offset + i];
-				double a_pre = pre_a[offset + i];
-				double frequency2 = frequencies2[i];
+				Scalar d_pre = pre_d[offset + i];
+				Scalar v_pre = pre_v[offset + i];
+				Scalar a_pre = pre_a[offset + i];
+				Scalar frequency2 = frequencies2[i];
 				//predict d and v
-				double d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
-				double v_predict = v_pre + minusGammaDeltaT*a_pre;
+				Scalar d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
+				Scalar v_predict = v_pre + minusGammaDeltaT*a_pre;
 				//caculating a 
-				double xi = massDamping + stiffnessDamping*frequency2;
-				double righthand = externalVirtualWork[offset + i] - xi*v_predict - frequency2*d_predict;
-				double lefthand = 1.0 + gammaDeltaT*xi + betaDeltaT2*frequency2;
+				Scalar xi = massDamping + stiffnessDamping*frequency2;
+				Scalar righthand = externalVirtualWork[offset + i] - xi*v_predict - frequency2*d_predict;
+				Scalar lefthand = Scalar(1.0) + gammaDeltaT*xi + betaDeltaT2*frequency2;
 				a[offset + i] = righthand / lefthand;
 				//uptate d and v
 				v[offset + i] = v_predict + gammaDeltaT*a[offset + i];
 				d[offset + i] = d_predict + betaDeltaT2*a[offset + i];
 				factor += d[offset + i] * d[i];
 			}
-			double loadFactorPerOrder = -loadFactor0_second * factor;
+			Scalar loadFactorPerOrder = -loadFactor0_second * factor;
 			loadFactors[order] = loadFactorPerOrder;
 			//set full displacement per order
-			double *displacement = fullDisplacements + order*totalDofs;
+			Scalar *displacement = fullDisplacements + order*totalDofs;
 			basis = basises;
 			for (int i = 0; i < dofs; i++){
-				double entry = d[offset + i] + loadFactorPerOrder * d[i];
+				Scalar entry = d[offset + i] + loadFactorPerOrder * d[i];
 				for (int j = 0; j < totalDofs; j++){
 					displacement[j] += entry * basis[j];
 				}
@@ -153,22 +153,22 @@ namespace ODER{
 		}
 	}
 
-	void AsymptoticNewmark::getRawDisplacements(double *displacements) const{
+	void AsymptoticNewmark::getRawDisplacements(Scalar *displacements) const{
 		int orderCount = material->getNonlinearAsymptoticOrder();
-		const double *factors = loadFactors;
-		double root = findRoot([orderCount, factors](double x)->double{
-			double ret = 0.0, para = x;
+		const Scalar *factors = loadFactors;
+		Scalar root = findRoot([orderCount, factors](Scalar x)->Scalar{
+			Scalar ret = 0.0, para = x;
 			for (int i = 0; i < orderCount; i++){
 				ret += para*factors[i];
 				para *= x;
 			}
-			return ret - 1.0;
-		}, 0.0, 2.0, 2e-6);
+			return ret - Scalar(1.0);
+		}, Scalar(0.0), Scalar(2.0), Scalar(2e-6));
 
-		memset(displacements, 0, totalDofs*sizeof(double));
+		memset(displacements, 0, totalDofs*sizeof(Scalar));
 
-		const double *displacementPerOrder = fullDisplacements;
-		double factor = root;
+		const Scalar *displacementPerOrder = fullDisplacements;
+		Scalar factor = root;
 		for (int order = 0; order < orderCount; order++){
 			for (int i = 0; i < totalDofs; i++){
 				displacements[i] += factor*displacementPerOrder[i];
@@ -179,7 +179,7 @@ namespace ODER{
 	}
 
 	void AsymptoticNewmark::updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {
-		double *displacements = new double[totalDofs];
+		Scalar *displacements = new Scalar[totalDofs];
 		getRawDisplacements(displacements);
 
 		auto constrainIter = indexer->getConstrainIterBegin();

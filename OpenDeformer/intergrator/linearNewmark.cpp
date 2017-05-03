@@ -5,32 +5,32 @@
 #include "forcer.h"
 
 namespace ODER{
-	LinearNewmark::LinearNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+	LinearNewmark::LinearNewmark(Scalar beta, Scalar gamma, int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
 		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const HookeMaterial& mater)
 		:Intergrator(DOFS, massDamp, stiffDamp, ts){
-		d = allocAligned<double>(dofs);
-		v = allocAligned<double>(dofs);
-		a = allocAligned<double>(dofs);
-		pre_d = allocAligned<double>(dofs);
-		pre_v = allocAligned<double>(dofs);
-		pre_a = allocAligned<double>(dofs);
-		externalVirtualWork = allocAligned<double>(dofs);
+		d = allocAligned<Scalar>(dofs);
+		v = allocAligned<Scalar>(dofs);
+		a = allocAligned<Scalar>(dofs);
+		pre_d = allocAligned<Scalar>(dofs);
+		pre_v = allocAligned<Scalar>(dofs);
+		pre_a = allocAligned<Scalar>(dofs);
+		externalVirtualWork = allocAligned<Scalar>(dofs);
 
-		memset(d, 0, dofs*sizeof(double));
-		memset(v, 0, dofs*sizeof(double));
-		memset(a, 0, dofs*sizeof(double));
-		memset(pre_d, 0, dofs*sizeof(double));
-		memset(pre_v, 0, dofs*sizeof(double));
-		memset(pre_a, 0, dofs*sizeof(double));
-		memset(externalVirtualWork, 0, dofs*sizeof(double));
+		memset(d, 0, dofs*sizeof(Scalar));
+		memset(v, 0, dofs*sizeof(Scalar));
+		memset(a, 0, dofs*sizeof(Scalar));
+		memset(pre_d, 0, dofs*sizeof(Scalar));
+		memset(pre_v, 0, dofs*sizeof(Scalar));
+		memset(pre_a, 0, dofs*sizeof(Scalar));
+		memset(externalVirtualWork, 0, dofs*sizeof(Scalar));
 
 		betaDeltaT2 = beta*timeStep*timeStep;
 		gammaDeltaT = gamma*timeStep;
-		minusBetaDeltaT2 = timeStep*timeStep*0.5 - betaDeltaT2;
+		minusBetaDeltaT2 = timeStep*timeStep*Scalar(0.5) - betaDeltaT2;
 		minusGammaDeltaT = timeStep - gammaDeltaT;
 		totalDofs = nodeIndexer->getMatrixOrder(m);
-		frequencies2 = allocAligned<double>(dofs);
-		basises = new double[dofs*totalDofs];
+		frequencies2 = allocAligned<Scalar>(dofs);
+		basises = new Scalar[dofs*totalDofs];
 
 		SparseMatrixAssembler M(totalDofs);
 		SparseMatrixAssembler K(totalDofs);
@@ -51,26 +51,26 @@ namespace ODER{
 
 	void LinearNewmark::setExternalVirtualWork(const Forcer& forcer){
 		forcer.getVirtualWorks(dofs, totalDofs, basises, externalVirtualWork);
-		memcpy(a, externalVirtualWork, dofs*sizeof(double));
+		memcpy(a, externalVirtualWork, dofs*sizeof(Scalar));
 	}
 
 	void LinearNewmark::runOneTimeStep(){
-		memcpy(pre_d, d, dofs*sizeof(double));
-		memcpy(pre_v, v, dofs*sizeof(double));
-		memcpy(pre_a, a, dofs*sizeof(double));
+		memcpy(pre_d, d, dofs*sizeof(Scalar));
+		memcpy(pre_v, v, dofs*sizeof(Scalar));
+		memcpy(pre_a, a, dofs*sizeof(Scalar));
 
 		for (int i = 0; i < dofs; i++){
-			double d_pre = pre_d[i];
-			double v_pre = pre_v[i];
-			double a_pre = pre_a[i];
-			double frequency2 = frequencies2[i];
+			Scalar d_pre = pre_d[i];
+			Scalar v_pre = pre_v[i];
+			Scalar a_pre = pre_a[i];
+			Scalar frequency2 = frequencies2[i];
 			//predict d and v
-			double d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
-			double v_predict = v_pre + minusGammaDeltaT*a_pre;
+			Scalar d_predict = d_pre + timeStep*v_pre + minusBetaDeltaT2*a_pre;
+			Scalar v_predict = v_pre + minusGammaDeltaT*a_pre;
 			//caculating a 
-			double xi = massDamping + stiffnessDamping*frequency2;
-			double righthand = externalVirtualWork[i] - xi*v_predict - frequency2*d_predict;
-			double lefthand = 1.0 + gammaDeltaT*xi + betaDeltaT2*frequency2;
+			Scalar xi = massDamping + stiffnessDamping*frequency2;
+			Scalar righthand = externalVirtualWork[i] - xi*v_predict - frequency2*d_predict;
+			Scalar lefthand = Scalar(1.0) + gammaDeltaT*xi + betaDeltaT2*frequency2;
 			a[i] = righthand / lefthand;
 			//uptate d and v
 			v[i] = v_predict + gammaDeltaT*a[i];
@@ -78,11 +78,11 @@ namespace ODER{
 		}
 	}
 
-	void LinearNewmark::getRawDisplacements(double *displacements) const{
-		memset(displacements, 0, totalDofs*sizeof(double));
-		double *basis = basises;
+	void LinearNewmark::getRawDisplacements(Scalar *displacements) const{
+		memset(displacements, 0, totalDofs*sizeof(Scalar));
+		Scalar *basis = basises;
 		for (int i = 0; i < dofs; i++){
-			double displacement = d[i];
+			Scalar displacement = d[i];
 			for (int j = 0; j < totalDofs; j++){
 				displacements[j] += displacement * basis[j];
 			}
@@ -91,7 +91,7 @@ namespace ODER{
 	}
 
 	void LinearNewmark::updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {
-		double *displacements = new double[totalDofs];
+		Scalar *displacements = new Scalar[totalDofs];
 		getRawDisplacements(displacements);
 
 		auto constrainIter = indexer->getConstrainIterBegin();

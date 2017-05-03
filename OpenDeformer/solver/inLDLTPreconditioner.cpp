@@ -5,7 +5,7 @@
 #include "numerMethod.h"
 
 namespace ODER{
-	InLDLTPreconditioner::InLDLTPreconditioner(const BlockedSymSpMatrix& mat, double sainvEps, double ldltEps)
+	InLDLTPreconditioner::InLDLTPreconditioner(const BlockedSymSpMatrix& mat, Scalar sainvEps, Scalar ldltEps)
 	: sainvEpsilon(sainvEpsilon), ldltEpsilon(ldltEpsilon), matFullIndices(mat.getFullIndices()) {
 
 		int columnCount = mat.getNumColumns();
@@ -69,13 +69,13 @@ namespace ODER{
 			invRowNodes[i].shrink_to_fit();
 
 			SpMSV(mat, matFullIndices, invColumn, vec);
-			double diag =  vec * invColumn;
-			double inv = 1.0 / diag;
+			Scalar diag =  vec * invColumn;
+			Scalar inv = Scalar(1.0) / diag;
 			invDiagonal[i] = inv;
 
 			for (auto iter = vec.cbegin(); iter != vec.cend(); ++iter) {
 				int index = *iter.indexIterator;
-				double value = *iter.valueIterator;
+				Scalar value = *iter.valueIterator;
 				if (value != 0) {
 					InvMatRowListNode *node = listPerRow[index].next;
 					InvMatRowListNode *end = &listPerRow[index];
@@ -88,7 +88,7 @@ namespace ODER{
 
 			for (auto iter = lowerColumn.cbegin(); iter != lowerColumn.cend(); ++iter) {
 				int j = *iter.indexIterator;
-				double lower = (*iter.valueIterator) * inv;
+				Scalar lower = (*iter.valueIterator) * inv;
 				if (fabs(lower) > ldltEpsilon){
 					values.push_back(lower);
 					rows.push_back(j);
@@ -100,7 +100,7 @@ namespace ODER{
 			vec.Clear();
 			for (auto iter = lowerColumn.cbegin(); iter != lowerColumn.cend(); ++iter) {
 				int j = *iter.indexIterator;
-				double factor = *iter.valueIterator;
+				Scalar factor = *iter.valueIterator;
 				if (factor != 0) {
 					factor *= inv;
 					//copy invRowNodes[j] and clean node
@@ -118,7 +118,7 @@ namespace ODER{
 					//drop invRowNodes[j]
 					for (auto iter = vec.cbegin(); iter != vec.cend(); ++iter) {
 						int index = *iter.indexIterator;
-						double val = *iter.valueIterator;
+						Scalar val = *iter.valueIterator;
 						if (fabs(val) > sainvEpsilon) {
 							//insert to linked list
 							InvMatRowListNode *node = nodePool.Alloc();
@@ -142,17 +142,17 @@ namespace ODER{
 		for (auto node : invRowNodes[lastColumn])
 			invColumn.emplaceBack(node->row, node->value);
 		SpMSV(mat, matFullIndices, invColumn, vec);
-		invDiagonal[lastColumn] = 1.0 / (vec * invColumn);
+		invDiagonal[lastColumn] = Scalar(1.0) / (vec * invColumn);
 
 		delete[] listPerRow;
 		delete[] invRowNodes;
 	}
 
-	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const{
+	void InLDLTPreconditioner::solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const{
 		Assert(width != 0);
 
 		int end = pcol[1];
-		double sub = rhs[0];
+		Scalar sub = rhs[0];
 		result[0] = sub;
 		for (int j = 1; j < width; j++)
 			result[j] = rhs[j];
@@ -164,7 +164,7 @@ namespace ODER{
 
 		for (int column = 1; column < width - 1; column++){
 			int start = pcol[column], end = pcol[column + 1];
-			double sub = result[column];
+			Scalar sub = result[column];
 			for (int row = start; row < end; row++){
 				result[rows[row]] -= values[row] * sub;
 			}
@@ -174,7 +174,7 @@ namespace ODER{
 			result[i] *= invDiagonal[i];
 
 		for (int row = width - 2; row >= 0; row--){
-			double dot = 0.0;
+			Scalar dot = Scalar(0);
 			int start = pcol[row], end = pcol[row + 1];
 			for (int column = start; column < end; column++)
 				dot += result[rows[column]] * values[column];

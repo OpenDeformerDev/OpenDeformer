@@ -22,18 +22,18 @@ namespace ODER{
 
 	class MechMaterial{
 	public:
-		MechMaterial(double rho, MarterialType t) :density(rho), type(t){}
+		MechMaterial(Scalar rho, MarterialType t) :density(rho), type(t){}
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
 			const int *matrixIndices, BlockedSymSpMatrix& matrix) const;
 
-		double getDensity() const{ return density; }
+		Scalar getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }
 		
 		virtual ~MechMaterial() = default;
 	protected:
-		double density;
+		Scalar density;
 		MarterialType type;
 	};
 

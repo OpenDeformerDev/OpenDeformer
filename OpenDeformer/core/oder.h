@@ -47,6 +47,8 @@
 #define M_PI 3.141592653589793238462643383279502884197169399375105820974944592308
 
 namespace ODER{
+	using Scalar = double;
+
 	class SparseMatrixAssembler;
 	class SparseMatrix;
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix;
@@ -58,6 +60,7 @@ namespace ODER{
 	template<class FT> struct VectorBase;
 	using Vector3f = VectorBase<float>;
 	using Vector3d = VectorBase<double>;
+	using Vector3 = VectorBase<Scalar>;
 	class SparseVector;
 	class FastSparseVector;
 	template<class FT> struct Tensor2;

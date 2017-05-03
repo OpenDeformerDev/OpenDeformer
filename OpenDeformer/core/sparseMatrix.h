@@ -17,18 +17,18 @@ namespace ODER{
 	class SparseMatrixAssembler{
 	public:
 		SparseMatrixAssembler(int nc) :numColumns(nc){
-			std::map<int, double> empty;
+			std::map<int, Scalar> empty;
 			for (int i = 0; i < numColumns; i++)
 				rowEntries.push_back(empty);
 		}
-		void addEntry(int row, int column, double data);
+		void addEntry(int row, int column, Scalar data);
 		void removeRow(int row);
 		void removeColumn(int column);
 		void removeColumnAndRow(int num);
 
 		~SparseMatrixAssembler() = default;
 		int numColumns;
-		std::vector<std::map<int, double>> rowEntries;
+		std::vector<std::map<int, Scalar>> rowEntries;
 	};
 
 	class SparseMatrix{
@@ -55,7 +55,7 @@ namespace ODER{
 		void setZeros() {
 			Initiation(value, pcol[numColumns]);
 		}
-		void Add(double alpha, const SparseMatrix& mat) {
+		void Add(Scalar alpha, const SparseMatrix& mat) {
 			Assert(numColumns == mat.numColumns);
 			Assert(pcol[numColumns] == mat.pcol[numColumns]);
 
@@ -63,7 +63,7 @@ namespace ODER{
 			for (int i = 0; i < dataCount; i++)
 				value[i] += alpha * mat.value[i];
 		}
-		void Scale(double alpha) {
+		void Scale(Scalar alpha) {
 			int dataCount = pcol[numColumns];
 			for (int i = 0; i < dataCount; i++)
 				value[i] *= alpha;
@@ -75,7 +75,7 @@ namespace ODER{
 	private:
 		int numColumns;
 		//CSC format
-		double* value;
+		Scalar* value;
 		int* rows;//row number of each entry
 		int* pcol;//the index of the start of each column and the end
 
@@ -99,7 +99,7 @@ namespace ODER{
 			}
 		}
 
-		void addEntry(int row, int column, double data){
+		void addEntry(int row, int column, Scalar data){
 			Assert(row >= column);
 			int blockCloumn = column / blockLength;
 			int columnStart = blockCloumn*blockLength;
@@ -113,9 +113,9 @@ namespace ODER{
 						found->second[index] += data;
 					else{
 						constexpr int numBlockEntries = (blockLength + 1) * blockLength / 2;
-						double *vals = entryMem.Alloc(numBlockEntries);
+						Scalar *vals = entryMem.Alloc(numBlockEntries);
 						vals[index] = data;
-						blockEntries[blockCloumn].insert(std::pair<int, double*>(columnStart, vals));
+						blockEntries[blockCloumn].insert(std::pair<int, Scalar*>(columnStart, vals));
 					}
 				}
 
@@ -132,9 +132,9 @@ namespace ODER{
 							found->second[subColumn*blockWidth + subRow] += data;
 						else{
 							constexpr int numBlockEntries = blockLength*blockWidth;
-							double *vals = entryMem.Alloc(numBlockEntries);
+							Scalar *vals = entryMem.Alloc(numBlockEntries);
 							vals[subColumn*blockWidth + subRow] = data;
-							blockEntries[blockCloumn].insert(std::pair<int, double*>(blockStartRow, vals));
+							blockEntries[blockCloumn].insert(std::pair<int, Scalar*>(blockStartRow, vals));
 						}
 					}
 					else{
@@ -143,9 +143,9 @@ namespace ODER{
 							found->second[subColumn*width + subRow] += data;
 						else{
 							int numBlockEntries = blockLength*width;
-							double *vals = entryMem.Alloc(numBlockEntries);
+							Scalar *vals = entryMem.Alloc(numBlockEntries);
 							vals[subColumn*width + subRow] = data;
-							blockEntries[blockCloumn].insert(std::pair<int, double*>(blockStartRow, vals));
+							blockEntries[blockCloumn].insert(std::pair<int, Scalar*>(blockStartRow, vals));
 						}
 					}
 				}
@@ -158,7 +158,7 @@ namespace ODER{
 					found->second += data;
 				else{
 					remainedEntryCount[subColumn]++;
-					remainedEntries.insert(std::pair<int, double>(index, data));
+					remainedEntries.insert(std::pair<int, Scalar>(index, data));
 				}
 			}
 		}
@@ -170,12 +170,12 @@ namespace ODER{
 		int numColumn;
 		int numBlockColumn;
 		int numRemainedColumn;
-		std::vector<std::map<int, double*>> blockEntries;
-		std::map<int, double> remainedEntries;
+		std::vector<std::map<int, Scalar*>> blockEntries;
+		std::map<int, Scalar> remainedEntries;
 		int *remainedEntryCount;
 
 		static constexpr std::array<size_t, blockLength> diagIndices = getDiagIndices(std::make_index_sequence<blockLength>());
-		MemoryArena<double> entryMem;
+		MemoryArena<Scalar> entryMem;
 
 		friend class BlockedSymSparseMatrix <blockLength, blockWidth>;
 	};
@@ -226,11 +226,11 @@ namespace ODER{
 			int blockRowCount = blockPcol[numBlockColumn + numRemainedColumn];
 			dataCount += blockRowCount - blockPcol[numBlockColumn];
 
-			values = allocAligned<double>(dataCount);
+			values = allocAligned<Scalar>(dataCount);
 			blockRows = allocAligned<int>(blockRowCount);
 
 			int index = 0;
-			double *valueIter = values;
+			Scalar *valueIter = values;
 			for (int i = 0; i < numBlockColumn; i++){
 				if (blockPcol[i + 1] != blockPcol[i]){
 					auto pos = assembler.blockEntries[i].cbegin();
@@ -238,25 +238,25 @@ namespace ODER{
 					auto end = last--;
 					if (pos->first == i*blockLength){
 						blockRows[index++] = pos->first;
-						memcpy(valueIter, pos->second, sizeof(double)*diagSize);
+						memcpy(valueIter, pos->second, sizeof(Scalar)*diagSize);
 						valueIter += diagSize;
 						pos++;
 					}
 					if (pos != end){
 						while (pos != last){
 							blockRows[index++] = pos->first;
-							memcpy(valueIter, pos->second, sizeof(double)*regularSize);
+							memcpy(valueIter, pos->second, sizeof(Scalar)*regularSize);
 							valueIter += regularSize;
 							pos++;
 						}
 						if (numColumns - pos->first >= blockWidth){
 							blockRows[index++] = pos->first;
-							memcpy(valueIter, pos->second, sizeof(double)*regularSize);
+							memcpy(valueIter, pos->second, sizeof(Scalar)*regularSize);
 							valueIter += regularSize;
 						}
 						else{
 							blockRows[index++] = pos->first;
-							memcpy(valueIter, pos->second, sizeof(double)*(numColumns - pos->first)*blockLength);
+							memcpy(valueIter, pos->second, sizeof(Scalar)*(numColumns - pos->first)*blockLength);
 							valueIter += (numColumns - pos->first)*blockLength;
 						}
 					}
@@ -278,7 +278,7 @@ namespace ODER{
 			Initiation(values, blockColumnOris[numBlockColumn + numRemainedColumn]);
 		}
 
-		void Add(double alpha, const BlockedSymSparseMatrix& mat) {
+		void Add(Scalar alpha, const BlockedSymSparseMatrix& mat) {
 			Assert(numColumns == mat.numColumns);
 			Assert(numBlockColumn == mat.numBlockColumn);
 			Assert(blockColumnOris[numBlockColumn + numRemainedColumn] == mat.blockColumnOris[numBlockColumn + numRemainedColumn]);
@@ -288,7 +288,7 @@ namespace ODER{
 				values[i] += alpha * mat.values[i];
 		}
 
-		void Scale(double alpha) {
+		void Scale(Scalar alpha) {
 			int dataCount = blockColumnOris[numBlockColumn + numRemainedColumn];
 			for (int i = 0; i < dataCount; i++)
 				values[i] *= alpha;
@@ -310,11 +310,11 @@ namespace ODER{
 
 				if (index == end) return;
 
-				const double *vals = values + blockColumnOris[blockIndex];
+				const Scalar *vals = values + blockColumnOris[blockIndex];
 				if (blockRows[index] == blockStartColumn){
 					int start = diagIndices[offset];
 					for (int i = 0; i < blockLength - offset; i++) {
-						if (vals[start + i] != 0.0)
+						if (vals[start + i] != Scalar(0))
 						    vector.emplaceBack(column + i, vals[start + i]);
 					}
 					index++;
@@ -327,7 +327,7 @@ namespace ODER{
 					int row = blockRows[index++];
 					int start = offset*blockWidth;
 					for (int i = 0; i < blockWidth; i++) {
-						if (vals[start + i] != 0.0)
+						if (vals[start + i] != Scalar(0))
 						    vector.emplaceBack(row + i, vals[start + i]);
 					}
 					vals += regularSize;
@@ -338,14 +338,14 @@ namespace ODER{
 				if (mayDegenWidth >= blockWidth){
 					int start = offset * blockWidth;
 					for (int i = 0; i < blockWidth; i++) {
-						if (vals[start + i] != 0.0)
+						if (vals[start + i] != Scalar(0))
 						    vector.emplaceBack(row + i, vals[start + i]);
 					}
 				}
 				else{
 					int start = offset * mayDegenWidth;
 					for (int i = 0; i < mayDegenWidth; i++) {
-						if (vals[start + i] != 0.0)
+						if (vals[start + i] != Scalar(0))
 						    vector.emplaceBack(row + i, vals[start + i]);
 					}
 				}
@@ -356,15 +356,15 @@ namespace ODER{
 				int entryCount = blockPcol[start + 1] - rowIndexStart;
 
 				const int* row = blockRows + rowIndexStart;
-				const double* val = values + blockColumnOris[start];
+				const Scalar* val = values + blockColumnOris[start];
 				for (int i = 0; i < entryCount; i++) {
-					if (val[i] != 0.0)
+					if (val[i] != Scalar(0))
 					    vector.emplaceBack(row[i], val[i]);
 				}
 			}
 		}
 
-		void addEntry(int row, int column, double data) {
+		void addEntry(int row, int column, Scalar data) {
 			Assert(row >= column);
 			constexpr int regularSize = blockLength * blockWidth;
 			constexpr int diagSize = (blockLength + 1) * blockLength / 2;
@@ -386,13 +386,13 @@ namespace ODER{
 				int preEntryCount = preBlockCount * regularSize;
 				if (hasDiag) preEntryCount -= (regularSize - diagSize);
 				if (pRowIndex != &blockRows[blockPcol[blockIndex]] || !hasDiag) {
-					double *blockValueStart = values + blockColumnOris[blockIndex] + preEntryCount;
-					double *val = blockValueStart + subColumn * std::min(blockWidth, numColumns - blockStartRow) + subRow;
+					Scalar *blockValueStart = values + blockColumnOris[blockIndex] + preEntryCount;
+					Scalar *val = blockValueStart + subColumn * std::min(blockWidth, numColumns - blockStartRow) + subRow;
 					*val += data;
 				}
 				else {
 					int index = subRow - subColumn + diagIndices[subColumn];
-					double *val = values + blockColumnOris[blockIndex] + index;
+					Scalar *val = values + blockColumnOris[blockIndex] + index;
 					*val += data;
 				}
 			}
@@ -400,19 +400,19 @@ namespace ODER{
 				int columnIndex = blockIndex + subColumn;
 				int *pRowIndex = std::lower_bound(&blockRows[blockPcol[columnIndex]], &blockRows[blockPcol[columnIndex + 1]], row);
 				Assert(*pRowIndex == row);
-				double *val = values + blockColumnOris[columnIndex] + (pRowIndex - &blockRows[blockPcol[columnIndex]]);
+				Scalar *val = values + blockColumnOris[columnIndex] + (pRowIndex - &blockRows[blockPcol[columnIndex]]);
 				*val += data;
 			}
 		}
 
-		void addEntry(int index, double data) {
+		void addEntry(int index, Scalar data) {
 			Assert(index >= 0 && index < getNumEntries());
 			values[index] += data; 
 		}
 
-		void getDiagonal(double* diags) const{
+		void getDiagonal(Scalar* diags) const{
 			int i = 0;
-			const double *vals = values;
+			const Scalar *vals = values;
 			for (; i < numBlockColumn; i++){
 				int columnStart = blockPcol[i];
 				for (int j = 0; j < blockLength; j++)
@@ -425,10 +425,10 @@ namespace ODER{
 			}
 		}
 
-		void getDiaginalWithCheck(double *diags) const{
+		void getDiaginalWithCheck(Scalar *diags) const{
 			int column = 0, i = 0;
 			const int* pcol = blockPcol;
-			const double *vals = values;
+			const Scalar *vals = values;
 			for (; column < numBlockColumn * blockLength; column += blockLength, i++){
 				int columnStart = *pcol++;
 				if (blockRows[columnStart] == column){
@@ -436,7 +436,7 @@ namespace ODER{
 						*diags++ = vals[diagIndices[j]];
 				}
 				else{
-					memset(diags, 0, sizeof(double)*blockLength);
+					memset(diags, 0, sizeof(Scalar)*blockLength);
 					diags += blockLength;
 				}
 				vals += blockColumnOris[i + 1] - blockColumnOris[i];
@@ -446,7 +446,7 @@ namespace ODER{
 				if (blockRows[columnStart] == column)
 					*diags++ = *vals;
 				else
-					*diags++ = 0.0;
+					*diags++ = Scalar(0);
 				vals += blockColumnOris[i + 1] - blockColumnOris[i];
 			}
 		}
@@ -578,13 +578,13 @@ namespace ODER{
 			return indices;
 		}
 
-		double getNonzeroRatio() const {
+		Scalar getNonzeroRatio() const {
 			int dataCount = blockColumnOris[numBlockColumn + numRemainedColumn];
 			int nonzeroCount = 0;
 			for (int i = 0; i < dataCount; i++)
-				if (values[i] != 0.0) nonzeroCount += 1;
+				if (values[i] != Scalar(0)) nonzeroCount += 1;
 
-			return (double)nonzeroCount / (double)dataCount;
+			return (Scalar)nonzeroCount / (Scalar)dataCount;
 		}
 
 		BlockedSymSparseMatrix(const BlockedSymSparseMatrix&) = delete;
@@ -627,7 +627,7 @@ namespace ODER{
 		int numColumns;
 		int numBlockColumn;
 		int numRemainedColumn;
-		double *values;
+		Scalar *values;
 		int *blockRows;
 		int *blockPcol;
 		int *blockColumnOris;
@@ -636,11 +636,11 @@ namespace ODER{
 
 		template<int blockLength, int blockWidth>
 		friend void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
-			const double *src, double *dest);
+			const Scalar *src, Scalar *dest);
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 			const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
-			const SparseVector& src, double *dest);
+			const SparseVector& src, Scalar *dest);
 		template<int blockLength, int blockWidth>
 		friend void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 

@@ -20,7 +20,7 @@ namespace ODER{
 		constexpr int count = order - 1;
 		//forward substitution
 		for (int i = 0; i < count; i++){
-			FT largest = 0.0;
+			FT largest = FT(0);
 			int rowIndex = i;
 			int columnIndex = i;
 			for (int j = i; j < order; j++){
@@ -35,7 +35,7 @@ namespace ODER{
 					}
 				}
 			}
-			Assert(largest > 0.0);
+			Assert(largest > FT(0));
 			if (rowPermute[i] != rowPermute[rowIndex])
 				std::swap(rowPermute[i], rowPermute[rowIndex]);
 			if (columnPermute[i] != columnPermute[columnIndex])
@@ -59,7 +59,7 @@ namespace ODER{
 		for (int i = count; i >= 0; i--){
 			int row = rowPermute[i];
 			int column = columnPermute[i];
-			FT dot = 0.0;
+			FT dot = FT(0);
 			for (int j = i + 1; j < order; j++){
 				int subColumn = columnPermute[j];
 				dot += A[order*row + subColumn] * result[subColumn];
@@ -124,31 +124,31 @@ namespace ODER{
 			if (fabs(d) > tol)
 				b += d;
 			else
-				b += (m > 0 ? tol : -tol);
+				b += (m > 0.0 ? tol : -tol);
 			fb = f(b);
 		}
 		Severe("max iteration in ODER::findRoot");
-		return 0.0;
+		return Scalar(0);
 	}
 
 	template<int blockLength, int blockWidth>
 	void SpMDV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat, 
-		const double *src, double *dest){
+		const Scalar *src, Scalar *dest){
 		Assert(src != dest);
 
 		const int blockColumnCount = mat.numBlockColumn;
 		const int columnCount = mat.numColumns;
 		const int remainedColumnCount = mat.numRemainedColumn;
 
-		const double *values = mat.values;
+		const Scalar *values = mat.values;
 		const int *blockPcol = mat.blockPcol;
 		const int *blockRows = mat.blockRows;
 
 		constexpr int regularSize = blockLength * blockWidth;
 		constexpr int diagSize = (blockLength + 1) * blockLength / 2;
 
-		double destBlock[blockLength];
-		double srcBlock[blockLength];
+		Scalar destBlock[blockLength];
+		Scalar srcBlock[blockLength];
 
 		const int blockBoundary = blockLength * blockColumnCount;
 		for (int startColumn = 0; startColumn < blockBoundary; startColumn += blockLength){
@@ -163,10 +163,10 @@ namespace ODER{
 				int diagIndex = 0;
 				for (int j = 0; j < blockLength; j++){
 					int actualRow = row + j;
-					double x = src[actualRow];
-					double ret = values[diagIndex++] * x;
+					Scalar x = src[actualRow];
+					Scalar ret = values[diagIndex++] * x;
 					for (int k = j + 1; k < blockLength; k++){
-						double val = values[diagIndex++];
+						Scalar val = values[diagIndex++];
 						dest[row + k] += val * x;
 						ret += val * src[row + k];
 					}
@@ -179,7 +179,7 @@ namespace ODER{
 			if (index < end){
 				for (int j = 0; j < blockLength; j++){
 					srcBlock[j] = src[startColumn + j];
-					destBlock[j] = 0.0;
+					destBlock[j] = Scalar(0);
 				}
 			}
 			else continue;
@@ -187,11 +187,11 @@ namespace ODER{
 			while (index < end - 1){
 				row = blockRows[index++];
 				for (int j = 0, offset = 0; j < blockLength; j++, offset += blockWidth){
-					double x = srcBlock[j];
-					double ret = 0.0;
+					Scalar x = srcBlock[j];
+					Scalar ret = Scalar(0);
 					for (int k = 0; k < blockWidth; k++){
 						int actualRow = row + k;
-						double val = values[offset + k];
+						Scalar val = values[offset + k];
 						dest[actualRow] += val * x;
 						ret += val * src[actualRow];
 					}
@@ -204,11 +204,11 @@ namespace ODER{
 			int mayDegenWidth = columnCount - row;
 			if (mayDegenWidth >= blockWidth){
 				for (int j = 0, offset = 0; j < blockLength; j++, offset += blockWidth){
-					double x = srcBlock[j];
-					double ret = 0.0;
+					Scalar x = srcBlock[j];
+					Scalar ret = Scalar(0);
 					for (int k = 0; k < blockWidth; k++){
 						int actualRow = row + k;
-						double val = values[offset + k];
+						Scalar val = values[offset + k];
 						dest[actualRow] += val * x;
 						ret += val * src[actualRow];
 					}
@@ -218,11 +218,11 @@ namespace ODER{
 			}
 			else{
 				for (int j = 0, offset = 0; j < blockLength; j++, offset += mayDegenWidth){
-					double x = srcBlock[j];
-					double ret = 0.0;
+					Scalar x = srcBlock[j];
+					Scalar ret = Scalar(0);
 					for (int k = 0; k < mayDegenWidth; k++){
 						int actualRow = row + k;
-						double val = values[offset + k];
+						Scalar val = values[offset + k];
 						dest[actualRow] += val * x;
 						ret += val * src[actualRow];
 					}
@@ -242,7 +242,7 @@ namespace ODER{
 			if (index == end) continue;
 
 			int row = blockRows[index];
-			double y = 0.0, x = src[i];
+			Scalar y = Scalar(0), x = src[i];
 			if (row == i){
 				y += x * (*values++);
 				index++;
@@ -250,7 +250,7 @@ namespace ODER{
 
 			while (index < end){
 				row = blockRows[index++];
-				double val = *values++;
+				Scalar val = *values++;
 
 				y += val * src[row];
 				dest[row] += val * x;
@@ -264,14 +264,14 @@ namespace ODER{
 	template<int blockLength, int blockWidth>
 	void SpMSV(const BlockedSymSparseMatrix<blockLength, blockWidth>& mat,
 		const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
-		const SparseVector& src, double *dest) {
+		const SparseVector& src, Scalar *dest) {
 
-		const double *values = mat.values;
+		const Scalar *values = mat.values;
 
 		const auto end = src.cend();
 		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter) {
 			const int column = *vecIter.indexIterator;
-			const double entry = *vecIter.valueIterator;
+			const Scalar entry = *vecIter.valueIterator;
 
 			const std::vector<std::pair<int, int>>& rowIndexPairs = fullIndices[column];
 
@@ -285,12 +285,12 @@ namespace ODER{
 		const std::vector<std::vector<std::pair<int, int>>>& fullIndices,
 		const SparseVector& src, FastSparseVector& dest){
 
-		const double *values = mat.values;
+		const Scalar *values = mat.values;
 
 		const auto end = src.cend();
 		for (auto vecIter = src.cbegin(); vecIter != end; ++vecIter) {
 			const int column = *vecIter.indexIterator;
-			const double entry = *vecIter.valueIterator;
+			const Scalar entry = *vecIter.valueIterator;
 
 			const std::vector<std::pair<int, int>>& rowIndexPairs = fullIndices[column];
 
@@ -301,7 +301,7 @@ namespace ODER{
 
 	template<class FT> void eigenSym3x3(const FT *triMat, FT *eigenvalues, FT *eigenvectors) {
 		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::eigenSym3x3 support IEEE 754-1985 floating point only");
-		constexpr FT pi = M_PI;
+		constexpr FT pi = FT(M_PI);
 		const FT aveTrace = (triMat[0] + triMat[3] + triMat[5]) / FT(3.0);
 		const FT deviatoricDiag0 = triMat[0] - aveTrace;
 		const FT deviatoricDiag1 = triMat[3] - aveTrace;
@@ -404,6 +404,7 @@ namespace ODER{
 	}
 
 	template<class FT> void properQRDecompostion3x3(const FT *mat, FT* ortho, FT *upperTri) {
+		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::properQRDecompostion3x3 support IEEE 754-1985 floating point only");
 		auto givens = [](FT a, FT b, FT& c, FT& s, FT& r){
 			if (b == FT(0)) {
 				c = a < FT(0) ? FT(-1) : FT(1);
@@ -479,6 +480,287 @@ namespace ODER{
 		memcpy(ortho, Q, sizeof(FT) * 9);
 		memcpy(upperTri, R, sizeof(FT) * 9);
 	}
+
+	template<class FT> void polarDecompostion3x3(FT *mat, FT *ortho, FT *sspd) {
+		FT A[9], B[16];
+		FT norm = FT(0);
+		for (int i = 0; i < 9; i++) norm += mat[i] * mat[i];
+		norm = sqrt(norm);
+		if (norm == FT(0)) {
+			Initiation(ortho, 9);
+			Initiation(sspd, 9);
+			ortho[0] = ortho[4] = ortho[8] = FT(1);
+			return;
+		}
+		FT invNorm = FT(1) / norm;
+		for (int i = 0; i < 9; i++) A[i] = mat[i] * invNorm;
+
+		FT detB = FT(0), adjAEntry = FT(0);
+		adjAEntry = A[4] * A[8] - A[5] * A[7]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[3] * A[8] - A[5] * A[6]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[3] * A[7] - A[4] * A[6]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[1] * A[8] - A[2] * A[7]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[0] * A[8] - A[2] * A[6]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[0] * A[7] - A[1] * A[6]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[1] * A[5] - A[2] * A[4]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[0] * A[5] - A[2] * A[3]; detB += adjAEntry * adjAEntry;
+		adjAEntry = A[0] * A[4] - A[1] * A[3]; detB += adjAEntry * adjAEntry;
+		detB = FT(1) - FT(4) * detB;
+
+		//column first matrix
+		B[0] = -A[0] - A[4] - A[8]; B[1] = -A[5] + A[7]; B[2] = -A[6] + A[2]; B[3] = -A[1] + A[3];
+		B[4] = B[1]; B[5] = -A[0] + A[3] + A[8]; B[6] = -A[1] - A[3]; B[7] = -A[2] - A[6];
+		B[8] = B[2]; B[9] = B[6];  B[10] = -A[4] + A[0] + A[8]; B[11] = -A[5] - A[7];
+		B[12] = B[3]; B[13] = B[7]; B[14] = B[11]; B[15] = -A[2] + A[0] + A[1];
+			 
+		FT detA = FT(1), omega = FT(0);
+		constexpr FT tou = FT(1e-4);
+		bool quick = detB <= FT(1) - tou;
+
+		if (quick) {
+			int rowPermute[3] = { 0, 1, 2 };
+			//LU with partial pivoting
+			for (int i = 0; i < 2; i++) {
+				int rowIndex = i;
+				FT largest = fabs(A[rowPermute[i] * 3 + i]);
+				for (int j = i + 1; j < 3; j++) {
+					FT entry = fabs(A[rowPermute[j] * 3 + i]);
+					if (entry > largest) {
+						rowIndex = j;
+						largest = entry;
+					}
+				}
+
+				if (rowIndex != i) {
+					std::swap(rowPermute[i], rowPermute[rowIndex]);
+					detA = -detA;
+				}
+
+				int row = rowPermute[i];
+				detA *= A[row * 3 + i];
+				FT scale = FT(1) / A[row * 3 + i];
+				for (int j = i + 1; j < 3; j++) {
+					int subRow = rowPermute[j];
+					FT lower = scale * A[subrRow * 3 + j];
+					for (int k = i + 1; k < 3; k++)
+						A[subRow * 3 + k] -= lower * A[row * 3 + k];
+				}
+			}
+			detA *= A[rowPermute[2] * 3 + 2];
+		}
+		else {
+			int rowPermute[3] = { 0, 1, 2 };
+			int columnPermute[3] = { 0, 1, 2 };
+			//LU with complete pivoting
+			for (int i = 0; i < 2; i++) {
+				FT largest = FT(0);
+				int rowIndex = i;
+				int columnIndex = i;
+				for (int j = i; j < 3; j++) {
+					int subRow = rowPermute[j];
+					for (int k = i; k < 3; k++) {
+						int subColumn = columnPermute[k];
+						FT entry = fabs(A[subRow * 3 + subColumn]);
+						if (entry > largest) {
+							largest = entry;
+							rowIndex = j;
+							columnIndex = k;
+						}
+					}
+				}
+
+				if (rowPermute[i] != rowPermute[rowIndex]) {
+					std::swap(rowPermute[i], rowPermute[rowIndex]);
+					detA = -detA;
+				}
+				if (columnPermute[i] != columnPermute[columnIndex]) {
+					std::swap(columnPermute[i], columnPermute[columnIndex]);
+					detA = -detA;
+				}
+
+				int row = rowPermute[i];
+				int column = columnPermute[i];
+				detA *= A[row * 3 + column];
+				if (detA == FT(0)) break;
+
+				FT scale = FT(1) / A[row * 3 + column];
+				for (int j = i + 1; j < 3; j++) {
+					int subRow = rowPermute[j];
+					FT lower = scale * A[subRow * 3 + column];
+					for (int k = i + 1; k < 3; k++) {
+						int subColumn = columnPermute[k];
+						A[subRow * 3 + subColumn] -= lower * A[row * 3 + subColumn];
+					}
+				}
+			}
+			detA *= A[rowPermute[2] * 3 + columnPermute[2]];
+
+			if (detA != FT(0)) omega = fabs(A[rowPermute[2] * 3 + columnPermute[2]]);
+		}
+
+		if (detA < FT(0)) {
+			detA = -detA;
+			for (int i = 0; i < 10; i++) B[i] = -B[i];
+		}
+		
+		constexpr FT squareRoot3 = FT(1.7320508075688772935274463415058723669428052538103806280558069794519330169088);
+		FT domEigen = FT(0);
+		if (detB >= tou - squareRoot3) {
+			//analytical solution
+			FT c = FT(8) * detA;
+			FT delta0 = FT(1) + FT(3) * detB;
+			FT delta1 = FT(-1) + (FT(27) / FT(16)) * c * c + FT(9) * detB;
+			FT sqrtDelta0 = sqrt(delta0);
+			FT alpha = delta1 / (delta0 * sqrtDelta0);
+			FT z = (FT(4) * squareRoot3) * (FT(1) + sqrtDelta0 * cos(acos(alpha) * squareRoot3));
+			FT s = sqrt(z) * FT(0.5);
+			domEigen = s + FT(0.5) * sqrt(std::max(FT(0), FT(4) - z + c / s));
+		}
+		else {
+			//Newton's method
+			domEigen = sqrt(FT(3));
+			FT domEigenOld = domEigen;
+			constexpr FT eps = FT(1e-12);
+
+			FT c = FT(8) * detA;
+			do {
+				FT p = domEigen * (domEigen * (domEigen * domEigen - FT(2)) - c) + detB;
+				FT dp = domEigen * (FT(4) * domEigen * domEigen - FT(4)) - c;
+				domEigenOld = domEigen;
+				domEigen -= p / dp;
+			} while (domEigenOld - domEigen > eps);
+		}
+
+		B[0] += domEigen; B[5] += domEigen; B[10] += domEigen; B[15] += domEigen;
+
+
+		FT v[4];
+		if (quick) {
+			//LDLT with symmetric pivoting
+			int indices[4] = { 0, 1, 2, 3 };
+			for (int i = 0; i < 2; i++) {
+				int diagIndex = i;
+				int trueDiagIndex = indices[diagIndex];
+				FT largest = B[trueDiagIndex * 4 + trueDiagIndex];
+				for (int j = i + 1; j < 4; j++) {
+					int trueIndex = indices[j];
+					FT diag = B[trueIndex * 4 + trueIndex];
+					if (diag > largest) {
+						largest = diag;
+						diagIndex = i;
+					}
+				}
+
+				if (diagIndex != i) std::swap(indices[i], indices[diagIndex]);
+
+				FT factor = FT(1) / largest;
+				trueDiagIndex = indices[i];
+				for (int j = i + 1; j < 4; j++) B[trueDiagIndex * 4 + indices[j]] *= factor;
+
+				for (int j = i + 1; j < 4; j++) {
+					int rowIndex = indices[j];
+					B[rowIndex * 4 + rowIndex] -= B[trueDiagIndex * 4 + rowIndex] * B[rowIndex * 4 + trueDiagIndex];
+					for (int k = j + 1; k < 4; k++) {
+						int colIndex = indices[j];
+						FT offDiag = B[rowIndex * 4 + colIndex] - B[trueDiagIndex * 4 + colIndex] * B[colIndex * 4 + trueDiagIndex];
+						B[rowIndex * 4 + colIndex] = offDiag;
+						B[colIndex * 4 + rowIndex] = offDiag;
+					}
+				}
+			}
+			//the third column
+			if (B[indices[2] * 4 + indices[2]] < B[indices[3] * 4 + indices[3]]) std::swap(indices[2], indices[3]);
+			B[indices[2] * 4 + indices[3]] /= B[indices[2] * 4 + indices[2]];
+
+			v[indices[0]] = B[indices[0] * 4 + indices[1]] * B[indices[1] * 4 + indices[3]] +
+				B[indices[0] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]] -
+				B[indices[0] * 4 + indices[1]] * B[indices[2] * 4 + indices[3]] * B[indices[1] * 4 + indices[2]] -
+				B[indices[0] * 4 + indices[3]];
+			v[indices[1]] = B[indices[2] * 4 + indices[3]] * B[indices[1] * 4 + indices[2]] - B[indices[1] * 4 + indices[3]];
+			v[indices[2]] = -B[indices[2] * 4 + indices[3]];
+			v[indices[3]] = FT(1);
+
+			FT invNorm = FT(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+
+			for (int i = 0; i < 4; i++) v[i] *= invNorm;
+		}
+		else {
+			int indices[4] = { 0, 1, 2, 3 };
+			for (int i = 0; i < 2; i++) {
+				int diagIndex = i;
+				int trueDiagIndex = indices[diagIndex];
+				FT largest = B[trueDiagIndex * 4 + trueDiagIndex];
+				for (int j = i + 1; j < 4; j++) {
+					int trueIndex = indices[j];
+					FT diag = B[trueIndex * 4 + trueIndex];
+					if (diag > largest) {
+						largest = diag;
+						diagIndex = i;
+					}
+				}
+
+				if (diagIndex != i) std::swap(indices[i], indices[diagIndex]);
+
+				FT factor = FT(1) / largest;
+				trueDiagIndex = indices[i];
+				for (int j = i + 1; j < 4; j++) B[trueDiagIndex * 4 + indices[j]] *= factor;
+
+				for (int j = i + 1; j < 4; j++) {
+					int rowIndex = indices[j];
+					B[rowIndex * 4 + rowIndex] -= B[trueDiagIndex * 4 + rowIndex] * B[rowIndex * 4 + trueDiagIndex];
+					for (int k = j + 1; k < 4; k++) {
+						int colIndex = indices[j];
+						FT offDiag = B[rowIndex * 4 + colIndex] - B[trueDiagIndex * 4 + colIndex] * B[colIndex * 4 + trueDiagIndex];
+						B[rowIndex * 4 + colIndex] = offDiag;
+						B[colIndex * 4 + rowIndex] = offDiag;
+					}
+				}
+			}
+
+			FT dd = B[indices[2] * 4 + indices[2]] * B[indices[3] * 4 + indices[3]] - B[indices[2] * 4 + indices[3]] * B[indices[3] * 4 + indices[2]];
+			if (dd == FT(0)) {
+				if (B[indices[2] * 4 + indices[2]] == FT(0) && B[indices[3] * 4 + indices[3]] == FT(0)
+					&& B[indices[2] * 4 + indices[3]] == FT(0) && B[indices[3] * 4 + indices[2]] == FT(0)) {
+					v[indices[0]] = B[indices[0] * 4 + indices[1]] * B[indices[1] * 4 + indices[3]] - B[indices[0] * 4 + indices[3]];
+					v[indices[1]] = -B[indices[1] * 4 + indices[3]];
+					v[indices[2]] = FT(0); v[indices[3]] = FT(1);
+				}
+				else {
+					FT aa = FT(0), bb = FT(0);
+					FT norm0 = B[indices[2] * 4 + indices[2]] * B[indices[2] * 4 + indices[2]] +
+						B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
+					FT norm1 = B[indices[3] * 4 + indices[2]] * B[indices[3] * 4 + indices[2]] +
+						B[indices[3] * 4 + indices[3]] * B[indices[3] * 4 + indices[3]];
+
+					if (norm0 > norm1) {
+						norm0 = FT(1) / sqrt(norm0);
+						aa = -B[indices[2] * 4 + indices[3]] * norm0;
+						bb = B[indices[2] * 4 + indices[2]] * norm0;
+					}
+					else {
+						norm1 = FT(1) / sqrt(norm1);
+						aa = -B[indices[3] * 4 + indices[3]] * norm1;
+						bb = B[indices[3] * 4 + indices[2]] * norm1;
+					}
+
+					
+					v[indices[3]] = bb; v[indices[2]] = aa;
+					v[indices[1]] = -B[indices[1] * 4 + indices[3]] * bb - B[indices[1] * 4 + indices[2]] * aa;
+					v[indices[0]] = -B[indices[0] * 4 + indices[3]] * bb - B[indices[0] * 4 + indices[2]] * aa - B[indices[0] * 4 + indices[1]] * v[indices[1]];
+				}
+
+				FT invNorm = FT(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+
+				for (int i = 0; i < 4; i++) v[i] *= invNorm;
+			}
+			else {
+				//to be implemented
+				
+			}
+
+		}
+	}
+
 
 	template<class FT> FT Dot(int width, const FT *x, const FT *y) {
 		FT result = FT(0);

@@ -352,8 +352,8 @@ namespace ODER{
 		SparseVector& operator=(const SparseVector& vec) = delete;
 		SparseVector(SparseVector&& vec);
 		SparseVector& operator=(SparseVector&& vec);
-		double operator*(const FastSparseVector &vec) const;
-		void Set(int index, double val){
+		Scalar operator*(const FastSparseVector &vec) const;
+		void Set(int index, Scalar val){
 			for (size_t i = 0; i < size; i++) {
 				if (index == indices[i]) {
 					values[i] = val;
@@ -363,7 +363,7 @@ namespace ODER{
 			emplaceBack(index, val);
 		}
 
-		void Add(int index, double val){
+		void Add(int index, Scalar val){
 			for (size_t i = 0; i < size; i++) {
 				if (index == indices[i]) {
 					values[i] += val;
@@ -373,7 +373,7 @@ namespace ODER{
 			emplaceBack(index, val);
 		}
 
-		void emplaceBack(int index, double val){
+		void emplaceBack(int index, Scalar val){
 			if (size >= capability) enlargeVector();
 			indices[size] = index; values[size] = val;
 			size += 1;
@@ -417,8 +417,8 @@ namespace ODER{
 			valuePointer valueIterator;
 		};
 
-		using IndexValConstIter = IndexValueIterator<const int*, const double*>;
-		using IndexValIter = IndexValueIterator<int*, double*>;
+		using IndexValConstIter = IndexValueIterator<const int*, const Scalar*>;
+		using IndexValIter = IndexValueIterator<int*, Scalar*>;
 		IndexValConstIter cbegin() const { return IndexValConstIter(indices, values); }
 		IndexValConstIter cend() const { return IndexValConstIter(indices + size, values + size); }
 		IndexValIter begin() { return IndexValIter(indices, values); }
@@ -443,7 +443,7 @@ namespace ODER{
 
 
 		int *indices;
-		double *values;
+		Scalar *values;
 
 		size_t size;
 		size_t capability;
@@ -458,8 +458,8 @@ namespace ODER{
 		FastSparseVector& operator=(const FastSparseVector&) = delete;
 		FastSparseVector(FastSparseVector&& vec);
 		FastSparseVector& operator=(FastSparseVector&& vec);
-		double operator*(const SparseVector &vec) const;
-		void Set(int index, double val) {
+		Scalar operator*(const SparseVector &vec) const;
+		void Set(int index, Scalar val) {
 			int indicator = indexIndicators[index];
 			if (indicator != 0)
 				vector.values[indicator] = val;
@@ -467,7 +467,7 @@ namespace ODER{
 				emplaceBack(index, val);
 		}
 
-		void Add(int index, double val) {
+		void Add(int index, Scalar val) {
 			int indicator = indexIndicators[index];
 			if (indicator != 0)
 				vector.values[indicator] += val;
@@ -481,11 +481,11 @@ namespace ODER{
 			vector.size = 1;
 		}
 
-		double operator[](int index) const { 
+		Scalar operator[](int index) const { 
 			return vector.values[indexIndicators[index]];
 		}
 
-		void emplaceBack(int index, double val) {
+		void emplaceBack(int index, Scalar val) {
 			indexIndicators[index] = vector.size;
 			vector.indices[vector.size] = index;
 			vector.values[vector.size] = val;
@@ -591,15 +591,15 @@ namespace ODER{
 
 
 
-	inline double SparseVector::operator*(const FastSparseVector &vec) const {
-		double dot = 0;
+	inline Scalar SparseVector::operator*(const FastSparseVector &vec) const {
+		Scalar dot = Scalar(0);
 		for (size_t i = 0; i < size; i++)
 			dot += values[i] * vec[indices[i]];
 
 		return dot;
 	}
 
-	inline double FastSparseVector::operator*(const SparseVector &vec) const {
+	inline Scalar FastSparseVector::operator*(const SparseVector &vec) const {
 		return vec * (*this);
 	}
 

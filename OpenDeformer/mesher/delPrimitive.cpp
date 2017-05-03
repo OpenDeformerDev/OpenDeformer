@@ -39,7 +39,7 @@ namespace ODER {
 	void TriangleWithGeometry::setGeometricProperties() {
 		if (radius >= 0) return;
 		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost()) {
-			radius = REAL(0);
+			radius = DelReal(0);
 			return;
 		}
 		Geometer::Circumcircle(v[0]->point, v[1]->point, v[2]->point, &circumcenter, &radius);
@@ -49,9 +49,9 @@ namespace ODER {
 		if (radius >= 0) return;
 
 		if (v[0]->isGhost() || v[1]->isGhost() || v[2]->isGhost() || v[3]->isGhost()) {
-			reRation = REAL(0);
-			radius = REAL(0);
-			constexpr REAL inf = std::numeric_limits<REAL>::infinity();
+			reRation = DelReal(0);
+			radius = DelReal(0);
+			constexpr DelReal inf = std::numeric_limits<DelReal>::infinity();
 			circumcenter = DelVector(inf, inf, inf);
 			return;
 		}
@@ -64,8 +64,8 @@ namespace ODER {
 
 		Geometer::Circumsphere(v[0]->point, v[1]->point, v[2]->point, v[3]->point, &circumcenter, &radius);
 
-		REAL minEdgeLength = sqrt(std::min({ da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2() }));
-		REAL relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,
+		DelReal minEdgeLength = sqrt(std::min({ da.length2(), db.length2(), dc.length2(), ca.length2(), cb.length2(), ba.length2() }));
+		DelReal relaxedLength = std::max(minEdgeLength, std::min({ v[0]->relaxedInsetionRadius, v[1]->relaxedInsetionRadius,
 			v[2]->relaxedInsetionRadius, v[3]->relaxedInsetionRadius }));
 
 		reRation = radius / relaxedLength;
@@ -116,7 +116,7 @@ namespace ODER {
 		deadVerticesStack = NULL;
 	}
 
-	Vertex* TriMeshDataStructure::allocVertex(const DelVector &point, REAL weight) {
+	Vertex* TriMeshDataStructure::allocVertex(const DelVector &point, DelReal weight) {
 		if (vertPool == NULL) vertPool = new MemoryArena<Vertex>(128);
 
 		Vertex *newVert = NULL;
@@ -809,7 +809,7 @@ namespace ODER {
 		deadVerticesStack = NULL;
 	}
 
-	Vertex* TetMeshDataStructure::allocVertex(const DelVector &point, REAL weight, VertexType extraType) {
+	Vertex* TetMeshDataStructure::allocVertex(const DelVector &point, DelReal weight, VertexType extraType) {
 		constexpr size_t freeSegFacetPointerCount = 4, fixedSegFacetPointerCount = 3, facetPointerCount = 2;
 		constexpr size_t freeSegPointerCount = 3, fixedSegPointerCount = 2;
 		

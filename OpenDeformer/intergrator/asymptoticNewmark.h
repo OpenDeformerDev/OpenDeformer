@@ -12,7 +12,7 @@
 namespace ODER{
 	class AsymptoticNewmark : public Intergrator{
 	public:
-		AsymptoticNewmark(double beta, double gamma, int DOFS, double massDamp, double stiffDamp, double ts,
+		AsymptoticNewmark(Scalar beta, Scalar gamma, int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, ReducedHyperelasticMaterial* mater);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
@@ -20,26 +20,26 @@ namespace ODER{
 		~AsymptoticNewmark();
 
 	private:
-		void getRawDisplacements(double *displacements) const;
+		void getRawDisplacements(Scalar *displacements) const;
 
-		double *d;
-		double *v;
-		double *a;
-		double *pre_d;
-		double *pre_v;
-		double *pre_a;
-		double *externalVirtualWork;
+		Scalar *d;
+		Scalar *v;
+		Scalar *a;
+		Scalar *pre_d;
+		Scalar *pre_v;
+		Scalar *pre_a;
+		Scalar *externalVirtualWork;
 
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
 		ReducedHyperelasticMaterial* material;
 		int totalDofs;
-		double betaDeltaT2, gammaDeltaT, minusBetaDeltaT2, minusGammaDeltaT;
-		double *frequencies2;
-		double *basises;
-		double *loadFactors;
-		double *fullDisplacements;
-		double *vwBuffer;
+		Scalar betaDeltaT2, gammaDeltaT, minusBetaDeltaT2, minusGammaDeltaT;
+		Scalar *frequencies2;
+		Scalar *basises;
+		Scalar *loadFactors;
+		Scalar *fullDisplacements;
+		Scalar *vwBuffer;
 	};
 }
 

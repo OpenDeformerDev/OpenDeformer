@@ -12,11 +12,11 @@
 namespace ODER{
 	class HookeMaterial :public MechMaterial{
 	public:
-		HookeMaterial(double rho, double YOUNGS, double POSSION);
+		HookeMaterial(Scalar rho, Scalar YOUNGS, Scalar POSSION);
 		void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 	private:
-		double youngs, possion;
-		double D[3];
+		Scalar youngs, possion;
+		Scalar D[3];
 	};
 }
 

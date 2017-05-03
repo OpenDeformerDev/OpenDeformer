@@ -26,7 +26,7 @@ namespace ODER{
 
 	struct Facet{
 		Facet(Mesh *m) :mesh(m), vertIndexs(NULL){}
-		virtual void getSurfVirtualWorks(double surfForce[3], double *result) const = 0;
+		virtual void getSurfVirtualWorks(Scalar surfForce[3], Scalar *result) const = 0;
 		void setVertIndexs(int vertIndex){ vertIndexs = mesh->getFacetVertReference(vertIndex); }
 		int getVertIndex(int localIndex) const { return vertIndexs[localIndex]; }
 
@@ -38,8 +38,8 @@ namespace ODER{
 
 	struct GeometricElement : public Element{
 		GeometricElement(Mesh *m) : Element(m){}
-		virtual void generateSubMassMatrix(double *result) const = 0;
-		virtual void getBodyVirtualWorks(double bodyForce[3], double *result) const = 0;
+		virtual void generateSubMassMatrix(Scalar *result) const = 0;
+		virtual void getBodyVirtualWorks(Scalar bodyForce[3], Scalar *result) const = 0;
 		
 		virtual ~GeometricElement() = default;
 	};
@@ -47,36 +47,36 @@ namespace ODER{
 	struct LinearIsotropicElement : public Element{
 		LinearIsotropicElement(Mesh *m): Element(m){}
 		virtual void setBMatrixs() = 0;
-		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
+		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const = 0;
 		virtual ~LinearIsotropicElement() = default;
 	};
 
 	struct ReducedIsotropicElement : public Element{
 		ReducedIsotropicElement(Mesh *m): Element(m){}
 		virtual void setBMatrixs() = 0;
-		virtual void Intergration(const double *C, double *nlpart, double *nnpart) const = 0;
-		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
+		virtual void Intergration(const Scalar *C, Scalar *nlpart, Scalar *nnpart) const = 0;
+		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const = 0;
 		virtual ~ReducedIsotropicElement() = default;
 	};
 
 	struct LinearAnisortropicElement : public Element{
 		LinearAnisortropicElement(Mesh *m): Element(m){}
 		virtual void setBMatrixs() = 0;
-		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const = 0;
+		virtual void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const = 0;
 		virtual ~LinearAnisortropicElement() = default;
 	};
 
 	struct InvertibleHyperelasticElement : public Element {
 		InvertibleHyperelasticElement(Mesh *m) : Element(m) {}
-		virtual void getPrecomputes(double *drivates, double *deforamtionGradients) const = 0;
+		virtual void getPrecomputes(Scalar *drivates, Scalar *deforamtionGradients) const = 0;
 		virtual int getDirvateEntryCount() const = 0;
 		virtual int getDeformGradientsPreEntryCount() const = 0;
 		virtual int getQuadraturePointCount() const = 0;
 
-		virtual void generateDeformationGradient(const double *precompute, double *gradients) const = 0;
-		virtual void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats,
-			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const = 0;
-		virtual void generateNodalVirtualWorks(const double *precompute, const double *stresses, double *result) const = 0;
+		virtual void generateDeformationGradient(const Scalar *precompute, Scalar *gradients) const = 0;
+		virtual void generateSubStiffnessMatrix(const Scalar *drivates, const Scalar *diags, const Scalar *leftOrthoMats,
+			const Scalar *rightOrthoMats, const Scalar *energyGradients, const Scalar *energyHassians, Scalar *result) const = 0;
+		virtual void generateNodalVirtualWorks(const Scalar *precompute, const Scalar *stresses, Scalar *result) const = 0;
 		virtual ~InvertibleHyperelasticElement() = default;
 	};
 

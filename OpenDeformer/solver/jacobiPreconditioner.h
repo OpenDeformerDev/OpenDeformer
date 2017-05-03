@@ -13,13 +13,13 @@ namespace ODER {
 	public:
 		JacobiPreconditioner() = default;
 		JacobiPreconditioner(const BlockedSymSpMatrix& mat);
-		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
+		void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const;
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat);
 		void Preprocess(const BlockedSymSpMatrix& mat);
 	private:
 		void getInvJacobiMat(const BlockedSymSpMatrix& mat);
 
-		std::vector<double> invDiags;
+		std::vector<Scalar> invDiags;
 	};
 }
 #endif

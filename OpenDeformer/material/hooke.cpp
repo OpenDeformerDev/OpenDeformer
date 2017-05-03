@@ -3,21 +3,21 @@
 #include "nodeIndexer.h"
 
 namespace ODER{
-	HookeMaterial::HookeMaterial(double rho, double YOUNGS, double POSSION)
+	HookeMaterial::HookeMaterial(Scalar rho, Scalar YOUNGS, Scalar POSSION)
 		:MechMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Linear)),
 		youngs(YOUNGS), possion(POSSION){
 		//Lame prameters
-		double lambda = possion*youngs / ((1.0 + possion)*(1.0 - 2.0*possion));
-		double mu = youngs / (2.0*(1.0 + possion));
+		Scalar lambda = possion*youngs / ((Scalar(1.0) + possion) * (Scalar(1.0) - Scalar(2.0) * possion));
+		Scalar mu = youngs / (Scalar(2.0) * (Scalar(1.0) + possion));
 
-		D[0] = lambda + 2.0 * mu;
+		D[0] = lambda + Scalar(2.0) * mu;
 		D[1] = lambda;
 		D[2] = mu;
 	}
 
 	void HookeMaterial::generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const{
 		const int numNodesPerElement = mesh->getNodePerElementCount();
-		double subStiffness[3 * 3];
+		Scalar subStiffness[3 * 3];
 
 		LinearIsotropicElement *element = dynamic_cast<LinearIsotropicElement *>(mesh->getMaterialElement(type));
 
@@ -32,7 +32,7 @@ namespace ODER{
 					for (int subRow = 0; subRow < 3; subRow++){
 						if (aNodeIndex != bNodeIndex){
 							for (int subColumn = 0; subColumn < 3; subColumn++){
-								if (subStiffness[3 * subRow + subColumn] != 0.0){
+								if (subStiffness[3 * subRow + subColumn] != Scalar(0)){
 									int i_index = indexer->getGlobalIndex(*element, aNodeIndex, subRow);
 									int j_index = indexer->getGlobalIndex(*element, bNodeIndex, subColumn);
 									if (i_index >= 0 && j_index >= 0){
@@ -45,7 +45,7 @@ namespace ODER{
 						}
 						else{
 							for (int subColumn = 0; subColumn <= subRow; subColumn++){
-								if (subStiffness[3 * subRow + subColumn] != 0.0){
+								if (subStiffness[3 * subRow + subColumn] != Scalar(0)){
 									int rowIndex = indexer->getGlobalIndex(*element, aNodeIndex, subRow);
 									int columnIndex = indexer->getGlobalIndex(*element, bNodeIndex, subColumn);
 									if (rowIndex >= 0 && columnIndex >= 0)

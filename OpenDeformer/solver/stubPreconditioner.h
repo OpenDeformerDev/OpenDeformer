@@ -10,7 +10,7 @@
 namespace ODER {
 	class StubPreconditioner : public Preconditioner {
 	public:
-		void solvePreconditionerSystem(int width, const double *rhs, double *result) const;
+		void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const;
 		void resetPreconditionerSystem(const BlockedSymSpMatrix& mat) {}
 		void resetPreconditionerSystem(const SparseMatrix& mat) {}
 		void Preprocess(const BlockedSymSpMatrix& mat) {}

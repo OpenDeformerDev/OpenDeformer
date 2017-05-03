@@ -13,14 +13,14 @@ namespace ODER{
 	struct TetElement : public GeometricElement{
 		TetElement(TetMesh *m) :GeometricElement(m){}
 
-		void generateSubMassMatrix(double *result) const;
-		void getBodyVirtualWorks(double bodyForce[3], double *result) const;
+		void generateSubMassMatrix(Scalar *result) const;
+		void getBodyVirtualWorks(Scalar bodyForce[3], Scalar *result) const;
 		~TetElement() = default; 
 	};
 
 	struct TetFacet : public Facet{
 		TetFacet(TetMesh *m) :Facet(m){}
-		void getSurfVirtualWorks(double surfForce[3], double *result) const;
+		void getSurfVirtualWorks(Scalar surfForce[3], Scalar *result) const;
 		~TetFacet() = default;
 	};
 
@@ -28,60 +28,60 @@ namespace ODER{
 	struct LinearIsotropicTetElement : public LinearIsotropicElement{
 		LinearIsotropicTetElement(TetMesh *m) : LinearIsotropicElement(m){}
 		void setBMatrixs();
-		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
+		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const;
 		~LinearIsotropicTetElement() = default;
 	private:
-		double BMatrixs[12];
+		Scalar BMatrixs[12];
 	};
 
 	struct ReducedIsotropicTetElement : public ReducedIsotropicElement{
 		ReducedIsotropicTetElement(TetMesh *m) : ReducedIsotropicElement(m){}
 		void setBMatrixs();
-		void Intergration(const double *C, double *nlpart, double *nnpart) const;
-		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
+		void Intergration(const Scalar *C, Scalar *nlpart, Scalar *nnpart) const;
+		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const;
 		~ReducedIsotropicTetElement() = default;
 	private:
-		double BMatrixs[12];
+		Scalar BMatrixs[12];
 	};
 
 	struct LinearAnisortropicTetElement : public LinearAnisortropicElement{
 		LinearAnisortropicTetElement(TetMesh *m) : LinearAnisortropicElement(m){}
 		void setBMatrixs();
-		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const double *D, double *result) const;
+		void generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const;
 	private:
-		double BMatrixs[12];
+		Scalar BMatrixs[12];
 	};
 
 	struct InvertibleHyperelasticTetElement : public InvertibleHyperelasticElement {
 		InvertibleHyperelasticTetElement(TetMesh *m): InvertibleHyperelasticElement(m){}
-		void getPrecomputes(double *drivates, double *deforamtionGradients) const;
+		void getPrecomputes(Scalar *drivates, Scalar *deforamtionGradients) const;
 		int getDirvateEntryCount() const { return 12;}
 		int getDeformGradientsPreEntryCount() const { return 9; }
 		int getQuadraturePointCount() const { return 1; }
 
-		void generateDeformationGradient(const double *precompute, double *gradients) const;
-		void generateSubStiffnessMatrix(const double *drivates, const double *diags, const double *leftOrthoMats, 
-			const double *rightOrthoMats, const double *energyGradients, const double *energyHassians, double *result) const;
-		void generateNodalVirtualWorks(const double *precompute, const double *stress, double *result) const;
+		void generateDeformationGradient(const Scalar *precompute, Scalar *gradients) const;
+		void generateSubStiffnessMatrix(const Scalar *drivates, const Scalar *diags, const Scalar *leftOrthoMats, 
+			const Scalar *rightOrthoMats, const Scalar *energyGradients, const Scalar *energyHassians, Scalar *result) const;
+		void generateNodalVirtualWorks(const Scalar *precompute, const Scalar *stress, Scalar *result) const;
 	private:
-		void getdPdF(const double *diag, const double *energyGradient, const double *energyHassian, double dPdF[81]) const;
-		void forceSemidefinite3x3(double mat[6]) const;
-		void forceSemidefinite2x2(double& diag, double& offdiag) const;
+		void getdPdF(const Scalar *diag, const Scalar *energyGradient, const Scalar *energyHassian, Scalar dPdF[81]) const;
+		void forceSemidefinite3x3(Scalar mat[6]) const;
+		void forceSemidefinite2x2(Scalar& diag, Scalar& offdiag) const;
 		int tensorIndex(int i, int j, int k, int l) const { return i * 27 + j * 9 + k * 3 + l; }
 	};
 
-	void getTetShapeFunctionDerivatives(const Vector3d& a, const Vector3d& b, const Vector3d& c, const Vector3d& d,
-		double *dn0, double *dn1, double *dn2, double *dn3);
+	void getTetShapeFunctionDerivatives(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d,
+		Scalar *dn0, Scalar *dn1, Scalar *dn2, Scalar *dn3);
 
-	inline double getTetVolume(const Vector3d& a, const Vector3d& b, const Vector3d& c, const Vector3d& d) {
-		Vector3d ab = b - a;
-		Vector3d ac = c - a;
-		Vector3d ad = d - a;
+	inline Scalar getTetVolume(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d) {
+		Vector3 ab = b - a;
+		Vector3 ac = c - a;
+		Vector3 ad = d - a;
 
 		return fabs(ab*(ac%ad)) / 6.f;
 	}
 
-	inline double getTriArea(const Vector3d& a, const Vector3d& b, const Vector3d& c) {
+	inline Scalar getTriArea(const Vector3& a, const Vector3& b, const Vector3& c) {
 		return ((b - a) % (c - a)).length() * 0.5f;
 	}
 }

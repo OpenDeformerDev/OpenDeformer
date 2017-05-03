@@ -121,10 +121,10 @@ namespace ODER{
 	}
 
 	void SparseVector::reallocSpace(size_t count) {
-		double *valuesTmp = (double *)realloc(values, sizeof(double) * count);
+		Scalar *valuesTmp = (Scalar *)realloc(values, sizeof(Scalar) * count);
 		if (valuesTmp == NULL) {
-			valuesTmp = (double *)malloc(sizeof(double) * count);
-			memcpy(valuesTmp, values, sizeof(double) * size);
+			valuesTmp = (Scalar *)malloc(sizeof(Scalar) * count);
+			memcpy(valuesTmp, values, sizeof(Scalar) * size);
 		}
 		values = valuesTmp;
 

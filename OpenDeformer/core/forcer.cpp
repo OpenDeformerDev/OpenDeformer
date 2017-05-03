@@ -5,10 +5,10 @@
 #include "nodeIndexer.h"
 
 namespace ODER{
-	void Forcer::addBodyForce(const Reference<Mesh> &mesh, double bodyForce[3], const Reference<NodeIndexer> &indexer){
+	void Forcer::addBodyForce(const Reference<Mesh> &mesh, Scalar bodyForce[3], const Reference<NodeIndexer> &indexer){
 		GeometricElement *element = mesh->getGeometricElement();
 		const int numNodesPerElement = mesh->getNodePerElementCount();
-		double *result = new double[3 * numNodesPerElement];
+		Scalar *result = new Scalar[3 * numNodesPerElement];
 
 		for (int i = 0; i < mesh->getElementCount(); i++){
 			element->setNodeIndexs(i);
@@ -22,7 +22,7 @@ namespace ODER{
 							if (found != virtualWorks.end())
 								found->second += result[3 * j + k];
 							else
-								virtualWorks.insert(std::pair<int, double>(nodeIndexOffset, result[3 * j + k]));
+								virtualWorks.insert(std::pair<int, Scalar>(nodeIndexOffset, result[3 * j + k]));
 						}
 					}
 				}
@@ -32,7 +32,7 @@ namespace ODER{
 		delete[] result;
 	}
 
-	void Forcer::addSurfaceForceByNode(const Reference<Mesh> &mesh, double nodeForce[3], int nodeCounts, int *nodeIndex, const Reference<NodeIndexer> &indexer){
+	void Forcer::addSurfaceForceByNode(const Reference<Mesh> &mesh, Scalar nodeForce[3], int nodeCounts, int *nodeIndex, const Reference<NodeIndexer> &indexer){
 		for (int i = 0; i < nodeCounts; i++){
 			for (int j = 0; j < 3; j++){
 				if (nodeForce[j] != 0.0){
@@ -42,18 +42,18 @@ namespace ODER{
 						if (found != virtualWorks.end())
 							found->second += nodeForce[j];
 						else
-							virtualWorks.insert(std::pair<int, double>(nodeIndexOffset, nodeForce[j]));
+							virtualWorks.insert(std::pair<int, Scalar>(nodeIndexOffset, nodeForce[j]));
 					}
 				}
 			}
 		}
 	}
 
-	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, double surfaceForce[3], int surfaceCounts,
+	void Forcer::addSurfaceForceByElement(const Reference<Mesh> &mesh, Scalar surfaceForce[3], int surfaceCounts,
 		const int *surfaceIndex, const Reference<NodeIndexer> &indexer){
 		Facet *facet = mesh->getFacet();
 		const int numVertPerSur = mesh->getVertPerFacetCount();
-		double *result = new double[3 * numVertPerSur];
+		Scalar *result = new Scalar[3 * numVertPerSur];
 
 		for (int i = 0; i < surfaceCounts; i++){
 			facet->setVertIndexs(surfaceIndex[i]);
@@ -67,7 +67,7 @@ namespace ODER{
 							if (found != virtualWorks.end())
 								found->second += result[3 * j + k];
 							else
-								virtualWorks.insert(std::pair<int, double>(nodeIndexOffset, result[3 * j + k]));
+								virtualWorks.insert(std::pair<int, Scalar>(nodeIndexOffset, result[3 * j + k]));
 						}
 					}
 				}
@@ -77,11 +77,11 @@ namespace ODER{
 		delete[] result;
 	}
 
-	void Forcer::getVirtualWorks(int dofs, int totalDofs, const double *basises, double *vws) const{
-		memset(vws, 0, dofs*sizeof(double));
+	void Forcer::getVirtualWorks(int dofs, int totalDofs, const Scalar *basises, Scalar *vws) const{
+		memset(vws, 0, dofs*sizeof(Scalar));
 		if (virtualWorks.empty()) return;
 		if (basises){
-			const double *basis = basises;
+			const Scalar *basis = basises;
 			for (int i = 0; i < dofs; i++){
 				for (auto entry : virtualWorks)
 					vws[i] += entry.second*basis[entry.first];
@@ -105,9 +105,9 @@ namespace ODER{
 		//change the indices which is higher than constraintIndex
 		do{
 			int newIndex = iter->first - 1;
-			double vw = iter->second;
+			Scalar vw = iter->second;
 			virtualWorks.erase(iter++);
-			virtualWorks.insert(iter, std::pair<int, double>(newIndex, vw));
+			virtualWorks.insert(iter, std::pair<int, Scalar>(newIndex, vw));
 		} while (iter != virtualWorks.end());
 	}
 }

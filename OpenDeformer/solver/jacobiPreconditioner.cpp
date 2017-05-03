@@ -17,10 +17,10 @@ namespace ODER {
 		mat.getDiagonal(&invDiags[0]);
 		int columnCount = mat.getNumColumns();
 		for (int i = 0; i < columnCount; i++)
-			invDiags[i] = invDiags[i] > 0.0 ? 1.0 / invDiags[i] : 1.0;
+			invDiags[i] = invDiags[i] > Scalar(0) ? Scalar(1.0) / invDiags[i] : Scalar(1.0);
 	}
 
-	void JacobiPreconditioner::solvePreconditionerSystem(int width, const double *rhs, double *result) const {
+	void JacobiPreconditioner::solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const {
 		for (int i = 0; i < width; i++)
 			result[i] = invDiags[i] * rhs[i];
 	}

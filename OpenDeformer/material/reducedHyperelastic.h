@@ -10,9 +10,9 @@
 namespace ODER{
 	class ReducedHyperelasticMaterial :public MechMaterial{
 	public:
-		ReducedHyperelasticMaterial(double rho, int numOrder) :MechMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear | Marterial_Reduced)), orderCount(std::max(numOrder, 1)){}
+		ReducedHyperelasticMaterial(Scalar rho, int numOrder) :MechMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_NonLinear | Marterial_Reduced)), orderCount(std::max(numOrder, 1)){}
 		virtual void generateStiffnessMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const = 0;
-		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const double *ds, double *forces) = 0;
+		virtual void getNodeForces(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, int order, int totalDofs, const Scalar *ds, Scalar *forces) = 0;
 		virtual void preprocessWithReduction(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer) = 0;
 		int getNonlinearAsymptoticOrder(){ return orderCount; }
 		virtual ~ReducedHyperelasticMaterial() = default;
