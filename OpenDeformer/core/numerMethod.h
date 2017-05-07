@@ -481,19 +481,85 @@ namespace ODER{
 		memcpy(upperTri, R, sizeof(FT) * 9);
 	}
 
+	namespace PolarDecompostion3x3Internal {
+		template<class FT> void Orthonormalize(FT mat[8]) {
+			constexpr FT tol = std::numeric_limits<FT>::min();
+			FT beta0 = FT(0), beta1 = FT(0);
+			FT v0[3], v1[2];
+
+			//first householder
+			v0[0] = mat[1]; v0[1] = mat[2]; v0[2] = mat[3];
+			FT norm2 = v0[0] * v0[0] + v0[1] * v0[1] + v0[2] * v0[2];
+			if (norm2 < tol) {
+				v0[0] = v0[1] = v0[2] = FT(0);
+			}
+			else {
+				FT c0 = mat[0];
+				FT sigma = sqrt(c0 * c0 + norm2);
+				if (c0 >= FT(0)) sigma = -sigma;
+
+				FT factor = FT(1) / (c0 - sigma);
+				v0[0] *= factor; v0[1] *= factor; v0[2] *= factor;
+				beta0 = (sigma - c0) / sigma;
+			}
+
+			//apply first householder
+			FT product = mat[4] + v0[0] * mat[5] + v0[1] * mat[6] + v0[2] * mat[7];
+			FT c0 = mat[5] - product * beta0 * v0[0];
+			v1[0] = mat[6] - product * beta0 * v0[1];
+			v1[1] = mat[7] - product * beta0 * v0[2];
+
+			//second householder
+			norm2 = v1[1] * v1[1] + v1[2] * v1[2];
+			if (norm2 < tol) {
+				v1[0] = v1[1] = FT(0);
+			}
+			else {
+				FT sigma = sqrt(c0 * c0 + norm2);
+				if (c0 >= FT(0)) sigma = -sigma;
+
+				FT factor = FT(1) / (c0 - sigma);
+				v1[0] *= factor; v1[1] *= factor;
+				beta1 = (sigma - c0) / sigma;
+			}
+
+			mat[0] = FT(1) - beta0; mat[1] = beta0 * v0[0]; mat[2] = beta0 * v0[1]; mat[3] = beta0 * v0[2];
+			//the second column
+			FT subMat[9], lhs[3];
+			subMat[0] = FT(1) - beta0 * v0[0] * v0[0];
+			subMat[1] = beta0 * v0[0] * v0[1]; subMat[3] = subMat[1];
+			subMat[2] = beta0 * v0[0] * v0[2]; subMat[6] = subMat[2];
+			subMat[4] = FT(1) - beta0 * v0[1] * v0[1];
+			subMat[5] = beta0 * v0[1] * v0[2]; subMat[7] = subMat[5];
+			subMat[8] = FT(1) - beta0 * v0[2] * v0[2];
+
+			lhs[0] = FT(1) - beta1; lhs[1] = beta1 * v1[0]; lhs[2] = beta1 * v1[1];
+
+			mat[4] = mat[1] * lhs[0] + mat[2] * lhs[1] + mat[3] * lhs[2];
+			for (int i = 0; i < 3; i++) {
+				FT entry = FT(0);
+				for (int j = 0; j < 3; j++)
+					entry += subMat[i * 3 + j] * lhs[j];
+				mat[i + 5] = entry;
+			}
+		}
+	}
+
 	template<class FT> void polarDecompostion3x3(FT *mat, FT *ortho, FT *sspd) {
+		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::polarDecompostion3x3 support IEEE 754-1985 floating point only");
+		using namespace PolarDecompostion3x3Internal;
 		FT A[9], B[16];
-		FT norm = FT(0);
-		for (int i = 0; i < 9; i++) norm += mat[i] * mat[i];
-		norm = sqrt(norm);
-		if (norm == FT(0)) {
+		FT fnorm = FT(0);
+		for (int i = 0; i < 9; i++) fnorm += mat[i] * mat[i];
+		fnorm = sqrt(fnorm);
+		if (fnorm == FT(0)) {
 			Initiation(ortho, 9);
 			Initiation(sspd, 9);
 			ortho[0] = ortho[4] = ortho[8] = FT(1);
 			return;
 		}
-		FT invNorm = FT(1) / norm;
-		for (int i = 0; i < 9; i++) A[i] = mat[i] * invNorm;
+		FT invFnorm = FT(1) / fnorm;
+		for (int i = 0; i < 9; i++) A[i] = mat[i] * invFnorm;
 
 		FT detB = FT(0), adjAEntry = FT(0);
 		adjAEntry = A[4] * A[8] - A[5] * A[7]; detB += adjAEntry * adjAEntry;
@@ -541,7 +607,7 @@ namespace ODER{
 				FT scale = FT(1) / A[row * 3 + i];
 				for (int j = i + 1; j < 3; j++) {
 					int subRow = rowPermute[j];
-					FT lower = scale * A[subrRow * 3 + j];
+					FT lower = scale * A[subRow * 3 + j];
 					for (int k = i + 1; k < 3; k++)
 						A[subRow * 3 + k] -= lower * A[row * 3 + k];
 				}
@@ -618,9 +684,9 @@ namespace ODER{
 		}
 		else {
 			//Newton's method
-			domEigen = sqrt(FT(3));
+			domEigen = squareRoot3;
 			FT domEigenOld = domEigen;
-			constexpr FT eps = FT(1e-12);
+			constexpr FT eps = std::is_same<FT, double>::value ? FT(1e-12) : FT(1e-6);
 
 			FT c = FT(8) * detA;
 			do {
@@ -679,10 +745,6 @@ namespace ODER{
 			v[indices[1]] = B[indices[2] * 4 + indices[3]] * B[indices[1] * 4 + indices[2]] - B[indices[1] * 4 + indices[3]];
 			v[indices[2]] = -B[indices[2] * 4 + indices[3]];
 			v[indices[3]] = FT(1);
-
-			FT invNorm = FT(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
-
-			for (int i = 0; i < 4; i++) v[i] *= invNorm;
 		}
 		else {
 			int indices[4] = { 0, 1, 2, 3 };
@@ -717,7 +779,8 @@ namespace ODER{
 				}
 			}
 
-			FT dd = B[indices[2] * 4 + indices[2]] * B[indices[3] * 4 + indices[3]] - B[indices[2] * 4 + indices[3]] * B[indices[3] * 4 + indices[2]];
+
+			FT dd = B[indices[2] * 4 + indices[2]] * B[indices[3] * 4 + indices[3]] - B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
 			if (dd == FT(0)) {
 				if (B[indices[2] * 4 + indices[2]] == FT(0) && B[indices[3] * 4 + indices[3]] == FT(0)
 					&& B[indices[2] * 4 + indices[3]] == FT(0) && B[indices[3] * 4 + indices[2]] == FT(0)) {
@@ -742,22 +805,177 @@ namespace ODER{
 						aa = -B[indices[3] * 4 + indices[3]] * norm1;
 						bb = B[indices[3] * 4 + indices[2]] * norm1;
 					}
-
 					
 					v[indices[3]] = bb; v[indices[2]] = aa;
 					v[indices[1]] = -B[indices[1] * 4 + indices[3]] * bb - B[indices[1] * 4 + indices[2]] * aa;
 					v[indices[0]] = -B[indices[0] * 4 + indices[3]] * bb - B[indices[0] * 4 + indices[2]] * aa - B[indices[0] * 4 + indices[1]] * v[indices[1]];
 				}
-
-				FT invNorm = FT(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
-
-				for (int i = 0; i < 4; i++) v[i] *= invNorm;
 			}
 			else {
-				//to be implemented
-				
-			}
+				dd = FT(1) / dd;
+				FT ID[5];
+				ID[0] = FT(1) / B[indices[0] * 4 + indices[0]];
+				ID[1] = FT(1) / B[indices[1] * 4 + indices[1]];
+				ID[2] = B[indices[3] * 4 + indices[3]] * dd;
+				ID[3] = -B[indices[2] * 4 + indices[3]] * dd;
+				ID[4] = B[indices[2] * 4 + indices[2]] * dd;
 
+				FT L[5];
+				L[0] = B[indices[0] * 4 + indices[1]];
+				L[1] = B[indices[0] * 4 + indices[2]];
+				L[2] = B[indices[0] * 4 + indices[3]];
+				L[3] = B[indices[1] * 4 + indices[2]];
+				L[4] = B[indices[1] * 4 + indices[3]];
+
+				FT IL[5];
+				IL[0] = -L[0];
+				IL[1] = L[0] * L[3] - L[1];
+				IL[2] = L[0] * L[4] - L[2];
+				IL[3] = -L[3];
+				IL[4] = -L[4];
+
+				constexpr FT eps = std::is_same<FT, double>::value ? FT(6.607e-8) : FT(3.388e-4);
+				if (omega > eps) {
+					FT vv[4] = { IL[2], IL[4], FT(0), FT(1) };
+
+					int nit = std::is_same<FT, double>::value ? (int)ceil(FT(15) / (FT(16.86) - FT(2) * omega)) :
+						(int)ceil(FT(7) / FT(8.12) - FT(2) * omega);
+
+					for (int i = 0; i < nit; i++) {
+						//normalize vv
+						FT invNorm = FT(1) / sqrt(vv[0] * vv[0] + vv[1] * vv[1] + vv[2] * vv[2] + vv[3] * vv[3]);
+						for (int i = 0; i < 4; i++) vv[i] *= invNorm;
+
+						//vv = L^{-T}vv
+						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
+						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
+
+						//vv = D^{-1}vv
+						vv[0] *= ID[0]; vv[1] *= ID[1];
+						FT vv2 = vv[2];
+						vv[2] = ID[2] * vv2 + ID[3] * vv[3];
+						vv[3] = ID[3] * vv2 + ID[4] * vv[3];
+
+						//vv = L^{-1}vv
+						FT vv1 = vv[1];
+						vv[1] = IL[0] * vv[0] + vv1;
+						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
+						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
+					}
+
+					v[indices[0]] = vv[0]; v[indices[1]] = vv[1]; v[indices[2]] = vv[2]; v[indices[3]] = vv[3];
+				}
+				else {
+					FT vv[8];
+					vv[0] = IL[1]; vv[1] = IL[3]; vv[2] = FT(1); vv[3] = FT(0);
+					vv[4] = IL[2]; vv[5] = IL[4]; vv[6] = FT(0); vv[7] = FT(1);
+
+					Orthonormalize(vv);
+					for (int i = 0; i < 2; i++) {
+						//vv = L^{-T}vv
+						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
+						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
+						vv[4] = vv[4] + IL[0] * vv[5] + IL[1] * vv[6] + IL[2] * vv[7];
+						vv[5] = vv[5] + IL[3] * vv[6] + IL[4] * vv[7];
+
+						//vv = D^{-1}vv
+						vv[0] *= ID[0]; vv[1] *= ID[1];
+						FT vv2 = vv[2];
+						vv[2] = ID[2] * vv2 + ID[3] * vv[3];
+						vv[3] = ID[3] * vv2 + ID[4] * vv[3];
+
+						vv[4] *= ID[0]; vv[5] *= ID[2];
+						FT vv6 = vv[6];
+						vv[6] = ID[2] * vv6 + ID[3] * vv[7];
+						vv[7] = ID[3] * vv6 + ID[4] * vv[7];
+
+						//vv = L^{-1}vv
+						FT vv1 = vv[1];
+						vv[1] = IL[0] * vv[0] + vv1;
+						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
+						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
+
+						FT vv5 = vv[5];
+						vv[5] = IL[0] * vv[4] + vv5;
+						vv[6] = IL[1] * vv[4] + IL[3] * vv5 + vv[6];
+						vv[7] = IL[2] * vv[4] + IL[4] * vv5 + vv[7];
+					}
+					Orthonormalize(vv);
+
+					FT BB[3], temp0[8], temp1[1];
+					temp0[0] = vv[0] + L[0] * vv[1] + L[1] * vv[2] + L[2] * vv[3];
+					temp0[1] = vv[1] + L[3] * vv[2] + L[4] * vv[3];
+					temp0[2] = vv[2]; temp0[3] = vv[3];
+					temp0[4] = vv[4] + L[0] * vv[5] + L[1] * vv[6] + L[2] * vv[7];
+					temp0[5] = vv[5] + L[3] * vv[6] + L[4] * vv[7];
+					temp0[6] = vv[6]; 
+					temp0[7] = vv[7];
+
+					FT d00 = B[indices[0] * 4 + indices[0]], d11 = B[indices[1] * 4 + indices[1]];
+					FT d22 = B[indices[2] * 4 + indices[2]], d33 = B[indices[3] * 4 + indices[3]];
+					FT d32 = B[indices[2] * 4 + indices[3]];
+
+					temp1[0] = temp0[0] * d00; 
+					temp1[1] = temp0[1] * d11;
+					temp1[2] = temp0[2] * d22 + temp0[3] * d32; 
+					temp1[3] = temp0[2] * d32 + temp0[3] * d33;
+					temp1[4] = temp0[4] * d00;
+					temp1[5] = temp0[5] * d11;
+					temp1[6] = temp0[6] * d22 + temp0[7] * d32; 
+					temp1[7] = temp0[6] * d32 + temp0[7] * d33;
+
+					BB[0] = temp1[0] * temp0[0] + temp1[1] * temp0[1] + temp1[2] * temp0[2] + temp1[3] * temp0[3];
+					BB[1] = temp1[0] * temp0[4] + temp1[1] * temp0[5] + temp1[2] * temp0[6] + temp1[3] * temp0[7];
+					BB[2] = temp1[4] * temp0[4] + temp1[5] * temp0[5] + temp1[6] * temp0[6] + temp1[7] * temp0[7];
+					
+					constexpr FT eps2 = std::is_same<FT, double>::value ? FT(1e-15) : FT(1e-7);
+					if (fabs(B[1]) > eps2) {
+						FT r = (B[0] - B[2]) / (FT(2) * B[1]);
+						FT w0 = sqrt(FT(1) + r * r);
+						w0 = r - (B[1] > FT(0) ? w0 : -w0);
+						v[indices[0]] = vv[0] * w0 + vv[4];
+						v[indices[1]] = vv[1] * w0 + vv[5];
+						v[indices[2]] = vv[2] * w0 + vv[6];
+						v[indices[3]] = vv[3] * w0 + vv[7];
+					}
+					else {
+						if (BB[0] < BB[2]) {
+							v[indices[0]] = vv[0]; v[indices[1]] = vv[1]; v[indices[2]] = vv[2]; v[indices[3]] = vv[3];
+						}
+						else {
+							v[indices[0]] = vv[4]; v[indices[1]] = vv[5]; v[indices[2]] = vv[6]; v[indices[3]] = vv[7];
+						}
+					}
+				}
+			}
+		}
+
+		FT invNorm = FT(1) / sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+		for (int i = 0; i < 4; i++) v[i] *= invNorm;
+
+		FT v11 = v[1] * v[1], v22 = v[2] * v[2], v33 = v[3] * v[3];
+		FT v12 = v[1] * v[2], v03 = v[0] * v[3], v13 = v[1] * v[3];
+		FT v02 = v[0] * v[2], v23 = v[2] * v[3], v01 = v[0] * v[1];
+		FT Q[9];
+		Q[0] = FT(1) - FT(2) * (v22 + v33);
+		Q[1] = FT(2) * (v12 - v03);
+		Q[2] = FT(2) * (v13 - v02);
+		Q[3] = FT(2) * (v12 + v03);
+		Q[4] = FT(1) - FT(2) * (v11 + v33);
+		Q[5] = FT(2) * (v23 - v01);
+		Q[6] = FT(2) * (v13 - v02);
+		Q[7] = FT(2) * (v23 + v01);
+		Q[8] = FT(1) - FT(2) * (v11 + v22);
+
+		if (detA < FT(0)) for (int i = 0; i < 9; i++) Q[i] = -Q[i];
+		ortho[0] = Q[0]; ortho[1] = Q[3]; ortho[2] = Q[6];
+		ortho[3] = Q[1]; ortho[4] = Q[4]; ortho[5] = Q[7];
+		ortho[6] = Q[2]; ortho[7] = Q[5]; ortho[8] = Q[8];
+
+		for (int i = 0; i < 3; i++) {
+			for (int j = 0; j < 3; j++)
+				sspd[i * 3 + j] = fnorm * (Q[i * 3 + 0] * mat[0 * 3 + j] 
+				+ Q[i * 3 + 1] * mat[1 * 3 + j] + Q[i * 3 + 2] * mat[2 * 3 + j]);
 		}
 	}
 
