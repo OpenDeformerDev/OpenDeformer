@@ -122,7 +122,7 @@ namespace ODER{
 			m[1][0] = m[1][1] = m[1][2] = 
 			m[2][0] = m[2][1] = m[2][2] = FT(0);
 		}
-		Tensor2(const FT *mat) {
+		explicit Tensor2(const FT *mat) {
 			memcpy(m, mat, 9 * sizeof(FT));
 		}
 		Tensor2(FT m00, FT m01, FT m02,

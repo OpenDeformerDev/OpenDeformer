@@ -575,13 +575,13 @@ namespace ODER{
 
 		//column first matrix
 		B[0] = -A[0] - A[4] - A[8]; B[1] = -A[5] + A[7]; B[2] = -A[6] + A[2]; B[3] = -A[1] + A[3];
-		B[4] = B[1]; B[5] = -A[0] + A[3] + A[8]; B[6] = -A[1] - A[3]; B[7] = -A[2] - A[6];
+		B[4] = B[1]; B[5] = -A[0] + A[4] + A[8]; B[6] = -A[1] - A[3]; B[7] = -A[2] - A[6];
 		B[8] = B[2]; B[9] = B[6];  B[10] = -A[4] + A[0] + A[8]; B[11] = -A[5] - A[7];
-		B[12] = B[3]; B[13] = B[7]; B[14] = B[11]; B[15] = -A[2] + A[0] + A[1];
+		B[12] = B[3]; B[13] = B[7]; B[14] = B[11]; B[15] = -A[8] + A[0] + A[4];
 			 
 		FT detA = FT(1), omega = FT(0);
-		constexpr FT tou = FT(1e-4);
-		bool quick = detB <= FT(1) - tou;
+		constexpr FT tau = FT(1e-4);
+		bool quick = detB <= FT(1) - tau;
 
 		if (quick) {
 			int rowPermute[3] = { 0, 1, 2 };
@@ -607,7 +607,7 @@ namespace ODER{
 				FT scale = FT(1) / A[row * 3 + i];
 				for (int j = i + 1; j < 3; j++) {
 					int subRow = rowPermute[j];
-					FT lower = scale * A[subRow * 3 + j];
+					FT lower = scale * A[subRow * 3 + i];
 					for (int k = i + 1; k < 3; k++)
 						A[subRow * 3 + k] -= lower * A[row * 3 + k];
 				}
@@ -666,19 +666,19 @@ namespace ODER{
 
 		if (detA < FT(0)) {
 			detA = -detA;
-			for (int i = 0; i < 10; i++) B[i] = -B[i];
+			for (int i = 0; i < 15; i++) B[i] = -B[i];
 		}
 		
 		constexpr FT squareRoot3 = FT(1.7320508075688772935274463415058723669428052538103806280558069794519330169088);
 		FT domEigen = FT(0);
-		if (detB >= tou - squareRoot3) {
+		if (detB >= tau - squareRoot3) {
 			//analytical solution
 			FT c = FT(8) * detA;
 			FT delta0 = FT(1) + FT(3) * detB;
 			FT delta1 = FT(-1) + (FT(27) / FT(16)) * c * c + FT(9) * detB;
 			FT sqrtDelta0 = sqrt(delta0);
 			FT alpha = delta1 / (delta0 * sqrtDelta0);
-			FT z = (FT(4) * squareRoot3) * (FT(1) + sqrtDelta0 * cos(acos(alpha) * squareRoot3));
+			FT z = (FT(4) / FT(3)) * (FT(1) + sqrtDelta0 * cos(acos(alpha) / FT(3)));
 			FT s = sqrt(z) * FT(0.5);
 			domEigen = s + FT(0.5) * sqrt(std::max(FT(0), FT(4) - z + c / s));
 		}
@@ -699,116 +699,125 @@ namespace ODER{
 
 		B[0] += domEigen; B[5] += domEigen; B[10] += domEigen; B[15] += domEigen;
 
+		//LDLT with symmetric pivoting
+		FT L[6];
+		int indices[4] = { 0, 1, 2, 3 };
+		//the first column
+		int diagIndex = 0, trueDiagIndex = 0;
+		FT largest = B[0];
+		for (int j = 1; j < 4; j++) {
+			int trueIndex = indices[j];
+			FT diag = B[trueIndex * 4 + trueIndex];
+			if (diag > largest) {
+				largest = diag;
+				diagIndex = j;
+			}
+		}
+
+		if (diagIndex != 0) std::swap(indices[0], indices[diagIndex]);
+
+		trueDiagIndex = indices[0];
+		L[0] = B[trueDiagIndex * 4 + indices[1]] / largest;
+		L[1] = B[trueDiagIndex * 4 + indices[2]] / largest;
+		L[2] = B[trueDiagIndex * 4 + indices[3]] / largest;
+
+		int rowIndex = 0, colIndex = 0; FT offDiag = FT(0);
+
+		rowIndex = indices[1];
+		B[rowIndex * 4 + rowIndex] -= L[0] * B[trueDiagIndex * 4 + rowIndex];
+		colIndex = indices[2];
+		offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
+		B[rowIndex * 4 + colIndex] = offDiag;
+		B[colIndex * 4 + rowIndex] = offDiag;
+		colIndex = indices[3];
+		offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
+		B[rowIndex * 4 + colIndex] = offDiag;
+		B[colIndex * 4 + rowIndex] = offDiag;
+
+		rowIndex = indices[2];
+		B[rowIndex * 4 + rowIndex] -= L[1] * B[trueDiagIndex * 4 + rowIndex];
+		colIndex = indices[3];
+		offDiag = B[rowIndex * 4 + colIndex] - L[1] * B[trueDiagIndex * 4 + colIndex];
+		B[rowIndex * 4 + colIndex] = offDiag;
+		B[colIndex * 4 + rowIndex] = offDiag;
+
+		rowIndex = indices[3];
+		B[rowIndex * 4 + rowIndex] -= L[2] * B[trueDiagIndex * 4 + rowIndex];
+
+		//the second column
+		diagIndex = 1, trueDiagIndex = indices[diagIndex];
+		largest = B[trueDiagIndex * 4 + trueDiagIndex];
+		for (int j = 2; j < 4; j++) {
+			int trueIndex = indices[j];
+			FT diag = B[trueIndex * 4 + trueIndex];
+			if (diag > largest) {
+				largest = diag;
+				diagIndex = j;
+			}
+		}
+
+		if (diagIndex != 1) {
+			std::swap(indices[1], indices[diagIndex]);
+			std::swap(L[0], L[diagIndex - 1]);
+		}
+
+		trueDiagIndex = indices[1];
+		L[3] = B[trueDiagIndex * 4 + indices[2]] / largest;
+		L[4] = B[trueDiagIndex * 4 + indices[3]] / largest;
+
+		rowIndex = indices[2];
+		B[rowIndex * 4 + rowIndex] -= L[3] * B[trueDiagIndex * 4 + rowIndex];
+		colIndex = indices[3];
+		offDiag = B[rowIndex * 4 + colIndex] - L[3] * B[trueDiagIndex * 4 + colIndex];
+		B[rowIndex * 4 + colIndex] = offDiag;
+		B[colIndex * 4 + rowIndex] = offDiag;
+
+		rowIndex = indices[3];
+		B[rowIndex * 4 + rowIndex] -= L[4] * B[trueDiagIndex * 4 + rowIndex];
 
 		FT v[4];
 		if (quick) {
-			//LDLT with symmetric pivoting
-			int indices[4] = { 0, 1, 2, 3 };
-			for (int i = 0; i < 2; i++) {
-				int diagIndex = i;
-				int trueDiagIndex = indices[diagIndex];
-				FT largest = B[trueDiagIndex * 4 + trueDiagIndex];
-				for (int j = i + 1; j < 4; j++) {
-					int trueIndex = indices[j];
-					FT diag = B[trueIndex * 4 + trueIndex];
-					if (diag > largest) {
-						largest = diag;
-						diagIndex = i;
-					}
-				}
-
-				if (diagIndex != i) std::swap(indices[i], indices[diagIndex]);
-
-				FT factor = FT(1) / largest;
-				trueDiagIndex = indices[i];
-				for (int j = i + 1; j < 4; j++) B[trueDiagIndex * 4 + indices[j]] *= factor;
-
-				for (int j = i + 1; j < 4; j++) {
-					int rowIndex = indices[j];
-					B[rowIndex * 4 + rowIndex] -= B[trueDiagIndex * 4 + rowIndex] * B[rowIndex * 4 + trueDiagIndex];
-					for (int k = j + 1; k < 4; k++) {
-						int colIndex = indices[j];
-						FT offDiag = B[rowIndex * 4 + colIndex] - B[trueDiagIndex * 4 + colIndex] * B[colIndex * 4 + trueDiagIndex];
-						B[rowIndex * 4 + colIndex] = offDiag;
-						B[colIndex * 4 + rowIndex] = offDiag;
-					}
-				}
-			}
 			//the third column
-			if (B[indices[2] * 4 + indices[2]] < B[indices[3] * 4 + indices[3]]) std::swap(indices[2], indices[3]);
-			B[indices[2] * 4 + indices[3]] /= B[indices[2] * 4 + indices[2]];
+			if (B[indices[2] * 4 + indices[2]] < B[indices[3] * 4 + indices[3]]) {
+				std::swap(indices[2], indices[3]);
+				std::swap(L[1], L[2]); std::swap(L[3], L[4]);
+			}
+			L[5] = B[indices[2] * 4 + indices[3]] / B[indices[2] * 4 + indices[2]];
 
-			v[indices[0]] = B[indices[0] * 4 + indices[1]] * B[indices[1] * 4 + indices[3]] +
-				B[indices[0] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]] -
-				B[indices[0] * 4 + indices[1]] * B[indices[2] * 4 + indices[3]] * B[indices[1] * 4 + indices[2]] -
-				B[indices[0] * 4 + indices[3]];
-			v[indices[1]] = B[indices[2] * 4 + indices[3]] * B[indices[1] * 4 + indices[2]] - B[indices[1] * 4 + indices[3]];
-			v[indices[2]] = -B[indices[2] * 4 + indices[3]];
+			v[indices[0]] = L[0] * L[4] + L[1] * L[5] - L[0] * L[5] * L[3] - L[2];
+			v[indices[1]] = L[5] * L[3] - L[4];
+			v[indices[2]] = -L[5];
 			v[indices[3]] = FT(1);
 		}
 		else {
-			int indices[4] = { 0, 1, 2, 3 };
-			for (int i = 0; i < 2; i++) {
-				int diagIndex = i;
-				int trueDiagIndex = indices[diagIndex];
-				FT largest = B[trueDiagIndex * 4 + trueDiagIndex];
-				for (int j = i + 1; j < 4; j++) {
-					int trueIndex = indices[j];
-					FT diag = B[trueIndex * 4 + trueIndex];
-					if (diag > largest) {
-						largest = diag;
-						diagIndex = i;
-					}
-				}
-
-				if (diagIndex != i) std::swap(indices[i], indices[diagIndex]);
-
-				FT factor = FT(1) / largest;
-				trueDiagIndex = indices[i];
-				for (int j = i + 1; j < 4; j++) B[trueDiagIndex * 4 + indices[j]] *= factor;
-
-				for (int j = i + 1; j < 4; j++) {
-					int rowIndex = indices[j];
-					B[rowIndex * 4 + rowIndex] -= B[trueDiagIndex * 4 + rowIndex] * B[rowIndex * 4 + trueDiagIndex];
-					for (int k = j + 1; k < 4; k++) {
-						int colIndex = indices[j];
-						FT offDiag = B[rowIndex * 4 + colIndex] - B[trueDiagIndex * 4 + colIndex] * B[colIndex * 4 + trueDiagIndex];
-						B[rowIndex * 4 + colIndex] = offDiag;
-						B[colIndex * 4 + rowIndex] = offDiag;
-					}
-				}
-			}
-
-
 			FT dd = B[indices[2] * 4 + indices[2]] * B[indices[3] * 4 + indices[3]] - B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
 			if (dd == FT(0)) {
 				if (B[indices[2] * 4 + indices[2]] == FT(0) && B[indices[3] * 4 + indices[3]] == FT(0)
-					&& B[indices[2] * 4 + indices[3]] == FT(0) && B[indices[3] * 4 + indices[2]] == FT(0)) {
-					v[indices[0]] = B[indices[0] * 4 + indices[1]] * B[indices[1] * 4 + indices[3]] - B[indices[0] * 4 + indices[3]];
-					v[indices[1]] = -B[indices[1] * 4 + indices[3]];
+					&& B[indices[2] * 4 + indices[3]] == FT(0)) {
+					v[indices[0]] = L[0] * L[4] - L[2];
+					v[indices[1]] = -L[4];
 					v[indices[2]] = FT(0); v[indices[3]] = FT(1);
 				}
 				else {
 					FT aa = FT(0), bb = FT(0);
-					FT norm0 = B[indices[2] * 4 + indices[2]] * B[indices[2] * 4 + indices[2]] +
-						B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
-					FT norm1 = B[indices[3] * 4 + indices[2]] * B[indices[3] * 4 + indices[2]] +
-						B[indices[3] * 4 + indices[3]] * B[indices[3] * 4 + indices[3]];
 
-					if (norm0 > norm1) {
-						norm0 = FT(1) / sqrt(norm0);
-						aa = -B[indices[2] * 4 + indices[3]] * norm0;
-						bb = B[indices[2] * 4 + indices[2]] * norm0;
+					if (B[indices[2] * 4 + indices[2]] > B[indices[3] * 4 + indices[3]]) {
+						FT norm = B[indices[2] * 4 + indices[2]] * B[indices[2] * 4 + indices[2]] +
+							B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
+						norm = sqrt(norm);
+						aa = -B[indices[2] * 4 + indices[3]] / norm;
+						bb = B[indices[2] * 4 + indices[2]] / norm;
 					}
 					else {
-						norm1 = FT(1) / sqrt(norm1);
-						aa = -B[indices[3] * 4 + indices[3]] * norm1;
-						bb = B[indices[3] * 4 + indices[2]] * norm1;
+						FT norm = B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]] +
+							B[indices[3] * 4 + indices[3]] * B[indices[3] * 4 + indices[3]];
+						aa = -B[indices[3] * 4 + indices[3]] / norm;
+						bb = B[indices[2] * 4 + indices[3]] / norm;
 					}
 					
 					v[indices[3]] = bb; v[indices[2]] = aa;
-					v[indices[1]] = -B[indices[1] * 4 + indices[3]] * bb - B[indices[1] * 4 + indices[2]] * aa;
-					v[indices[0]] = -B[indices[0] * 4 + indices[3]] * bb - B[indices[0] * 4 + indices[2]] * aa - B[indices[0] * 4 + indices[1]] * v[indices[1]];
+					v[indices[1]] = -L[4] * bb - L[3] * aa;
+					v[indices[0]] = -L[2] * bb - L[1] * aa - L[0] * v[indices[1]];
 				}
 			}
 			else {
@@ -819,13 +828,6 @@ namespace ODER{
 				ID[2] = B[indices[3] * 4 + indices[3]] * dd;
 				ID[3] = -B[indices[2] * 4 + indices[3]] * dd;
 				ID[4] = B[indices[2] * 4 + indices[2]] * dd;
-
-				FT L[5];
-				L[0] = B[indices[0] * 4 + indices[1]];
-				L[1] = B[indices[0] * 4 + indices[2]];
-				L[2] = B[indices[0] * 4 + indices[3]];
-				L[3] = B[indices[1] * 4 + indices[2]];
-				L[4] = B[indices[1] * 4 + indices[3]];
 
 				FT IL[5];
 				IL[0] = -L[0];
@@ -846,9 +848,11 @@ namespace ODER{
 						FT invNorm = FT(1) / sqrt(vv[0] * vv[0] + vv[1] * vv[1] + vv[2] * vv[2] + vv[3] * vv[3]);
 						for (int i = 0; i < 4; i++) vv[i] *= invNorm;
 
-						//vv = L^{-T}vv
-						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
-						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
+						//vv = L^{-1}vv
+						FT vv1 = vv[1];
+						vv[1] = IL[0] * vv[0] + vv1;
+						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
+						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
 
 						//vv = D^{-1}vv
 						vv[0] *= ID[0]; vv[1] *= ID[1];
@@ -856,11 +860,9 @@ namespace ODER{
 						vv[2] = ID[2] * vv2 + ID[3] * vv[3];
 						vv[3] = ID[3] * vv2 + ID[4] * vv[3];
 
-						//vv = L^{-1}vv
-						FT vv1 = vv[1];
-						vv[1] = IL[0] * vv[0] + vv1;
-						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
-						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
+						//vv = L^{-T}vv
+						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
+						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
 					}
 
 					v[indices[0]] = vv[0]; v[indices[1]] = vv[1]; v[indices[2]] = vv[2]; v[indices[3]] = vv[3];
@@ -872,11 +874,16 @@ namespace ODER{
 
 					Orthonormalize(vv);
 					for (int i = 0; i < 2; i++) {
-						//vv = L^{-T}vv
-						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
-						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
-						vv[4] = vv[4] + IL[0] * vv[5] + IL[1] * vv[6] + IL[2] * vv[7];
-						vv[5] = vv[5] + IL[3] * vv[6] + IL[4] * vv[7];
+						//vv = L^{-1}vv
+						FT vv1 = vv[1];
+						vv[1] = IL[0] * vv[0] + vv1;
+						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
+						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
+
+						FT vv5 = vv[5];
+						vv[5] = IL[0] * vv[4] + vv5;
+						vv[6] = IL[1] * vv[4] + IL[3] * vv5 + vv[6];
+						vv[7] = IL[2] * vv[4] + IL[4] * vv5 + vv[7];
 
 						//vv = D^{-1}vv
 						vv[0] *= ID[0]; vv[1] *= ID[1];
@@ -889,16 +896,11 @@ namespace ODER{
 						vv[6] = ID[2] * vv6 + ID[3] * vv[7];
 						vv[7] = ID[3] * vv6 + ID[4] * vv[7];
 
-						//vv = L^{-1}vv
-						FT vv1 = vv[1];
-						vv[1] = IL[0] * vv[0] + vv1;
-						vv[2] = IL[1] * vv[0] + IL[3] * vv1 + vv[2];
-						vv[3] = IL[2] * vv[0] + IL[4] * vv1 + vv[3];
-
-						FT vv5 = vv[5];
-						vv[5] = IL[0] * vv[4] + vv5;
-						vv[6] = IL[1] * vv[4] + IL[3] * vv5 + vv[6];
-						vv[7] = IL[2] * vv[4] + IL[4] * vv5 + vv[7];
+						//vv = L^{-T}vv
+						vv[0] = vv[0] + IL[0] * vv[1] + IL[1] * vv[2] + IL[2] * vv[3];
+						vv[1] = vv[1] + IL[3] * vv[2] + IL[4] * vv[3];
+						vv[4] = vv[4] + IL[0] * vv[5] + IL[1] * vv[6] + IL[2] * vv[7];
+						vv[5] = vv[5] + IL[3] * vv[6] + IL[4] * vv[7];
 					}
 					Orthonormalize(vv);
 
@@ -959,7 +961,7 @@ namespace ODER{
 		FT Q[9];
 		Q[0] = FT(1) - FT(2) * (v22 + v33);
 		Q[1] = FT(2) * (v12 - v03);
-		Q[2] = FT(2) * (v13 - v02);
+		Q[2] = FT(2) * (v13 + v02);
 		Q[3] = FT(2) * (v12 + v03);
 		Q[4] = FT(1) - FT(2) * (v11 + v33);
 		Q[5] = FT(2) * (v23 - v01);
@@ -974,8 +976,8 @@ namespace ODER{
 
 		for (int i = 0; i < 3; i++) {
 			for (int j = 0; j < 3; j++)
-				sspd[i * 3 + j] = fnorm * (Q[i * 3 + 0] * mat[0 * 3 + j] 
-				+ Q[i * 3 + 1] * mat[1 * 3 + j] + Q[i * 3 + 2] * mat[2 * 3 + j]);
+				sspd[i * 3 + j] = Q[i * 3 + 0] * mat[0 * 3 + j] 
+				+ Q[i * 3 + 1] * mat[1 * 3 + j] + Q[i * 3 + 2] * mat[2 * 3 + j];
 		}
 	}
 
