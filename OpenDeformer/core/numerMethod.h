@@ -490,7 +490,7 @@ namespace ODER{
 			//first householder
 			v0[0] = mat[1]; v0[1] = mat[2]; v0[2] = mat[3];
 			FT norm2 = v0[0] * v0[0] + v0[1] * v0[1] + v0[2] * v0[2];
-			if (norm2 < tol) {
+			if (norm2 <= tol) {
 				v0[0] = v0[1] = v0[2] = FT(0);
 			}
 			else {
@@ -498,8 +498,8 @@ namespace ODER{
 				FT sigma = sqrt(c0 * c0 + norm2);
 				if (c0 >= FT(0)) sigma = -sigma;
 
-				FT factor = FT(1) / (c0 - sigma);
-				v0[0] *= factor; v0[1] *= factor; v0[2] *= factor;
+				FT factor = c0 - sigma;
+				v0[0] /= factor; v0[1] /= factor; v0[2] /= factor;
 				beta0 = (sigma - c0) / sigma;
 			}
 
@@ -511,15 +511,15 @@ namespace ODER{
 
 			//second householder
 			norm2 = v1[0] * v1[0] + v1[1] * v1[1];
-			if (norm2 < tol) {
+			if (norm2 <= tol) {
 				v1[0] = v1[1] = FT(0);
 			}
 			else {
 				FT sigma = sqrt(c0 * c0 + norm2);
 				if (c0 >= FT(0)) sigma = -sigma;
 
-				FT factor = FT(1) / (c0 - sigma);
-				v1[0] *= factor; v1[1] *= factor;
+				FT factor = c0 - sigma;
+				v1[0] /= factor; v1[1] /= factor;
 				beta1 = (sigma - c0) / sigma;
 			}
 
@@ -580,35 +580,54 @@ namespace ODER{
 		bool quick = detB <= FT(1) - tau;
 
 		if (quick) {
-			int rowPermute[3] = { 0, 1, 2 };
+			int rowPermute[2] = { 1, 2 };
 			//LU with partial pivoting
-			for (int i = 0; i < 2; i++) {
-				int rowIndex = i;
-				FT largest = fabs(A[rowPermute[i] * 3 + i]);
-				for (int j = i + 1; j < 3; j++) {
-					FT entry = fabs(A[rowPermute[j] * 3 + i]);
-					if (entry > largest) {
-						rowIndex = j;
-						largest = entry;
+			//first column
+			{
+				int rowIndex = 0;
+				FT largest = fabs(A[0]);
+				if (fabs(A[3]) > largest) {
+					largest = fabs(A[3]);
+					rowIndex = 1;
+				}
+				if (fabs(A[6]) > largest) rowIndex = 2;
+
+				if (rowIndex != 0) {
+					detA = -detA;
+					rowPermute[rowIndex - 1] = 0;
+				}
+
+				int row = rowIndex;
+				FT divisor = A[row * 3 + 0];
+				detA *= divisor;
+
+				if (detA != FT(0)) {
+					for (int j = 0; j < 2; j++) {
+						int subRow = rowPermute[j];
+						FT lower = A[subRow * 3 + 0] / divisor;
+						for (int k = 1; k < 3; k++)
+							A[subRow * 3 + k] -= lower * A[row * 3 + k];
 					}
 				}
-
-				if (rowIndex != i) {
-					std::swap(rowPermute[i], rowPermute[rowIndex]);
-					detA = -detA;
-				}
-
-				int row = rowPermute[i];
-				detA *= A[row * 3 + i];
-				FT scale = FT(1) / A[row * 3 + i];
-				for (int j = i + 1; j < 3; j++) {
-					int subRow = rowPermute[j];
-					FT lower = scale * A[subRow * 3 + i];
-					for (int k = i + 1; k < 3; k++)
-						A[subRow * 3 + k] -= lower * A[row * 3 + k];
-				}
 			}
-			detA *= A[rowPermute[2] * 3 + 2];
+
+			//second column
+			if (detA != FT(0)) {
+				int row = 0, subRow = 0;
+				if (fabs(A[rowPermute[0] * 3 + 1]) > fabs(A[rowPermute[1] * 3 + 1])) {
+					row = rowPermute[0];
+					subRow = rowPermute[1];
+				}
+				else {
+					detA = -detA;
+					row = rowPermute[1];
+					subRow = rowPermute[0];
+				}
+				FT divisor = A[row * 3 + 1];
+				detA *= divisor;
+				FT lower = A[subRow * 3 + 1] / divisor;
+				detA *= (A[subRow * 3 + 2] - lower * A[row * 3 + 2]);
+			}
 		}
 		else {
 			int rowPermute[3] = { 0, 1, 2 };
@@ -642,13 +661,14 @@ namespace ODER{
 
 				int row = rowPermute[i];
 				int column = columnPermute[i];
-				detA *= A[row * 3 + column];
+
+				FT divisor = A[row * 3 + column];
+				detA *= divisor;
 				if (detA == FT(0)) break;
 
-				FT scale = FT(1) / A[row * 3 + column];
 				for (int j = i + 1; j < 3; j++) {
 					int subRow = rowPermute[j];
-					FT lower = scale * A[subRow * 3 + column];
+					FT lower = A[subRow * 3 + column] / divisor;
 					for (int k = i + 1; k < 3; k++) {
 						int subColumn = columnPermute[k];
 						A[subRow * 3 + subColumn] -= lower * A[row * 3 + subColumn];
@@ -657,12 +677,12 @@ namespace ODER{
 			}
 			detA *= A[rowPermute[2] * 3 + columnPermute[2]];
 
-			if (detA != FT(0)) omega = fabs(A[rowPermute[2] * 3 + columnPermute[2]]);
+			omega = fabs(A[rowPermute[1] * 3 + columnPermute[1]]);
 		}
 
 		if (detA < FT(0)) {
 			detA = -detA;
-			for (int i = 0; i < 15; i++) B[i] = -B[i];
+			for (int i = 0; i < 16; i++) B[i] = -B[i];
 		}
 		
 		constexpr FT inv3 = FT(0.333333333333333333333333333333333333333333333333333333333333333);
@@ -699,77 +719,83 @@ namespace ODER{
 		FT L[6];
 		int indices[4] = { 0, 1, 2, 3 };
 		//the first column
-		int diagIndex = 0, trueDiagIndex = 0;
-		FT largest = B[0];
-		for (int j = 1; j < 4; j++) {
-			int trueIndex = indices[j];
-			FT diag = B[trueIndex * 4 + trueIndex];
-			if (diag > largest) {
-				largest = diag;
-				diagIndex = j;
+		{
+			int diagIndex = 0, trueDiagIndex = 0;
+			FT largest = B[0];
+			for (int j = 1; j < 4; j++) {
+				int trueIndex = indices[j];
+				FT diag = B[trueIndex * 4 + trueIndex];
+				if (diag > largest) {
+					largest = diag;
+					diagIndex = j;
+				}
 			}
+
+			if (diagIndex != 0) std::swap(indices[0], indices[diagIndex]);
+
+			trueDiagIndex = indices[0];
+			L[0] = B[trueDiagIndex * 4 + indices[1]] / largest;
+			L[1] = B[trueDiagIndex * 4 + indices[2]] / largest;
+			L[2] = B[trueDiagIndex * 4 + indices[3]] / largest;
+
+			int rowIndex = 0, colIndex = 0; FT offDiag = FT(0);
+
+			rowIndex = indices[1];
+			B[rowIndex * 4 + rowIndex] -= L[0] * B[trueDiagIndex * 4 + rowIndex];
+			colIndex = indices[2];
+			offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
+			B[rowIndex * 4 + colIndex] = offDiag;
+			B[colIndex * 4 + rowIndex] = offDiag;
+			colIndex = indices[3];
+			offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
+			B[rowIndex * 4 + colIndex] = offDiag;
+			B[colIndex * 4 + rowIndex] = offDiag;
+
+			rowIndex = indices[2];
+			B[rowIndex * 4 + rowIndex] -= L[1] * B[trueDiagIndex * 4 + rowIndex];
+			colIndex = indices[3];
+			offDiag = B[rowIndex * 4 + colIndex] - L[1] * B[trueDiagIndex * 4 + colIndex];
+			B[rowIndex * 4 + colIndex] = offDiag;
+			B[colIndex * 4 + rowIndex] = offDiag;
+
+			rowIndex = indices[3];
+			B[rowIndex * 4 + rowIndex] -= L[2] * B[trueDiagIndex * 4 + rowIndex];
 		}
-
-		if (diagIndex != 0) std::swap(indices[0], indices[diagIndex]);
-
-		trueDiagIndex = indices[0];
-		L[0] = B[trueDiagIndex * 4 + indices[1]] / largest;
-		L[1] = B[trueDiagIndex * 4 + indices[2]] / largest;
-		L[2] = B[trueDiagIndex * 4 + indices[3]] / largest;
-
-		int rowIndex = 0, colIndex = 0; FT offDiag = FT(0);
-
-		rowIndex = indices[1];
-		B[rowIndex * 4 + rowIndex] -= L[0] * B[trueDiagIndex * 4 + rowIndex];
-		colIndex = indices[2];
-		offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
-		B[rowIndex * 4 + colIndex] = offDiag;
-		B[colIndex * 4 + rowIndex] = offDiag;
-		colIndex = indices[3];
-		offDiag = B[rowIndex * 4 + colIndex] - L[0] * B[trueDiagIndex * 4 + colIndex];
-		B[rowIndex * 4 + colIndex] = offDiag;
-		B[colIndex * 4 + rowIndex] = offDiag;
-
-		rowIndex = indices[2];
-		B[rowIndex * 4 + rowIndex] -= L[1] * B[trueDiagIndex * 4 + rowIndex];
-		colIndex = indices[3];
-		offDiag = B[rowIndex * 4 + colIndex] - L[1] * B[trueDiagIndex * 4 + colIndex];
-		B[rowIndex * 4 + colIndex] = offDiag;
-		B[colIndex * 4 + rowIndex] = offDiag;
-
-		rowIndex = indices[3];
-		B[rowIndex * 4 + rowIndex] -= L[2] * B[trueDiagIndex * 4 + rowIndex];
 
 		//the second column
-		diagIndex = 1, trueDiagIndex = indices[diagIndex];
-		largest = B[trueDiagIndex * 4 + trueDiagIndex];
-		for (int j = 2; j < 4; j++) {
-			int trueIndex = indices[j];
-			FT diag = B[trueIndex * 4 + trueIndex];
-			if (diag > largest) {
-				largest = diag;
-				diagIndex = j;
+		{
+			int diagIndex = 1, trueDiagIndex = indices[diagIndex];
+			FT largest = B[trueDiagIndex * 4 + trueDiagIndex];
+			for (int j = 2; j < 4; j++) {
+				int trueIndex = indices[j];
+				FT diag = B[trueIndex * 4 + trueIndex];
+				if (diag > largest) {
+					largest = diag;
+					diagIndex = j;
+				}
 			}
+
+			if (diagIndex != 1) {
+				std::swap(indices[1], indices[diagIndex]);
+				std::swap(L[0], L[diagIndex - 1]);
+			}
+
+			trueDiagIndex = indices[1];
+			L[3] = B[trueDiagIndex * 4 + indices[2]] / largest;
+			L[4] = B[trueDiagIndex * 4 + indices[3]] / largest;
+
+			int rowIndex = 0, colIndex = 0; FT offDiag = FT(0);
+
+			rowIndex = indices[2];
+			B[rowIndex * 4 + rowIndex] -= L[3] * B[trueDiagIndex * 4 + rowIndex];
+			colIndex = indices[3];
+			offDiag = B[rowIndex * 4 + colIndex] - L[3] * B[trueDiagIndex * 4 + colIndex];
+			B[rowIndex * 4 + colIndex] = offDiag;
+			B[colIndex * 4 + rowIndex] = offDiag;
+
+			rowIndex = indices[3];
+			B[rowIndex * 4 + rowIndex] -= L[4] * B[trueDiagIndex * 4 + rowIndex];
 		}
-
-		if (diagIndex != 1) {
-			std::swap(indices[1], indices[diagIndex]);
-			std::swap(L[0], L[diagIndex - 1]);
-		}
-
-		trueDiagIndex = indices[1];
-		L[3] = B[trueDiagIndex * 4 + indices[2]] / largest;
-		L[4] = B[trueDiagIndex * 4 + indices[3]] / largest;
-
-		rowIndex = indices[2];
-		B[rowIndex * 4 + rowIndex] -= L[3] * B[trueDiagIndex * 4 + rowIndex];
-		colIndex = indices[3];
-		offDiag = B[rowIndex * 4 + colIndex] - L[3] * B[trueDiagIndex * 4 + colIndex];
-		B[rowIndex * 4 + colIndex] = offDiag;
-		B[colIndex * 4 + rowIndex] = offDiag;
-
-		rowIndex = indices[3];
-		B[rowIndex * 4 + rowIndex] -= L[4] * B[trueDiagIndex * 4 + rowIndex];
 
 		FT v[4];
 		if (quick) {
@@ -795,21 +821,9 @@ namespace ODER{
 					v[indices[2]] = FT(0); v[indices[3]] = FT(1);
 				}
 				else {
-					FT aa = FT(0), bb = FT(0);
-
-					if (B[indices[2] * 4 + indices[2]] > B[indices[3] * 4 + indices[3]]) {
-						FT norm = B[indices[2] * 4 + indices[2]] * B[indices[2] * 4 + indices[2]] +
-							B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]];
-						norm = sqrt(norm);
-						aa = -B[indices[2] * 4 + indices[3]] / norm;
-						bb = B[indices[2] * 4 + indices[2]] / norm;
-					}
-					else {
-						FT norm = B[indices[2] * 4 + indices[3]] * B[indices[2] * 4 + indices[3]] +
-							B[indices[3] * 4 + indices[3]] * B[indices[3] * 4 + indices[3]];
-						aa = -B[indices[3] * 4 + indices[3]] / norm;
-						bb = B[indices[2] * 4 + indices[3]] / norm;
-					}
+					FT aa = -B[indices[2] * 4 + indices[3]], bb = B[indices[2] * 4 + indices[2]];
+					FT norm = sqrt(aa * aa + bb * bb);
+					aa /= norm; bb /= norm;
 					
 					v[indices[3]] = bb; v[indices[2]] = aa;
 					v[indices[1]] = -L[4] * bb - L[3] * aa;
@@ -926,13 +940,12 @@ namespace ODER{
 					
 					constexpr FT eps2 = std::is_same<FT, double>::value ? FT(1e-15) : FT(1e-7);
 					if (fabs(BB[1]) > eps2) {
-						FT r = (BB[0] - BB[2]) / (FT(2) * BB[1]);
-						FT w0 = sqrt(FT(1) + r * r);
-						w0 = r - (BB[1] > FT(0) ? w0 : -w0);
-						v[indices[0]] = vv[0] * w0 + vv[4];
-						v[indices[1]] = vv[1] * w0 + vv[5];
-						v[indices[2]] = vv[2] * w0 + vv[6];
-						v[indices[3]] = vv[3] * w0 + vv[7];
+						FT r = (BB[0] - BB[2]) * FT(0.5);
+						FT w0 = r - sqrt(r * r + BB[1] * BB[1]);
+						v[indices[0]] = vv[0] * w0 + vv[4] * BB[1];
+						v[indices[1]] = vv[1] * w0 + vv[5] * BB[1];
+						v[indices[2]] = vv[2] * w0 + vv[6] * BB[1];
+						v[indices[3]] = vv[3] * w0 + vv[7] * BB[1];
 					}
 					else {
 						if (BB[0] < BB[2]) {
