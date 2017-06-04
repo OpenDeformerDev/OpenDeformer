@@ -17,7 +17,8 @@ namespace ODER{
 		Marterial_Linear = 1 << 2,
 		Marterial_NonLinear = 1 << 3,
 		Marterial_Reduced = 1 << 4,
-		Marterial_Invertible = 1 << 5
+		Marterial_Invertible = 1 << 5,
+		Marterial_Corotational = 1 << 6
 	};
 
 	class MechMaterial{

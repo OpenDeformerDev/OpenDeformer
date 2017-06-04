@@ -11,7 +11,7 @@ namespace ODER{
 		Scalar *result = new Scalar[3 * numNodesPerElement];
 
 		for (int i = 0; i < mesh->getElementCount(); i++){
-			element->setNodeIndexs(i);
+			element->setNodeIndices(i);
 			element->getBodyVirtualWorks(bodyForce, result);
 			for (int j = 0; j < numNodesPerElement; j++){
 				for (int k = 0; k < 3; k++){

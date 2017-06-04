@@ -11,16 +11,16 @@
 
 namespace ODER{
 	struct Element{
-		Element(Mesh *m) :mesh(m), nodeIndexs(NULL){}
+		Element(Mesh *m) :mesh(m), nodeIndices(NULL){}
 
-		void setNodeIndexs(int elementIndex){ nodeIndexs = mesh->getElementNodeReference(elementIndex); }
-		int getNodeIndex(int localIndex) const{ return nodeIndexs[localIndex]; }
+		void setNodeIndices(int elementIndex){ nodeIndices = mesh->getElementNodeReference(elementIndex); }
+		int getNodeIndex(int localIndex) const{ return nodeIndices[localIndex]; }
 		int getLocalMatrixIndex(int aNodeIndex, int aNodeAxis, int bNodeIndex, int bNodeAxis) const;
 		int getLocalMatrixIndex(int aNodeDofIndex, int bNodeDofIndex) const;
 		virtual ~Element() = default;
 
 	protected:
-		const int *nodeIndexs;
+		const int *nodeIndices;
 		Reference<Mesh> mesh;
 	};
 
@@ -78,6 +78,18 @@ namespace ODER{
 			const Scalar *rightOrthoMats, const Scalar *energyGradients, const Scalar *energyHassians, Scalar *result) const = 0;
 		virtual void generateNodalVirtualWorks(const Scalar *precompute, const Scalar *stresses, Scalar *result) const = 0;
 		virtual ~InvertibleHyperelasticElement() = default;
+	};
+
+	struct CorotationalHyperelasticElement : public Element {
+		CorotationalHyperelasticElement(Mesh *m) : Element(m) {}
+		virtual void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const = 0;
+		virtual int getInitSubStiffMatEntryCount() const = 0;
+		virtual int getDeformGradientsPreEntryCount() const = 0;
+		virtual int getQuadraturePointCount() const = 0;
+
+		virtual void generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const = 0;
+		virtual void generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMats, const Scalar *initStiffMat,
+			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const = 0;
 	};
 
 	inline int Element::getLocalMatrixIndex(int aNodeDofIndex, int bNodeDofIndex) const {

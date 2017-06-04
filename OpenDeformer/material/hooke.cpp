@@ -22,7 +22,7 @@ namespace ODER{
 		LinearIsotropicElement *element = dynamic_cast<LinearIsotropicElement *>(mesh->getMaterialElement(type));
 
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->setBMatrixs();
 
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++){

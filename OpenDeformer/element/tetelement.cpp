@@ -4,8 +4,8 @@
 
 namespace ODER{
 	void TetElement::generateSubMassMatrix(Scalar *result) const{
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar offdiag = volume * Scalar(0.05);
 		Scalar diag = volume * Scalar(0.1);
 		result[0] = diag;
@@ -21,8 +21,8 @@ namespace ODER{
 	}
 
 	void TetElement::getBodyVirtualWorks(Scalar bodyForce[3], Scalar *result) const{
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar factor = volume / Scalar(4.0);
 		constexpr int numNodesPerElement = 4;
 		for (int i = 0; i < numNodesPerElement; i++){
@@ -45,15 +45,15 @@ namespace ODER{
 
 	void LinearIsotropicTetElement::setBMatrixs(){
 		constexpr int entryCountPerB = 3;
-		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]),
+		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]),
 			BMatrixs, BMatrixs + entryCountPerB, BMatrixs + 2 * entryCountPerB, BMatrixs + 3 * entryCountPerB);
 	}
 
 	void LinearIsotropicTetElement::generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const{
 		constexpr int entryCountPerB = 3;
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar factor = Scalar(1.0) / (Scalar(36.0) * volume);
 		const Scalar *Ba = BMatrixs + entryCountPerB*aNodeIndex;
 		const Scalar *Bb = BMatrixs + entryCountPerB*bNodeIndex;
@@ -72,8 +72,8 @@ namespace ODER{
 
 	void ReducedIsotropicTetElement::setBMatrixs(){
 		constexpr int entryCountPerB = 3;
-		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]),
+		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]),
 			BMatrixs, BMatrixs + entryCountPerB, BMatrixs + 2 * entryCountPerB, BMatrixs + 3 * entryCountPerB);
 	}
 
@@ -84,8 +84,8 @@ namespace ODER{
 		memset(nlpart, 0, commonEntryNum * 3 * sizeof(Scalar));
 		memset(nnpart, 0, commonEntryNum * numNodesPerElement * sizeof(Scalar));
 
-		const Scalar determinant = Scalar(6.0) * getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		const Scalar determinant = Scalar(6.0) * getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		const Scalar determinant2 = determinant * determinant;
 		const Scalar nlFactor = Scalar(1.0) / (Scalar(6.0) * determinant2);
 		const Scalar nnFactor = Scalar(1.0) / (Scalar(12.0) * determinant * determinant2);
@@ -136,8 +136,8 @@ namespace ODER{
 
 	void ReducedIsotropicTetElement::generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const{
 		constexpr int entryCountPerB = 3;
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar factor = Scalar(1.0) / (Scalar(36.0) * volume);
 		const Scalar *Ba = BMatrixs + entryCountPerB*aNodeIndex;
 		const Scalar *Bb = BMatrixs + entryCountPerB*bNodeIndex;
@@ -156,15 +156,15 @@ namespace ODER{
 
 	void LinearAnisortropicTetElement::setBMatrixs(){
 		constexpr int entryCountPerB = 3;
-		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]), 
+		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]), 
 			BMatrixs, BMatrixs + entryCountPerB, BMatrixs + 2 * entryCountPerB, BMatrixs + 3 * entryCountPerB);
 	}
 
 	void LinearAnisortropicTetElement::generateSubStiffnessMatrix(int aNodeIndex, int bNodeIndex, const Scalar *D, Scalar *result) const{
 		constexpr int entryCountPerB = 3;
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar factor = Scalar(1.0) / (Scalar(36.0) * volume);
 		const Scalar *Ba = BMatrixs + entryCountPerB*aNodeIndex;
 		const Scalar *Bb = BMatrixs + entryCountPerB*bNodeIndex;
@@ -206,12 +206,12 @@ namespace ODER{
 	}
 
 	void InvertibleHyperelasticTetElement::getPrecomputes(Scalar *drivates, Scalar *deforamtionGradients) const {
-		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]), drivates, drivates + 3, drivates + 6, drivates + 9);
+		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]), drivates, drivates + 3, drivates + 6, drivates + 9);
 		
-		Vector3 ab = mesh->getVertex(nodeIndexs[1]) - mesh->getVertex(nodeIndexs[0]);
-		Vector3 ac = mesh->getVertex(nodeIndexs[2]) - mesh->getVertex(nodeIndexs[0]);
-		Vector3 ad = mesh->getVertex(nodeIndexs[3]) - mesh->getVertex(nodeIndexs[0]);
+		Vector3 ab = mesh->getVertex(nodeIndices[1]) - mesh->getVertex(nodeIndices[0]);
+		Vector3 ac = mesh->getVertex(nodeIndices[2]) - mesh->getVertex(nodeIndices[0]);
+		Vector3 ad = mesh->getVertex(nodeIndices[3]) - mesh->getVertex(nodeIndices[0]);
 
 		Tensor2<Scalar> D(ab.x, ac.x, ad.x,
 			ab.y, ac.y, ad.y,
@@ -223,9 +223,9 @@ namespace ODER{
 	void InvertibleHyperelasticTetElement::generateDeformationGradient(const Scalar *precompute, Scalar *gradients) const{
 		Initiation(gradients, 9);
 
-		Vector3 v0 = mesh->getVertex(nodeIndexs[0]) + mesh->getVertexDisplacementConst(nodeIndexs[0]);
+		Vector3 v0 = mesh->getVertex(nodeIndices[0]) + mesh->getVertexDisplacementConst(nodeIndices[0]);
 		for (int i = 1; i < 4; i++) {
-			Vector3 ax = (mesh->getVertex(nodeIndexs[i]) + mesh->getVertexDisplacementConst(nodeIndexs[i])) - v0;
+			Vector3 ax = (mesh->getVertex(nodeIndices[i]) + mesh->getVertexDisplacementConst(nodeIndices[i])) - v0;
 			for (int j = 0; j < 3; j++) {
 				Scalar d = ax[j];
 				for (int k = 0; k < 3; k++)
@@ -242,8 +242,8 @@ namespace ODER{
 		Initiation(dPdF, 81);
 		getdPdF(diags, energyGradients, energyHassians, dPdF);
 
-		Scalar volume = getTetVolume(mesh->getVertex(nodeIndexs[0]), mesh->getVertex(nodeIndexs[1]),
-			mesh->getVertex(nodeIndexs[2]), mesh->getVertex(nodeIndexs[3]));
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar factor = Scalar(1.0) / (Scalar(36.0) * volume);
 
 		const Tensor2<Scalar> VT(rightOrthoMats);
@@ -450,6 +450,136 @@ namespace ODER{
 		default:
 			Severe("Unexpected condition in InvertibleHyperelasticTetElement::forceSemidefinite2x2");
 			break;
+		}
+	}
+
+	void CorotationalHyperelasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const {
+		//compute sub matrix block
+		constexpr int drivatePerNodeCount = 3;
+		Scalar drivates[12];
+		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]), drivates, drivates + drivatePerNodeCount, 
+			drivates + 2 * drivatePerNodeCount, drivates + 3 * drivatePerNodeCount);
+		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
+		Scalar factor = Scalar(1.0) / (Scalar(36.0) * volume);
+
+		int subMatIndex = 0;
+		for (int aNodeIndex = 0; aNodeIndex < 4; aNodeIndex++) {
+			const Scalar *Ba = drivates + drivatePerNodeCount * aNodeIndex;
+			for (int bNodeIndex = aNodeIndex; bNodeIndex < 4; bNodeIndex++) {
+				const Scalar *Bb = drivates + drivatePerNodeCount * bNodeIndex;
+
+				initSubStiffMat[subMatIndex + 0] = (D[0] * Ba[0] * Bb[0] + D[2] * (Ba[1] * Bb[1] + Ba[2] * Bb[2])) * factor;
+				initSubStiffMat[subMatIndex + 1] = (D[1] * Ba[0] * Bb[1] + D[2] * Ba[1] * Bb[0]) * factor;
+				initSubStiffMat[subMatIndex + 2] = (D[1] * Ba[0] * Bb[2] + D[2] * Ba[2] * Bb[0]) * factor;
+				initSubStiffMat[subMatIndex + 3] = (D[1] * Ba[1] * Bb[0] + D[2] * Ba[0] * Bb[1]) * factor;
+				initSubStiffMat[subMatIndex + 4] = (D[0] * Ba[1] * Bb[1] + D[2] * (Ba[0] * Bb[0] + Ba[2] * Bb[2])) * factor;
+				initSubStiffMat[subMatIndex + 5] = (D[1] * Ba[1] * Bb[2] + D[2] * Ba[2] * Bb[1]) * factor;
+				initSubStiffMat[subMatIndex + 6] = (D[1] * Ba[2] * Bb[0] + D[2] * Ba[0] * Bb[2]) * factor;
+				initSubStiffMat[subMatIndex + 7] = (D[1] * Ba[2] * Bb[1] + D[2] * Ba[1] * Bb[2]) * factor;
+				initSubStiffMat[subMatIndex + 8] = (D[0] * Ba[2] * Bb[2] + D[2] * (Ba[0] * Bb[0] + Ba[1] * Bb[1])) * factor;
+
+				subMatIndex += 9;
+			}
+		}
+
+		Vector3 ab = mesh->getVertex(nodeIndices[1]) - mesh->getVertex(nodeIndices[0]);
+		Vector3 ac = mesh->getVertex(nodeIndices[2]) - mesh->getVertex(nodeIndices[0]);
+		Vector3 ad = mesh->getVertex(nodeIndices[3]) - mesh->getVertex(nodeIndices[0]);
+
+		Tensor2<Scalar> DD(ab.x, ac.x, ad.x,
+			ab.y, ac.y, ad.y,
+			ab.z, ac.z, ad.z);
+
+		memcpy(deforamtionGradients, &(Inverse(DD)(0, 0)), sizeof(Scalar) * 9);
+	}
+
+	void CorotationalHyperelasticTetElement::generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const {
+		Vector3 curVerices[4];
+		for (int i = 0; i < 4; i++) curVerices[i] = mesh->getVertex(nodeIndices[i]) + mesh->getVertexDisplacementConst(nodeIndices[i]);
+
+		Scalar gradient[9];
+		Initiation(gradient, 9);
+		for (int i = 1; i < 4; i++) {
+			Vector3 ax = curVerices[i] - curVerices[0];
+			for (int j = 0; j < 3; j++) {
+				Scalar d = ax[j];
+				for (int k = 0; k < 3; k++)
+					gradient[j * 3 + k] += d * precompute[(i - 1) * 3 + k];
+			}
+		}
+
+		Scalar initVolume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
+		Scalar newVoulme = getTetVolume(curVerices[0], curVerices[1], curVerices[2], curVerices[3]);
+
+		if (newVoulme >= threshold * initVolume) polarDecompostion3x3(gradient, properOrthoMat, (Scalar *)NULL);
+		else properQRDecompostion3x3(gradient, properOrthoMat, (Scalar *)NULL);
+	}
+
+	void CorotationalHyperelasticTetElement::generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
+		Scalar *subStiffMat, Scalar *nodalVirtualWorks) const {
+		Initiation(nodalVirtualWorks, 12);
+		const Vector3 oriVertices[4] = {
+			mesh->getVertex(nodeIndices[0]),
+			mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]),
+			mesh->getVertex(nodeIndices[3])
+		};
+		const Vector3 curVertices[4] = {
+			oriVertices[0] + mesh->getVertexDisplacementConst(nodeIndices[0]),
+			oriVertices[1] + mesh->getVertexDisplacementConst(nodeIndices[1]),
+			oriVertices[2] + mesh->getVertexDisplacementConst(nodeIndices[2]),
+			oriVertices[3] + mesh->getVertexDisplacementConst(nodeIndices[3])
+		};
+
+		Scalar Q[9];
+		memcpy(Q, orthoMat, 9 * sizeof(Scalar));
+
+		Scalar QK[9], QKQT[9];
+		const Scalar *K = initStiffMat;
+		for (int aNodeIndex = 0; aNodeIndex < 4; aNodeIndex++) {
+			//compute QK and QKQT
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					QK[i * 3 + j] = Q[i * 3 + 0] * K[0 * 3 + j] + Q[i * 3 + 1] * K[1 * 3 + j] + Q[i * 3 + 2] * K[2 * 3 + j];
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
+
+			Vector3 oriANode = oriVertices[aNodeIndex];
+			Vector3 curANode = curVertices[aNodeIndex];
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++) {
+					subStiffMat[(aNodeIndex * 3 + i) * 12 + (aNodeIndex * 3 + j)] = QKQT[i * 3 + j];
+					nodalVirtualWorks[aNodeIndex * 3 + i] += QKQT[i * 3 + j] * curANode[j] - QK[i * 3 + j] * oriANode[j];
+				}
+			}
+			K += 9;
+
+			for (int bNodeIndex = aNodeIndex + 1; bNodeIndex < 4; bNodeIndex++) {
+				//compute QK and QKQT
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+						QK[i * 3 + j] = Q[i * 3 + 0] * K[0 * 3 + j] + Q[i * 3 + 1] * K[1 * 3 + j] + Q[i * 3 + 2] * K[2 * 3 + j];
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+						QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
+
+				Vector3 oriBNode = oriVertices[bNodeIndex];
+				Vector3 curBNode = curVertices[bNodeIndex];
+				for (int i = 0; i < 3; i++) {
+					for (int j = 0; j < 3; j++) {
+						subStiffMat[(aNodeIndex * 3 + i) * 12 + (bNodeIndex * 3 + j)] = QKQT[i * 3 + j];
+						subStiffMat[(bNodeIndex * 3 + i) * 12 + (aNodeIndex * 3 + j)] = QKQT[i * 3 + j];
+
+						nodalVirtualWorks[aNodeIndex * 3 + i] += QKQT[i * 3 + j] * curANode[j] - QK[i * 3 + j] * oriANode[j];
+						nodalVirtualWorks[bNodeIndex * 3 + i] += QKQT[i * 3 + j] * curBNode[j] - QK[i * 3 + j] * oriBNode[j];
+					}
+				}
+				K += 9;
+			}
 		}
 	}
 

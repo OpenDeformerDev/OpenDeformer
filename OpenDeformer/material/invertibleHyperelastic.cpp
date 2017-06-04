@@ -19,7 +19,7 @@ namespace ODER{
 		Scalar *deformationGradientPrecomputed = precomputes + elementCount * drivativeEntry;
 
 		for (int i = 0; i < elementCount; i++) {
-			element->setNodeIndexs(i);
+			element->setNodeIndices(i);
 			element->getPrecomputes(shapeFunctionDrivativesPrecomputed + i * drivativeEntry,
 				deformationGradientPrecomputed + i * deformGradientEntry);
 		}
@@ -58,7 +58,7 @@ namespace ODER{
 		int *elementNodeIndices = (int *)alloca(3 * nodePerElementCount * sizeof(int));
 
 		for (int elementIndex = 0; elementIndex < elementCount; elementIndex++) {
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, nodePerElementCount, elementNodeIndices);
 			const Scalar *drivatePre = shapeFunctionDrivativesPrecomputed + elementIndex * drivativeEntry;
 			const Scalar *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;

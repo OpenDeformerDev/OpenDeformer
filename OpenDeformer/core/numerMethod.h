@@ -478,7 +478,7 @@ namespace ODER{
 		}
 
 		memcpy(ortho, Q, sizeof(FT) * 9);
-		memcpy(upperTri, R, sizeof(FT) * 9);
+		if (upperTri) memcpy(upperTri, R, sizeof(FT) * 9);
 	}
 
 	namespace PolarDecompostion3x3Internal {
@@ -680,7 +680,8 @@ namespace ODER{
 			omega = fabs(A[rowPermute[1] * 3 + columnPermute[1]]);
 		}
 
-		if (detA < FT(0)) {
+		bool notpd = detA < FT(0);
+		if (notpd) {
 			detA = -detA;
 			for (int i = 0; i < 16; i++) B[i] = -B[i];
 		}
@@ -976,15 +977,17 @@ namespace ODER{
 		Q[7] = FT(2) * (v23 + v01);
 		Q[8] = FT(1) - FT(2) * (v11 + v22);
 
-		if (detA < FT(0)) for (int i = 0; i < 9; i++) Q[i] = -Q[i];
+		if (notpd) for (int i = 0; i < 9; i++) Q[i] = -Q[i];
 		ortho[0] = Q[0]; ortho[1] = Q[3]; ortho[2] = Q[6];
 		ortho[3] = Q[1]; ortho[4] = Q[4]; ortho[5] = Q[7];
 		ortho[6] = Q[2]; ortho[7] = Q[5]; ortho[8] = Q[8];
 
-		for (int i = 0; i < 3; i++) {
-			for (int j = 0; j < 3; j++)
-				sspd[i * 3 + j] = Q[i * 3 + 0] * mat[0 * 3 + j] 
-				+ Q[i * 3 + 1] * mat[1 * 3 + j] + Q[i * 3 + 2] * mat[2 * 3 + j];
+		if (sspd) {
+			for (int i = 0; i < 3; i++) {
+				for (int j = 0; j < 3; j++)
+					sspd[i * 3 + j] = Q[i * 3 + 0] * mat[0 * 3 + j]
+					+ Q[i * 3 + 1] * mat[1 * 3 + j] + Q[i * 3 + 2] * mat[2 * 3 + j];
+			}
 		}
 	}
 

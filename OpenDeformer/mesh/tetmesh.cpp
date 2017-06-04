@@ -16,6 +16,8 @@ namespace ODER{
 			return new LinearAnisortropicTetElement((TetMesh *)this);
 		else if (matchMaterialFlag(type, MarterialType(Marterial_Invertible | Marterial_Isotropic | Marterial_NonLinear)))
 			return new InvertibleHyperelasticTetElement((TetMesh *)this);
+		else if (matchMaterialFlag(type, MarterialType(Marterial_Corotational | Marterial_Isotropic | Marterial_NonLinear)))
+			return new CorotationalHyperelasticTetElement((TetMesh *)this);
 		else{
 			Severe("Unimplemented features in TetMesh::getMaterialElement");
 			return NULL;
@@ -24,7 +26,7 @@ namespace ODER{
 
 	Element* TetMesh::getElement(int elementIndex, MarterialType type) const {
 		Element *ret = getMaterialElement(type);
-		ret->setNodeIndexs(elementIndex);
+		ret->setNodeIndices(elementIndex);
 		return ret;
 	}
 

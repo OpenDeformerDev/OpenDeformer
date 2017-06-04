@@ -26,7 +26,7 @@ namespace ODER{
 		ReducedIsotropicElement *element = dynamic_cast<ReducedIsotropicElement *>(mesh->getMaterialElement(type));
 
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->setBMatrixs();
 
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++){
@@ -90,7 +90,7 @@ namespace ODER{
 		ReducedIsotropicElement *element = dynamic_cast<ReducedIsotropicElement *>(mesh->getMaterialElement(type));
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
 			//set new element info
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->setBMatrixs();
 			//get nl and nn
 			element->Intergration(&D[1], nlpart, nnpart);
@@ -127,7 +127,7 @@ namespace ODER{
 
 		for (int elementIndex = 0; elementIndex < numElements; elementIndex++){
 			//set new element info
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
 			const Scalar *nlpart = intergration[0] + elementIndex*nlEntries;

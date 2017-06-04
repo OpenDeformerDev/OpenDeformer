@@ -28,7 +28,7 @@ namespace ODER {
 
 		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement * sizeof(int));
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
 			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
@@ -61,7 +61,7 @@ namespace ODER {
 		int *localIndices = *indicesPointer;
 		int *elementNodeIndices = (int *)alloca(3 * numNodesPerElement * sizeof(int));
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
 			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {

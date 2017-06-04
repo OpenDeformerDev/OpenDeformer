@@ -70,6 +70,18 @@ namespace ODER{
 		int tensorIndex(int i, int j, int k, int l) const { return i * 27 + j * 9 + k * 3 + l; }
 	};
 
+	struct CorotationalHyperelasticTetElement : public CorotationalHyperelasticElement {
+		CorotationalHyperelasticTetElement(TetMesh *m) : CorotationalHyperelasticElement(m) {}
+		void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const;
+		int getInitSubStiffMatEntryCount() const { return 90; }
+		int getDeformGradientsPreEntryCount() const { return 9; }
+		int getQuadraturePointCount() const { return 1; }
+
+		void generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const;
+		void generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
+			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const;
+	};
+
 	void getTetShapeFunctionDerivatives(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d,
 		Scalar *dn0, Scalar *dn1, Scalar *dn2, Scalar *dn3);
 

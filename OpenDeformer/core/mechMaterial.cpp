@@ -12,7 +12,7 @@ namespace ODER{
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
 		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++){
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->generateSubMassMatrix(subMass);
 
 			int k = 0;
@@ -42,7 +42,7 @@ namespace ODER{
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
 		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->generateSubMassMatrix(subMass);
 
 			int k = 0;
@@ -74,7 +74,7 @@ namespace ODER{
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
 		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
-			element->setNodeIndexs(elementIndex);
+			element->setNodeIndices(elementIndex);
 			element->generateSubMassMatrix(subMass);
 
 			const int *localIndices = matrixIndices + indicesPerElementCount * elementIndex;
