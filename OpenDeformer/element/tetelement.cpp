@@ -3,6 +3,51 @@
 #include "numerMethod.h"
 
 namespace ODER{
+	inline Scalar getTetVolume(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d) {
+		Vector3 ab = b - a;
+		Vector3 ac = c - a;
+		Vector3 ad = d - a;
+
+		return fabs(ab*(ac%ad)) / 6.f;
+	}
+
+	inline Scalar getTriArea(const Vector3& a, const Vector3& b, const Vector3& c) {
+		return ((b - a) % (c - a)).length() * 0.5f;
+	}
+
+	void getTetShapeFunctionDerivatives(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d,
+		Scalar *dn0, Scalar *dn1, Scalar *dn2, Scalar *dn3) {
+
+		Vector3 da = a - d;
+		Vector3 db = b - d;
+		Vector3 dc = c - d;
+		Vector3 ca = a - c;
+		Vector3 cb = b - c;
+
+		Vector3 dNa, dNb, dNc, dNd;
+
+		if (da * (db % dc) > Scalar(0)) {
+			dNa = db % dc;
+			dNb = dc % da;
+			dNc = da % db;
+			dNd = cb % ca;
+		}
+		else {
+			dNa = dc % db;
+			dNb = da % dc;
+			dNc = db % da;
+			dNd = ca % cb;
+		}
+
+		for (int i = 0; i < 3; i++) {
+			dn0[i] = dNa[i];
+			dn1[i] = dNb[i];
+			dn2[i] = dNc[i];
+			dn3[i] = dNd[i];
+		}
+	}
+
+
 	void TetElement::generateSubMassMatrix(Scalar *result) const{
 		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
 			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
@@ -495,9 +540,13 @@ namespace ODER{
 		memcpy(deforamtionGradients, &(Inverse(DD)(0, 0)), sizeof(Scalar) * 9);
 	}
 
-	void CorotationalHyperelasticTetElement::generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const {
-		Vector3 curVerices[4];
-		for (int i = 0; i < 4; i++) curVerices[i] = mesh->getVertex(nodeIndices[i]) + mesh->getVertexDisplacementConst(nodeIndices[i]);
+	void CorotationalHyperelasticTetElement::generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMat) const {
+		const Vector3 curVerices[4] = {
+			mesh->getVertex(nodeIndices[0]) + mesh->getVertexDisplacementConst(nodeIndices[0]),
+			mesh->getVertex(nodeIndices[1]) + mesh->getVertexDisplacementConst(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]) + mesh->getVertexDisplacementConst(nodeIndices[2]),
+			mesh->getVertex(nodeIndices[3]) + mesh->getVertexDisplacementConst(nodeIndices[3])
+		};
 
 		Scalar gradient[9];
 		Initiation(gradient, 9);
@@ -506,7 +555,7 @@ namespace ODER{
 			for (int j = 0; j < 3; j++) {
 				Scalar d = ax[j];
 				for (int k = 0; k < 3; k++)
-					gradient[j * 3 + k] += d * precompute[(i - 1) * 3 + k];
+					gradient[j * 3 + k] += d * deformationGradientPrecomputed[(i - 1) * 3 + k];
 			}
 		}
 
@@ -520,6 +569,7 @@ namespace ODER{
 
 	void CorotationalHyperelasticTetElement::generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
 		Scalar *subStiffMat, Scalar *nodalVirtualWorks) const {
+		constexpr int diagIndices[12] = { 0, 12, 23, 33, 42, 50, 57, 63, 68, 72, 75, 77 };
 		Initiation(nodalVirtualWorks, 12);
 		const Vector3 oriVertices[4] = {
 			mesh->getVertex(nodeIndices[0]),
@@ -537,7 +587,7 @@ namespace ODER{
 		Scalar Q[9];
 		memcpy(Q, orthoMat, 9 * sizeof(Scalar));
 
-		Scalar QK[9], QKQT[9];
+		Scalar QK[9], QKT[9], QKQT[9];
 		const Scalar *K = initStiffMat;
 		for (int aNodeIndex = 0; aNodeIndex < 4; aNodeIndex++) {
 			//compute QK and QKQT
@@ -548,21 +598,26 @@ namespace ODER{
 				for (int j = 0; j < 3; j++)
 					QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
 
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3 - i; j++)
+					subStiffMat[diagIndices[aNodeIndex * 3 + i] + j] = QKQT[i * 3 + (i + j)];
+
 			Vector3 oriANode = oriVertices[aNodeIndex];
 			Vector3 curANode = curVertices[aNodeIndex];
-			for (int i = 0; i < 3; i++) {
-				for (int j = 0; j < 3; j++) {
-					subStiffMat[(aNodeIndex * 3 + i) * 12 + (aNodeIndex * 3 + j)] = QKQT[i * 3 + j];
+			for (int i = 0; i < 3; i++) 
+				for (int j = 0; j < 3; j++)
 					nodalVirtualWorks[aNodeIndex * 3 + i] += QKQT[i * 3 + j] * curANode[j] - QK[i * 3 + j] * oriANode[j];
-				}
-			}
+
 			K += 9;
 
 			for (int bNodeIndex = aNodeIndex + 1; bNodeIndex < 4; bNodeIndex++) {
-				//compute QK and QKQT
-				for (int i = 0; i < 3; i++)
-					for (int j = 0; j < 3; j++)
+				//compute QK QKT and QKQT 
+				for (int i = 0; i < 3; i++) {
+					for (int j = 0; j < 3; j++) {
 						QK[i * 3 + j] = Q[i * 3 + 0] * K[0 * 3 + j] + Q[i * 3 + 1] * K[1 * 3 + j] + Q[i * 3 + 2] * K[2 * 3 + j];
+						QKT[i * 3 + j] = Q[i * 3 + 0] * K[j * 3 + 0] + Q[i * 3 + 1] * K[j * 3 + 1] + Q[i * 3 + 2] * K[j * 3 + 2];
+					}
+				}
 				for (int i = 0; i < 3; i++)
 					for (int j = 0; j < 3; j++)
 						QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
@@ -571,11 +626,10 @@ namespace ODER{
 				Vector3 curBNode = curVertices[bNodeIndex];
 				for (int i = 0; i < 3; i++) {
 					for (int j = 0; j < 3; j++) {
-						subStiffMat[(aNodeIndex * 3 + i) * 12 + (bNodeIndex * 3 + j)] = QKQT[i * 3 + j];
-						subStiffMat[(bNodeIndex * 3 + i) * 12 + (aNodeIndex * 3 + j)] = QKQT[i * 3 + j];
+						subStiffMat[diagIndices[aNodeIndex * 3 + i] + ((bNodeIndex - aNodeIndex) * 3 - i) + j] = QKQT[i * 3 + j];
 
-						nodalVirtualWorks[aNodeIndex * 3 + i] += QKQT[i * 3 + j] * curANode[j] - QK[i * 3 + j] * oriANode[j];
-						nodalVirtualWorks[bNodeIndex * 3 + i] += QKQT[i * 3 + j] * curBNode[j] - QK[i * 3 + j] * oriBNode[j];
+						nodalVirtualWorks[aNodeIndex * 3 + i] += QKQT[i * 3 + j] * curBNode[j] - QK[i * 3 + j] * oriBNode[j];
+						nodalVirtualWorks[bNodeIndex * 3 + i] += QKQT[j * 3 + i] * curANode[j] - QKT[i * 3 + j] * oriANode[j];
 					}
 				}
 				K += 9;
@@ -583,35 +637,4 @@ namespace ODER{
 		}
 	}
 
-	void getTetShapeFunctionDerivatives(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d,
-		Scalar *dn0, Scalar *dn1, Scalar *dn2, Scalar *dn3) {
-
-		Vector3 da = a - d;
-		Vector3 db = b - d;
-		Vector3 dc = c - d;
-		Vector3 ca = a - c;
-		Vector3 cb = b - c;
-
-		Vector3 dNa, dNb, dNc, dNd;
-
-		if (da * (db % dc) > Scalar(0)) {
-			dNa = db % dc;
-			dNb = dc % da;
-			dNc = da % db;
-			dNd = cb % ca;
-		}
-		else {
-			dNa = dc % db;
-			dNb = da % dc;
-			dNc = db % da;
-			dNd = ca % cb;
-		}
-
-		for (int i = 0; i < 3; i++) {
-			dn0[i] = dNa[i];
-			dn1[i] = dNb[i];
-			dn2[i] = dNc[i];
-			dn3[i] = dNd[i];
-		}
-	}
 }

@@ -77,25 +77,10 @@ namespace ODER{
 		int getDeformGradientsPreEntryCount() const { return 9; }
 		int getQuadraturePointCount() const { return 1; }
 
-		void generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const;
+		void generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMat) const;
 		void generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
 			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const;
 	};
-
-	void getTetShapeFunctionDerivatives(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d,
-		Scalar *dn0, Scalar *dn1, Scalar *dn2, Scalar *dn3);
-
-	inline Scalar getTetVolume(const Vector3& a, const Vector3& b, const Vector3& c, const Vector3& d) {
-		Vector3 ab = b - a;
-		Vector3 ac = c - a;
-		Vector3 ad = d - a;
-
-		return fabs(ab*(ac%ad)) / 6.f;
-	}
-
-	inline Scalar getTriArea(const Vector3& a, const Vector3& b, const Vector3& c) {
-		return ((b - a) % (c - a)).length() * 0.5f;
-	}
 }
 
 #endif

@@ -646,6 +646,17 @@ namespace ODER{
 			const std::vector<std::vector<std::pair<int, int>>>& fullIndices, 
 			const SparseVector& src, FastSparseVector& dest);
 	};
+
+	class SparseSymMatrixIndicesPerElementCache {
+	public:
+		SparseSymMatrixIndicesPerElementCache(int elementCount, int nodePerElementCount);
+		~SparseSymMatrixIndicesPerElementCache();
+		const int *getElementMatIndices(int elementIndex) const { return indices + elementIndex * symSubMatEntryCount; }
+		int *getElementMatIndices(int elementIndex) { return indices + elementIndex * symSubMatEntryCount; }
+	private:
+		int symSubMatEntryCount;
+		int *indices;
+	};
 }
 
 #endif

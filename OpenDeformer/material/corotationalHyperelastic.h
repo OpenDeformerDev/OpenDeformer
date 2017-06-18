@@ -8,13 +8,13 @@
 #include "fullOrderNonlinear.h"
 
 namespace ODER {
-	class CorotationalMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix> {
+	class CorotationalHyperelasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix> {
 	public :
-		CorotationalMaterial(Scalar rho, Scalar youngs, Scalar possion, Scalar compressingTreshold);
+		CorotationalHyperelasticMaterial(Scalar rho, Scalar youngs, Scalar possion, Scalar compressingTreshold);
 		Scalar *getPrecomputes(const Reference<Mesh> &mesh) const;
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const Scalar *precomputes, const int *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
-		virtual ~CorotationalMaterial() = default;
+			const Scalar *precomputes, const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
+		virtual ~CorotationalHyperelasticMaterial() = default;
 	private:
 		Scalar threshold;
 		Scalar D[3];

@@ -551,7 +551,7 @@ namespace ODER{
 		fnorm = sqrt(fnorm);
 		if (fnorm == FT(0)) {
 			Initiation(ortho, 9);
-			Initiation(sspd, 9);
+			if (sspd) Initiation(sspd, 9);
 			ortho[0] = ortho[4] = ortho[8] = FT(1);
 			return;
 		}

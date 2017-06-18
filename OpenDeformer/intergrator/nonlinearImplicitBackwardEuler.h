@@ -37,7 +37,7 @@ namespace ODER {
 		LinearSolver<SpMatrix> *solver;
 		SpMatrix *tagentMatrix;
 		SpMatrix *massMatrix;
-		int *matrixIndices;
+		SparseSymMatrixIndicesPerElementCache *matrixIndices;
 	};
 
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
@@ -58,7 +58,8 @@ namespace ODER {
 		tagentMatrix = new SpMatrix(structureAssembler);
 		massMatrix = new SpMatrix(structureAssembler);
 
-		material->getMatrixIndicesPerElement(mesh, indexer, *tagentMatrix, &matrixIndices);
+		matrixIndices = new SparseSymMatrixIndicesPerElementCache(m->getElementCount(), m->getNodePerElementCount());
+		material->getMatrixIndicesPerElement(mesh, indexer, *tagentMatrix, matrixIndices);
 
 		solver->resetLinearSystem(tagentMatrix);
 		material->generateMassMatrix(mesh, indexer, matrixIndices, *massMatrix);
@@ -67,15 +68,13 @@ namespace ODER {
 
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::~NonlinearImplicitBackwardEuler() {
 		delete[] memory;
-		delete[] matrixIndices;
 		delete[] precomputes;
+		delete matrixIndices;
 		delete tagentMatrix;
 		delete massMatrix;
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::runOneTimeStep() {
-		//memcpy(pre_v, v, sizeof(Scalar) * dofs);
-
 		tagentMatrix->setZeros();
 		Initiation(internalVirtualWork, dofs);
 		Initiation(rhs, dofs);

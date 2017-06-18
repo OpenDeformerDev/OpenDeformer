@@ -7,7 +7,6 @@
 
 #include "oder.h"
 #include "memory.h"
-#include <unordered_map>
 
 namespace ODER{
 	enum MarterialType{
@@ -21,13 +20,15 @@ namespace ODER{
 		Marterial_Corotational = 1 << 6
 	};
 
+	class SparseSymMatrixIndicesPerElementCache;
+
 	class MechMaterial{
 	public:
 		MechMaterial(Scalar rho, MarterialType t) :density(rho), type(t){}
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-			const int *matrixIndices, BlockedSymSpMatrix& matrix) const;
+			const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix) const;
 
 		Scalar getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }

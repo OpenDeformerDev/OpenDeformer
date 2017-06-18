@@ -94,4 +94,12 @@ namespace ODER{
 		freeAligned(pcol);
 	}
 
+	SparseSymMatrixIndicesPerElementCache::SparseSymMatrixIndicesPerElementCache(int elementCount, int nodePerElementCount) {
+		symSubMatEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2;
+		indices = new int[elementCount * symSubMatEntryCount];
+	}
+
+	SparseSymMatrixIndicesPerElementCache::~SparseSymMatrixIndicesPerElementCache() {
+		delete[] indices;
+	}
 }

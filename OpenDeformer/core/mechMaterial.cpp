@@ -3,6 +3,7 @@
 #include "element.h"
 #include "mesh.h"
 #include "nodeIndexer.h"
+#include "sparseMatrix.h"
 
 namespace ODER{
 	void MechMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& m) const{
@@ -66,18 +67,17 @@ namespace ODER{
 	}
 
 	void MechMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-		const int *matrixIndices, BlockedSymSpMatrix& matrix) const {
+		const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix) const {
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
-		int indicesPerElementCount = ((3 * numNodesPerElement + 1) * 3 * numNodesPerElement) / 2;
 		int entrys = ((1 + numNodesPerElement)*numNodesPerElement) >> 1;
 		Scalar *subMass = new Scalar[entrys];
 		for (int elementIndex = 0; elementIndex < mesh->getElementCount(); elementIndex++) {
 			element->setNodeIndices(elementIndex);
 			element->generateSubMassMatrix(subMass);
 
-			const int *localIndices = matrixIndices + indicesPerElementCount * elementIndex;
+			const int *localIndices = matrixIndices->getElementMatIndices(elementIndex);
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
 				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {

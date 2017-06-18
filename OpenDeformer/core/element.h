@@ -87,7 +87,7 @@ namespace ODER{
 		virtual int getDeformGradientsPreEntryCount() const = 0;
 		virtual int getQuadraturePointCount() const = 0;
 
-		virtual void generateProperOrthoMat(const Scalar *precompute, Scalar threshold, Scalar *properOrthoMat) const = 0;
+		virtual void generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMats) const = 0;
 		virtual void generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMats, const Scalar *initStiffMat,
 			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const = 0;
 	};

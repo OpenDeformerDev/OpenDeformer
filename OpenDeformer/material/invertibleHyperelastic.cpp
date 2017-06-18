@@ -29,7 +29,7 @@ namespace ODER{
 	}
 
 	void InvertibleHyperelasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-		const Scalar *precomputes, const int *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const {
+		const Scalar *precomputes, const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const {
 		InvertibleHyperelasticElement *element = dynamic_cast<InvertibleHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
@@ -82,7 +82,7 @@ namespace ODER{
 				energyGradient, energyHassian, subMatrix);
 			//add matrix entries
 			int entryIndex = 0;
-			const int *localIndices = matrixIndices + subMatrixEntryCount * elementIndex;
+			const int *localIndices = matrixIndices->getElementMatIndices(elementIndex);
 			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
 				if (elementNodeIndices[subRow] >= 0) {
 					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {
