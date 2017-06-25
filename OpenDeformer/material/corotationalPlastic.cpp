@@ -22,11 +22,11 @@ namespace ODER {
 	}
 
 	FullOrderNonlinearMaterialCache CorotationalPlasticMaterial::getPrecomputes(const Reference<Mesh> &mesh) const {
-		CorotationalHyperelasticElement *element = dynamic_cast<CorotationalHyperelasticElement *>(mesh->getMaterialElement(type));
+		CorotationalPlasticElement *element = dynamic_cast<CorotationalPlasticElement *>(mesh->getMaterialElement(type));
 		const int elementCount = mesh->getElementCount();
 		const int subMatEntry = element->getInitSubStiffMatEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
-		const int plasticStrainEntry = 9;
+		const int plasticStrainEntry = element->getQuadraturePointCount() * 9;
 
 		const int byteCount = sizeof(Scalar) * elementCount * (subMatEntry + deformGradientEntry + plasticStrainEntry);
 		FullOrderNonlinearMaterialCache cache(byteCount);

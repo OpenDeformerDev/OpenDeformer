@@ -84,7 +84,7 @@ namespace ODER{
 
 	struct CorotationalPlasticTetElement : public CorotationalPlasticElement {
 		CorotationalPlasticTetElement(TetMesh *m) : CorotationalPlasticElement(m) {};
-		void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const = 0;
+		void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const;
 		int getInitSubStiffMatEntryCount() const { return 90; }
 		int getDeformGradientsPreEntryCount() const { return 9; }
 		int getQuadraturePointCount() const { return 1; }
