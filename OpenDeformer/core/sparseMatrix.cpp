@@ -99,6 +99,20 @@ namespace ODER{
 		indices = new int[elementCount * symSubMatEntryCount];
 	}
 
+	SparseSymMatrixIndicesPerElementCache::SparseSymMatrixIndicesPerElementCache(SparseSymMatrixIndicesPerElementCache&& c) {
+		symSubMatEntryCount = c.symSubMatEntryCount;
+		indices = c.indices;
+
+		c.symSubMatEntryCount = 0;
+		c.indices = NULL;
+	}
+
+	SparseSymMatrixIndicesPerElementCache &SparseSymMatrixIndicesPerElementCache::operator=(SparseSymMatrixIndicesPerElementCache&& c) {
+		std::swap(symSubMatEntryCount, c.symSubMatEntryCount);
+		std::swap(indices, c.indices);
+		return *this;
+	}
+
 	SparseSymMatrixIndicesPerElementCache::~SparseSymMatrixIndicesPerElementCache() {
 		delete[] indices;
 	}

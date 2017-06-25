@@ -81,6 +81,19 @@ namespace ODER{
 		void generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
 			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const;
 	};
+
+	struct CorotationalPlasticTetElement : public CorotationalPlasticElement {
+		CorotationalPlasticTetElement(TetMesh *m) : CorotationalPlasticElement(m) {};
+		void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const = 0;
+		int getInitSubStiffMatEntryCount() const { return 90; }
+		int getDeformGradientsPreEntryCount() const { return 9; }
+		int getQuadraturePointCount() const { return 1; }
+
+		void generateDecomposedDeformationGradient(const Scalar *deformationGradientPrecomputed, Scalar threshold,
+			Scalar *properOrthopart, Scalar *factoredPart) const;
+		void generateSubStiffnessMatrix(const Scalar *orthoMat, const Scalar *initStiffMat, Scalar *subStiffMat) const;
+		void generateNodalVirtualWorks(const Scalar *derivate, const Scalar *stress, Scalar *result) const;
+	};
 }
 
 #endif

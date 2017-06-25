@@ -67,7 +67,7 @@ namespace ODER{
 	}
 
 	void MechMaterial::generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-		const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix) const {
+		const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix) const {
 		GeometricElement *element = mesh->getGeometricElement();
 		int numNodesPerElement = mesh->getNodePerElementCount();
 
@@ -77,7 +77,7 @@ namespace ODER{
 			element->setNodeIndices(elementIndex);
 			element->generateSubMassMatrix(subMass);
 
-			const int *localIndices = matrixIndices->getElementMatIndices(elementIndex);
+			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
 				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {

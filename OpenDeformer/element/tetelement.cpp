@@ -498,12 +498,13 @@ namespace ODER{
 		}
 	}
 
-	void CorotationalHyperelasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const {
+	void getCorotationalTetElementPrecomputes(const Reference<Mesh>& mesh, const int *nodeIndices,
+		const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) {
 		//compute sub matrix block
 		constexpr int drivatePerNodeCount = 3;
 		Scalar drivates[12];
 		getTetShapeFunctionDerivatives(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
-			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]), drivates, drivates + drivatePerNodeCount, 
+			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]), drivates, drivates + drivatePerNodeCount,
 			drivates + 2 * drivatePerNodeCount, drivates + 3 * drivatePerNodeCount);
 		Scalar volume = getTetVolume(mesh->getVertex(nodeIndices[0]), mesh->getVertex(nodeIndices[1]),
 			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
@@ -540,7 +541,9 @@ namespace ODER{
 		memcpy(deforamtionGradients, &(Inverse(DD)(0, 0)), sizeof(Scalar) * 9);
 	}
 
-	void CorotationalHyperelasticTetElement::generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMat) const {
+	void generateCorotationalTetElementDecomposedDeformationGradient(const Reference<Mesh>& mesh, const int *nodeIndices,
+		const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoPart, Scalar *factoredPart) {
+
 		const Vector3 curVerices[4] = {
 			mesh->getVertex(nodeIndices[0]) + mesh->getVertexDisplacementConst(nodeIndices[0]),
 			mesh->getVertex(nodeIndices[1]) + mesh->getVertexDisplacementConst(nodeIndices[1]),
@@ -563,8 +566,16 @@ namespace ODER{
 			mesh->getVertex(nodeIndices[2]), mesh->getVertex(nodeIndices[3]));
 		Scalar newVoulme = getTetVolume(curVerices[0], curVerices[1], curVerices[2], curVerices[3]);
 
-		if (newVoulme >= threshold * initVolume) polarDecompostion3x3(gradient, properOrthoMat, (Scalar *)NULL);
-		else properQRDecompostion3x3(gradient, properOrthoMat, (Scalar *)NULL);
+		if (newVoulme >= threshold * initVolume) polarDecompostion3x3(gradient, properOrthoPart, factoredPart);
+		else properQRDecompostion3x3(gradient, properOrthoPart, factoredPart);
+	}
+
+	void CorotationalHyperelasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const {
+		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradients);
+	}
+
+	void CorotationalHyperelasticTetElement::generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMat) const {
+		generateCorotationalTetElementDecomposedDeformationGradient(mesh, nodeIndices, deformationGradientPrecomputed, threshold, properOrthoMat, NULL);
 	}
 
 	void CorotationalHyperelasticTetElement::generateSubStiffnessMatrixNodalVirtualWorks(const Scalar *orthoMat, const Scalar *initStiffMat,
@@ -637,4 +648,81 @@ namespace ODER{
 		}
 	}
 
+
+	void CorotationalPlasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradient) const {
+		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradient);
+	}
+
+	void CorotationalPlasticTetElement::generateDecomposedDeformationGradient(const Scalar *deformationGradientPrecomputed, Scalar threshold,
+		Scalar *properOrthopart, Scalar *factoredPart) const {
+		generateCorotationalTetElementDecomposedDeformationGradient(mesh, nodeIndices, deformationGradientPrecomputed, threshold, properOrthopart, factoredPart);
+	}
+
+	void CorotationalPlasticTetElement::generateSubStiffnessMatrix(const Scalar *orthoMat, const Scalar *initStiffMat, Scalar *subStiffMat) const {
+		constexpr int diagIndices[12] = { 0, 12, 23, 33, 42, 50, 57, 63, 68, 72, 75, 77 };
+		const Vector3 oriVertices[4] = {
+			mesh->getVertex(nodeIndices[0]),
+			mesh->getVertex(nodeIndices[1]),
+			mesh->getVertex(nodeIndices[2]),
+			mesh->getVertex(nodeIndices[3])
+		};
+		const Vector3 curVertices[4] = {
+			oriVertices[0] + mesh->getVertexDisplacementConst(nodeIndices[0]),
+			oriVertices[1] + mesh->getVertexDisplacementConst(nodeIndices[1]),
+			oriVertices[2] + mesh->getVertexDisplacementConst(nodeIndices[2]),
+			oriVertices[3] + mesh->getVertexDisplacementConst(nodeIndices[3])
+		};
+
+		Scalar Q[9];
+		memcpy(Q, orthoMat, 9 * sizeof(Scalar));
+
+		Scalar QK[9], QKQT[9];
+		const Scalar *K = initStiffMat;
+		for (int aNodeIndex = 0; aNodeIndex < 4; aNodeIndex++) {
+			//compute QK and QKQT
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					QK[i * 3 + j] = Q[i * 3 + 0] * K[0 * 3 + j] + Q[i * 3 + 1] * K[1 * 3 + j] + Q[i * 3 + 2] * K[2 * 3 + j];
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3; j++)
+					QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
+
+			for (int i = 0; i < 3; i++)
+				for (int j = 0; j < 3 - i; j++)
+					subStiffMat[diagIndices[aNodeIndex * 3 + i] + j] = QKQT[i * 3 + (i + j)];
+
+			K += 9;
+
+			for (int bNodeIndex = aNodeIndex + 1; bNodeIndex < 4; bNodeIndex++) {
+				//compute QK QKT and QKQT 
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+						QK[i * 3 + j] = Q[i * 3 + 0] * K[0 * 3 + j] + Q[i * 3 + 1] * K[1 * 3 + j] + Q[i * 3 + 2] * K[2 * 3 + j];
+
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++)
+						QKQT[i * 3 + j] = QK[i * 3 + 0] * Q[j * 3 + 0] + QK[i * 3 + 1] * Q[j * 3 + 1] + QK[i * 3 + 2] * Q[j * 3 + 2];
+
+
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++) 
+						subStiffMat[diagIndices[aNodeIndex * 3 + i] + ((bNodeIndex - aNodeIndex) * 3 - i) + j] = QKQT[i * 3 + j];
+
+				K += 9;
+			}
+		}
+	}
+
+	void CorotationalPlasticTetElement::generateNodalVirtualWorks(const Scalar *derivate, const Scalar *stress, Scalar *result) const {
+		constexpr int nodePerElementCount = 4;
+		constexpr Scalar factor = Scalar(1.0) / Scalar(6.0);
+		Tensor2<Scalar> piolaSress(stress);
+		for (int i = 0; i < nodePerElementCount - 1; i++) {
+			Vector3 vw = piolaSress * Vector3(derivate[i * 3 + 0], derivate[i * 3 + 1], derivate[i * 3 + 2]) * factor;
+			memcpy(result + i * 3, &vw[0], sizeof(Scalar) * 3);
+		}
+
+		for (int i = 0; i < 3; i++)
+			result[9 + i] = -(result[0 + i] + result[3 + i] + result[6 + i]);
+	}
 }

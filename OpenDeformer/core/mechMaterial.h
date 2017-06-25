@@ -17,7 +17,8 @@ namespace ODER{
 		Marterial_NonLinear = 1 << 3,
 		Marterial_Reduced = 1 << 4,
 		Marterial_Invertible = 1 << 5,
-		Marterial_Corotational = 1 << 6
+		Marterial_Corotational = 1 << 6,
+		Marterial_Plastic = 1 << 7
 	};
 
 	class SparseSymMatrixIndicesPerElementCache;
@@ -28,7 +29,7 @@ namespace ODER{
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, SparseMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, BlockedSymSpMatrixAssembler& matrix) const;
 		void generateMassMatrix(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer, 
-			const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix) const;
+			const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix) const;
 
 		Scalar getDensity() const{ return density; }
 		MarterialType getMaterialType() const{ return type; }

@@ -13,8 +13,8 @@ namespace ODER {
 		InvertibleHyperelasticMaterial(Scalar rho, Scalar inversionTrashold) :
 			FullOrderNonlinearMaterial(rho, MarterialType(Marterial_Isotropic | Marterial_Invertible)), trashold(inversionTrashold) {}
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const Scalar *precomputes, const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
-		Scalar *getPrecomputes(const Reference<Mesh> &mesh) const;
+			const FullOrderNonlinearMaterialCache& cache, const SparseSymMatrixIndicesPerElementCache &matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
+		FullOrderNonlinearMaterialCache getPrecomputes(const Reference<Mesh> &mesh) const;
 		virtual ~InvertibleHyperelasticMaterial() = default;
 	private:
 		virtual void getEnergyGradient(const Scalar *invariants, Scalar *gradient) const = 0;

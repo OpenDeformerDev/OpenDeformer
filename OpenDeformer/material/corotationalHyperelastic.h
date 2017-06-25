@@ -11,9 +11,9 @@ namespace ODER {
 	class CorotationalHyperelasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix> {
 	public :
 		CorotationalHyperelasticMaterial(Scalar rho, Scalar youngs, Scalar possion, Scalar compressingTreshold);
-		Scalar *getPrecomputes(const Reference<Mesh> &mesh) const;
+		FullOrderNonlinearMaterialCache getPrecomputes(const Reference<Mesh> &mesh) const;
 		void generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-			const Scalar *precomputes, const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
+			const FullOrderNonlinearMaterialCache& precomputes, const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
 		virtual ~CorotationalHyperelasticMaterial() = default;
 	private:
 		Scalar threshold;

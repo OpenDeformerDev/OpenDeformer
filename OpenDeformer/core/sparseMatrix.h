@@ -649,8 +649,15 @@ namespace ODER{
 
 	class SparseSymMatrixIndicesPerElementCache {
 	public:
+		SparseSymMatrixIndicesPerElementCache() : symSubMatEntryCount(0), indices(NULL) {}
 		SparseSymMatrixIndicesPerElementCache(int elementCount, int nodePerElementCount);
 		~SparseSymMatrixIndicesPerElementCache();
+		SparseSymMatrixIndicesPerElementCache(SparseSymMatrixIndicesPerElementCache&& c);
+		SparseSymMatrixIndicesPerElementCache &operator=(SparseSymMatrixIndicesPerElementCache&& c);
+
+		SparseSymMatrixIndicesPerElementCache(const SparseSymMatrixIndicesPerElementCache&) = delete;
+		SparseSymMatrixIndicesPerElementCache &operator=(const SparseSymMatrixIndicesPerElementCache&) = delete;
+
 		const int *getElementMatIndices(int elementIndex) const { return indices + elementIndex * symSubMatEntryCount; }
 		int *getElementMatIndices(int elementIndex) { return indices + elementIndex * symSubMatEntryCount; }
 	private:

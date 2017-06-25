@@ -17,13 +17,16 @@ namespace ODER {
 		D[2] = mu;
 	}
 
-	Scalar *CorotationalHyperelasticMaterial::getPrecomputes(const Reference<Mesh> &mesh) const {
+	FullOrderNonlinearMaterialCache CorotationalHyperelasticMaterial::getPrecomputes(const Reference<Mesh> &mesh) const {
 		CorotationalHyperelasticElement *element = dynamic_cast<CorotationalHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int elementCount = mesh->getElementCount();
 		const int subMatEntry = element->getInitSubStiffMatEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
 
-		Scalar *precomputes = new Scalar[elementCount * (subMatEntry + deformGradientEntry)];
+		const int byteCount = sizeof(Scalar) * elementCount * (subMatEntry + deformGradientEntry);
+		FullOrderNonlinearMaterialCache cache(byteCount);
+
+		Scalar *precomputes = (Scalar *)cache.getMemoryBlock();
 		Scalar *initSubStiffMat = precomputes;
 		Scalar *deformationGradientPrecomputed = precomputes + elementCount * subMatEntry;
 
@@ -34,11 +37,11 @@ namespace ODER {
 		}
 
 		delete element;
-		return precomputes;
+		return cache;
 	}
 
 	void CorotationalHyperelasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
-		const Scalar *precomputes, const SparseSymMatrixIndicesPerElementCache *matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const {
+		const FullOrderNonlinearMaterialCache& cache, const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const {
 		CorotationalHyperelasticElement *element = dynamic_cast<CorotationalHyperelasticElement *>(mesh->getMaterialElement(type));
 		const int elementCount = mesh->getElementCount();
 		const int nodePerElementCount = mesh->getNodePerElementCount();
@@ -56,6 +59,7 @@ namespace ODER {
 		Scalar *subVirtualWorks = memory + subMatrixEntryCount;
 		Scalar *orthoMats = subVirtualWorks + 3 * nodePerElementCount;
 
+		const Scalar *precomputes = (const Scalar *)cache.getMemoryBlock();
 		const Scalar *initSubStiffMat = precomputes;
 		const Scalar *deformationGradientPrecomputed = precomputes + elementCount * initSubMatEntry;
 
@@ -71,7 +75,7 @@ namespace ODER {
 
 			//assmeble to the matrix
 			int entryIndex = 0;
-			const int *localIndices = matrixIndices->getElementMatIndices(elementIndex);
+			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
 			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
 				if (elementNodeIndices[subRow] >= 0) {
 					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {

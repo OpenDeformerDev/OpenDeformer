@@ -183,6 +183,7 @@
     <ClInclude Include="intergrator\asymptoticNewmark.h" />
     <ClInclude Include="intergrator\nonlinearImplicitBackwardEuler.h" />
     <ClInclude Include="material\corotationalHyperelastic.h" />
+    <ClInclude Include="material\corotationalPlastic.h" />
     <ClInclude Include="material\fullOrderNonlinear.h" />
     <ClInclude Include="material\invertibleHyperelastic.h" />
     <ClInclude Include="material\invertibleNeoHookean.h" />
@@ -230,6 +231,7 @@
     </ClCompile>
     <ClCompile Include="intergrator\asymptoticNewmark.cpp" />
     <ClCompile Include="material\corotationalHyperelastic.cpp" />
+    <ClCompile Include="material\corotationalPlastic.cpp" />
     <ClCompile Include="material\invertibleHyperelastic.cpp" />
     <ClCompile Include="material\invertibleNeoHookean.cpp" />
     <ClCompile Include="material\invertibleStVK.cpp" />

@@ -92,6 +92,19 @@ namespace ODER{
 			Scalar *subStiffMat, Scalar *nodalVirtualWorks) const = 0;
 	};
 
+	struct CorotationalPlasticElement : public Element {
+		CorotationalPlasticElement(Mesh *m) : Element(m) {};
+		virtual void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const = 0;
+		virtual int getInitSubStiffMatEntryCount() const = 0;
+		virtual int getDeformGradientsPreEntryCount() const = 0;
+		virtual int getQuadraturePointCount() const = 0;
+
+		virtual void generateDecomposedDeformationGradient(const Scalar *deformationGradientPrecomputed, Scalar threshold, 
+			Scalar *properOrthopart, Scalar *factoredPart) const = 0;
+		virtual void generateSubStiffnessMatrix(const Scalar *orthoMats, const Scalar *initStiffMat, Scalar *subStiffMat) const = 0;
+		virtual void generateNodalVirtualWorks(const Scalar *precompute, const Scalar *stresses, Scalar *result) const = 0;
+	};
+
 	inline int Element::getLocalMatrixIndex(int aNodeDofIndex, int bNodeDofIndex) const {
 		int numNodeElement = mesh->getNodePerElementCount();
 		if (aNodeDofIndex > bNodeDofIndex) std::swap(aNodeDofIndex, bNodeDofIndex);
