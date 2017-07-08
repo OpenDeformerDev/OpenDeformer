@@ -499,7 +499,7 @@ namespace ODER{
 	}
 
 	void getCorotationalTetElementPrecomputes(const Reference<Mesh>& mesh, const int *nodeIndices,
-		const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) {
+		const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients, Scalar *shapeFunctionDrivates) {
 		//compute sub matrix block
 		constexpr int drivatePerNodeCount = 3;
 		Scalar drivates[12];
@@ -539,6 +539,8 @@ namespace ODER{
 			ab.z, ac.z, ad.z);
 
 		memcpy(deforamtionGradients, &(Inverse(DD)(0, 0)), sizeof(Scalar) * 9);
+
+		if (shapeFunctionDrivates) memcpy(shapeFunctionDrivates, drivates, sizeof(Scalar) * 12);
 	}
 
 	void generateCorotationalTetElementDecomposedDeformationGradient(const Reference<Mesh>& mesh, const int *nodeIndices,
@@ -571,7 +573,7 @@ namespace ODER{
 	}
 
 	void CorotationalHyperelasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const {
-		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradients);
+		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradients, NULL);
 	}
 
 	void CorotationalHyperelasticTetElement::generateProperOrthoMats(const Scalar *deformationGradientPrecomputed, Scalar threshold, Scalar *properOrthoMat) const {
@@ -649,13 +651,13 @@ namespace ODER{
 	}
 
 
-	void CorotationalPlasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradient) const {
-		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradient);
+	void CorotationalPlasticTetElement::getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradient, Scalar *drivates) const {
+		getCorotationalTetElementPrecomputes(mesh, nodeIndices, D, initSubStiffMat, deforamtionGradient, drivates);
 	}
 
 	void CorotationalPlasticTetElement::generateDecomposedDeformationGradient(const Scalar *deformationGradientPrecomputed, Scalar threshold,
-		Scalar *properOrthopart, Scalar *factoredPart) const {
-		generateCorotationalTetElementDecomposedDeformationGradient(mesh, nodeIndices, deformationGradientPrecomputed, threshold, properOrthopart, factoredPart);
+		Scalar *properOrthoparts, Scalar *factoredParts) const {
+		generateCorotationalTetElementDecomposedDeformationGradient(mesh, nodeIndices, deformationGradientPrecomputed, threshold, properOrthoparts, factoredParts);
 	}
 
 	void CorotationalPlasticTetElement::generateSubStiffnessMatrix(const Scalar *orthoMat, const Scalar *initStiffMat, Scalar *subStiffMat) const {

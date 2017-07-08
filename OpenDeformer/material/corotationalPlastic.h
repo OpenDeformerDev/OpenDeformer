@@ -17,7 +17,7 @@ namespace ODER {
 			const FullOrderNonlinearMaterialCache& cache, const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const;
 		virtual ~CorotationalPlasticMaterial() = default;
 	private:
-		void computeElasticStress(const Scalar *orthoMat, const Scalar *factoredDeformationGradient, Scalar* plasticStrain, Scalar *elasticStress);
+		void computeElasticStress(const Scalar *orthoMat, const Scalar *factoredDeformationGradient, Scalar* plasticStrain, Scalar *elasticStress) const;
 
 		Scalar threshold;
 		Scalar D[3];

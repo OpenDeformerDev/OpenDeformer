@@ -111,7 +111,7 @@ namespace ODER{
 		}
 
 		delete element;
-		delete memory;
+		delete[] memory;
 	}
 
 	void InvertibleHyperelasticMaterial::modifiedDeformGradient(const Scalar *gradient, Scalar *diags, Scalar *leftOrthoMat, Scalar *rightOrthoMat) const {

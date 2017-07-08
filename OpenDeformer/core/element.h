@@ -94,13 +94,14 @@ namespace ODER{
 
 	struct CorotationalPlasticElement : public Element {
 		CorotationalPlasticElement(Mesh *m) : Element(m) {};
-		virtual void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients) const = 0;
+		virtual void getPrecomputes(const Scalar *D, Scalar *initSubStiffMat, Scalar *deforamtionGradients, Scalar *drivates) const = 0;
 		virtual int getInitSubStiffMatEntryCount() const = 0;
 		virtual int getDeformGradientsPreEntryCount() const = 0;
+		virtual int getDirvateEntryCount() const = 0;
 		virtual int getQuadraturePointCount() const = 0;
 
 		virtual void generateDecomposedDeformationGradient(const Scalar *deformationGradientPrecomputed, Scalar threshold, 
-			Scalar *properOrthopart, Scalar *factoredPart) const = 0;
+			Scalar *properOrthoparts, Scalar *factoredParts) const = 0;
 		virtual void generateSubStiffnessMatrix(const Scalar *orthoMats, const Scalar *initStiffMat, Scalar *subStiffMat) const = 0;
 		virtual void generateNodalVirtualWorks(const Scalar *precompute, const Scalar *stresses, Scalar *result) const = 0;
 	};

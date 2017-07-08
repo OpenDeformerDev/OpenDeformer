@@ -26,30 +26,109 @@ namespace ODER {
 		const int elementCount = mesh->getElementCount();
 		const int subMatEntry = element->getInitSubStiffMatEntryCount();
 		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
+		const int drivativeEntry = element->getDirvateEntryCount();
 		const int plasticStrainEntry = element->getQuadraturePointCount() * 9;
 
-		const int byteCount = sizeof(Scalar) * elementCount * (subMatEntry + deformGradientEntry + plasticStrainEntry);
+		const int byteCount = sizeof(Scalar) * elementCount * (subMatEntry + deformGradientEntry + drivativeEntry + plasticStrainEntry);
 		FullOrderNonlinearMaterialCache cache(byteCount);
 
 		Scalar *precomputes = (Scalar *)cache.getMemoryBlock();
 		Scalar *initSubStiffMat = precomputes;
 		Scalar *deformationGradientPrecomputed = precomputes + elementCount * subMatEntry;
+		Scalar *drivativePrecomputed = deformationGradientPrecomputed + elementCount * deformGradientEntry;
 
 		for (int i = 0; i < elementCount; i++) {
 			element->setNodeIndices(i);
 			element->getPrecomputes(D, initSubStiffMat + i * subMatEntry,
-				deformationGradientPrecomputed + i * deformGradientEntry);
+				deformationGradientPrecomputed + i * deformGradientEntry, drivativePrecomputed);
 		}
 
-		Scalar *plasticStrains = deformationGradientPrecomputed + elementCount * deformGradientEntry;
-		Initiation(plasticStrains, plasticStrainEntry);
+		Scalar *plasticStrainsCache = drivativePrecomputed + elementCount * drivativeEntry;
+		Initiation(plasticStrainsCache, elementCount * plasticStrainEntry);
 
-		delete[] element;
+		delete element;
 		return cache;
 	}
 
+	void CorotationalPlasticMaterial::generateMatrixAndVirtualWorks(const Reference<Mesh> &mesh, const Reference<NodeIndexer> &indexer,
+		const FullOrderNonlinearMaterialCache& cache, const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& matrix, Scalar *vws) const {
+		CorotationalPlasticElement *element = dynamic_cast<CorotationalPlasticElement *>(mesh->getMaterialElement(type));
+		const int elementCount = mesh->getElementCount();
+		const int nodePerElementCount = mesh->getNodePerElementCount();
+		const int initSubMatEntry = element->getInitSubStiffMatEntryCount();
+		const int deformGradientEntry = element->getDeformGradientsPreEntryCount();
+		const int drivativeEntry = element->getDirvateEntryCount();
+		const int quadratureCount = element->getQuadraturePointCount();
+
+		const int subMatrixEntryCount = ((3 * nodePerElementCount + 1) * 3 * nodePerElementCount) / 2;
+
+		const int workingEntryCount = subMatrixEntryCount + 3 * nodePerElementCount + (9 + 9 + 9) * quadratureCount;
+		Scalar *memory = new Scalar[workingEntryCount];
+		Initiation(memory, workingEntryCount);
+
+		Scalar *subMat = memory;
+		Scalar *subVirtualWorks = memory + subMatrixEntryCount;
+		Scalar *orthoMats = subVirtualWorks + 3 * nodePerElementCount;
+		Scalar *factoredParts = orthoMats + 9 * quadratureCount;
+		Scalar *elasticStresses = factoredParts + 9 * quadratureCount;
+
+		Scalar *precomputes = (Scalar *)cache.getMemoryBlock();
+		const Scalar *initSubStiffMats = precomputes;
+		const Scalar *deformationGradientPrecomputed = precomputes + elementCount * initSubMatEntry;
+		const Scalar *drivativePrecomputed = deformationGradientPrecomputed + elementCount * deformGradientEntry;
+		Scalar *plasticStrainsCache = (Scalar *)drivativePrecomputed + elementCount * drivativeEntry;
+
+		int *elementNodeIndices = (int *)alloca(3 * nodePerElementCount * sizeof(int));
+
+		for (int elementIndex = 0; elementIndex < elementCount; elementIndex++) {
+			element->setNodeIndices(elementIndex);
+			indexer->getElementNodesGlobalIndices(*element, nodePerElementCount, elementNodeIndices);
+			const Scalar *gradientPre = deformationGradientPrecomputed + elementIndex * deformGradientEntry;
+			const Scalar *subMatPre = initSubStiffMats + elementIndex * initSubMatEntry;
+			const Scalar *drivatePre = drivativePrecomputed + elementIndex * drivativeEntry;
+			Scalar *plasticStrains = plasticStrainsCache + elementIndex * (9 * quadratureCount);
+
+			element->generateDecomposedDeformationGradient(gradientPre, threshold, orthoMats, factoredParts);
+
+			for (int quadrature = 0; quadrature < quadratureCount; quadrature++)
+				computeElasticStress(orthoMats + 9 * quadrature, factoredParts + 9 * quadrature,
+					plasticStrains + 9 * quadrature, elasticStresses + 9 * quadrature);
+
+
+			//generate submat
+			element->generateSubStiffnessMatrix(orthoMats, subMatPre, subMat);
+
+			//assmeble to the matrix
+			int entryIndex = 0;
+			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
+			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
+				if (elementNodeIndices[subRow] >= 0) {
+					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {
+						if (elementNodeIndices[subColumn] >= 0)
+							matrix.addEntry(localIndices[entryIndex], subMat[entryIndex]);
+
+						entryIndex += 1;
+					}
+				}
+				else
+					entryIndex += nodePerElementCount * 3 - subRow;
+			}
+
+			//generate virtual works
+			element->generateNodalVirtualWorks(drivatePre, elasticStresses, subVirtualWorks);
+			for (int localIndex = 0; localIndex < nodePerElementCount * 3; localIndex++) {
+				int globalIndex = elementNodeIndices[localIndex];
+				if (globalIndex >= 0)
+					vws[globalIndex] += subVirtualWorks[localIndex];
+			}
+		}
+
+		delete element;
+		delete[] memory;
+	}
+
 	void CorotationalPlasticMaterial::computeElasticStress(const Scalar *orthoMat, const Scalar *factoredDeformationGradient,
-		Scalar* plasticStrain, Scalar *elasticStress) {
+		Scalar* plasticStrain, Scalar *elasticStress) const {
 		Scalar lambda = D[1];
 		Scalar mu2 = Scalar(2) * D[2];
 
