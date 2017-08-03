@@ -40,7 +40,7 @@ namespace ODER {
 		for (int i = 0; i < elementCount; i++) {
 			element->setNodeIndices(i);
 			element->getPrecomputes(D, initSubStiffMat + i * subMatEntry,
-				deformationGradientPrecomputed + i * deformGradientEntry, drivativePrecomputed);
+				deformationGradientPrecomputed + i * deformGradientEntry, drivativePrecomputed + i * drivativeEntry);
 		}
 
 		Scalar *plasticStrainsCache = drivativePrecomputed + elementCount * drivativeEntry;
@@ -143,7 +143,7 @@ namespace ODER {
 		Scalar stress[9];
 		for (int i = 0; i < 3; i++)
 			for (int j = 0; j < 3; j++)
-				stress[i * 3 + j] += mu2 * elasticStrain[i * 3 + j];
+				stress[i * 3 + j] = mu2 * elasticStrain[i * 3 + j];
 		Scalar diag = lambda * (elasticStrain[0] + elasticStrain[4] + elasticStrain[8]);
 		stress[0] += diag;
 		stress[4] += diag;

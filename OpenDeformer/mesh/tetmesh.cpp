@@ -16,10 +16,10 @@ namespace ODER{
 			return new LinearAnisortropicTetElement((TetMesh *)this);
 		else if (matchMaterialFlag(type, MarterialType(Marterial_Invertible | Marterial_Isotropic | Marterial_NonLinear)))
 			return new InvertibleHyperelasticTetElement((TetMesh *)this);
-		else if (matchMaterialFlag(type, MarterialType(Marterial_Corotational | Marterial_Isotropic | Marterial_NonLinear)))
-			return new CorotationalHyperelasticTetElement((TetMesh *)this);
 		else if (matchMaterialFlag(type, MarterialType(Marterial_Corotational | Marterial_Isotropic | Marterial_NonLinear | Marterial_Plastic)))
 			return new CorotationalPlasticTetElement((TetMesh *)this);
+		else if (matchMaterialFlag(type, MarterialType(Marterial_Corotational | Marterial_Isotropic | Marterial_NonLinear)))
+			return new CorotationalHyperelasticTetElement((TetMesh *)this);
 		else{
 			Severe("Unimplemented features in TetMesh::getMaterialElement");
 			return NULL;

@@ -9,6 +9,7 @@
 
 namespace ODER {
 	class CorotationalPlasticMaterial : public FullOrderNonlinearMaterial<BlockedSymSpMatrix> {
+	public:
 		CorotationalPlasticMaterial(Scalar rho, Scalar youngs, Scalar possion, 
 			Scalar yieldCriterion, Scalar creepRatio, Scalar maxPlasticStrain,
 			Scalar compressingTreshold);
