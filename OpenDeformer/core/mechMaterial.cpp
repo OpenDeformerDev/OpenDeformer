@@ -18,7 +18,7 @@ namespace ODER{
 
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++){
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++){
+				for (int bNodeIndex = aNodeIndex; bNodeIndex < numNodesPerElement; bNodeIndex++){
 					Scalar entry = density * subMass[k++];
 					for (int offset = 0; offset < 3; offset++){
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
@@ -48,7 +48,7 @@ namespace ODER{
 
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
+				for (int bNodeIndex = aNodeIndex; bNodeIndex < numNodesPerElement; bNodeIndex++) {
 					Scalar entry = density*subMass[k++];
 					for (int offset = 0; offset < 3; offset++) {
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);
@@ -80,7 +80,7 @@ namespace ODER{
 			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
 			int k = 0;
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++) {
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++) {
+				for (int bNodeIndex = aNodeIndex; bNodeIndex < numNodesPerElement; bNodeIndex++) {
 					Scalar entry = density * subMass[k++];
 					for (int offset = 0; offset < 3; offset++) {
 						int i_index = indexer->getGlobalIndex(*element, aNodeIndex, offset);

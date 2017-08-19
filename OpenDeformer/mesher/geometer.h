@@ -274,7 +274,7 @@ namespace ODER {
 			return p + (pa * normal) * normal;
 		}
 
-		namespace HilbertSortInternal {
+		namespace {
 			template<int x, bool xFlip, bool yFlip, bool zFlip, size_t threshold,
 				class RandomAccessIterator, class CoordTrait>
 			void HilbertSort3dRecursive(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
@@ -318,7 +318,7 @@ namespace ODER {
 		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end, CoordTrait ct) {
 			static_assert(std::is_same<std::iterator_traits<RandomAccessIterator>::iterator_category,
 				std::random_access_iterator_tag>::value, "ODER::HilbertSort3d support random access iterators only");
-			HilbertSortInternal::HilbertSort3dRecursive<0, reverse, false, false, threshold>(begin, end, ct);
+			HilbertSort3dRecursive<0, reverse, false, false, threshold>(begin, end, ct);
 		}
 		template<bool reverse = false, size_t threshold = 1u, class RandomAccessIterator>
 		void HilbertSort3d(RandomAccessIterator begin, RandomAccessIterator end) {

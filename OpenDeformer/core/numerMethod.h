@@ -481,7 +481,7 @@ namespace ODER{
 		if (upperTri) memcpy(upperTri, R, sizeof(FT) * 9);
 	}
 
-	namespace PolarDecompostion3x3Internal {
+	namespace {
 		template<class FT> void Orthonormalize(FT mat[8]) {
 			constexpr FT tol = std::numeric_limits<FT>::min();
 			FT beta0 = FT(0), beta1 = FT(0);
@@ -544,7 +544,6 @@ namespace ODER{
 
 	template<class FT> void polarDecompostion3x3(FT *mat, FT *ortho, FT *sspd) {
 		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::polarDecompostion3x3 support IEEE 754-1985 floating point only");
-		using namespace PolarDecompostion3x3Internal;
 		FT A[9], B[16];
 		FT fnorm = FT(0);
 		for (int i = 0; i < 9; i++) fnorm += mat[i] * mat[i];

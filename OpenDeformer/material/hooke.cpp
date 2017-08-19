@@ -26,30 +26,30 @@ namespace ODER{
 			element->setBMatrixs();
 
 			for (int aNodeIndex = 0; aNodeIndex < numNodesPerElement; aNodeIndex++){
-				for (int bNodeIndex = 0; bNodeIndex <= aNodeIndex; bNodeIndex++){
+				for (int bNodeIndex = aNodeIndex; bNodeIndex < numNodesPerElement; bNodeIndex++){
 					element->generateSubStiffnessMatrix(aNodeIndex, bNodeIndex, D, subStiffness);
 					//assemble to stiffness matrix
-					for (int subRow = 0; subRow < 3; subRow++){
+					for (int subCol = 0; subCol < 3; subCol++){
 						if (aNodeIndex != bNodeIndex){
-							for (int subColumn = 0; subColumn < 3; subColumn++){
-								if (subStiffness[3 * subRow + subColumn] != Scalar(0)){
+							for (int subRow = 0; subRow < 3; subRow++){
+								if (subStiffness[3 * subCol + subRow] != Scalar(0)){
 									int i_index = indexer->getGlobalIndex(*element, aNodeIndex, subRow);
-									int j_index = indexer->getGlobalIndex(*element, bNodeIndex, subColumn);
+									int j_index = indexer->getGlobalIndex(*element, bNodeIndex, subCol);
 									if (i_index >= 0 && j_index >= 0){
 										int rowIndex = std::max(i_index, j_index);
 										int columnIndex = std::min(i_index, j_index);
-										matrix.addEntry(rowIndex, columnIndex, subStiffness[3 * subRow + subColumn]);
+										matrix.addEntry(rowIndex, columnIndex, subStiffness[3 * subCol + subRow]);
 									}
 								}
 							}
 						}
 						else{
-							for (int subColumn = 0; subColumn <= subRow; subColumn++){
-								if (subStiffness[3 * subRow + subColumn] != Scalar(0)){
+							for (int subRow = subCol; subRow < 3; subRow++){
+								if (subStiffness[3 * subCol + subRow] != Scalar(0)){
 									int rowIndex = indexer->getGlobalIndex(*element, aNodeIndex, subRow);
-									int columnIndex = indexer->getGlobalIndex(*element, bNodeIndex, subColumn);
+									int columnIndex = indexer->getGlobalIndex(*element, bNodeIndex, subCol);
 									if (rowIndex >= 0 && columnIndex >= 0)
-										matrix.addEntry(rowIndex, columnIndex, subStiffness[3 * subRow + subColumn]);
+										matrix.addEntry(rowIndex, columnIndex, subStiffness[3 * subCol + subRow]);
 								}
 							}
 						}

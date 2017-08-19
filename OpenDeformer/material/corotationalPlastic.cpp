@@ -101,17 +101,16 @@ namespace ODER {
 			//assmeble to the matrix
 			int entryIndex = 0;
 			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
-			for (int subRow = 0; subRow < nodePerElementCount * 3; subRow++) {
-				if (elementNodeIndices[subRow] >= 0) {
-					for (int subColumn = subRow; subColumn < nodePerElementCount * 3; subColumn++) {
-						if (elementNodeIndices[subColumn] >= 0)
+			for (int subCol = 0; subCol < nodePerElementCount * 3; subCol++) {
+				if (elementNodeIndices[subCol] >= 0) {
+					for (int subRow = subCol; subRow < nodePerElementCount * 3; subRow++) {
+						if (elementNodeIndices[subRow] >= 0)
 							matrix.addEntry(localIndices[entryIndex], subMat[entryIndex]);
 
 						entryIndex += 1;
 					}
 				}
-				else
-					entryIndex += nodePerElementCount * 3 - subRow;
+				else entryIndex += nodePerElementCount * 3 - subCol;
 			}
 
 			//generate virtual works

@@ -53,15 +53,15 @@ namespace ODER {
 			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
-			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
-				int globalRow = elementNodeIndices[subRow];
-				if (globalRow >= 0) {
-					for (int subColumn = 0; subColumn <= subRow; subColumn++) {
-						int globalColumn = elementNodeIndices[subColumn];
-						if (globalColumn >= 0) {
-							int rowIndex = std::max(globalRow, globalColumn);
-							int columnIndex = std::min(globalRow, globalColumn);
-							assmbler.addEntry(rowIndex, columnIndex, 0.0);
+			for (int subCol = 0; subCol < numNodesPerElement * 3; subCol++) {
+				int globalCol = elementNodeIndices[subCol];
+				if (globalCol >= 0) {
+					for (int subRow = subCol; subRow < numNodesPerElement * 3; subRow++) {
+						int globalRow = elementNodeIndices[subRow];
+						if (globalRow >= 0) {
+							int rowIndex = std::max(globalRow, globalCol);
+							int colIndex = std::min(globalRow, globalCol);
+							assmbler.addEntry(rowIndex, colIndex, 0);
 						}
 					}
 				}
@@ -85,23 +85,23 @@ namespace ODER {
 			element->setNodeIndices(elementIndex);
 			indexer->getElementNodesGlobalIndices(*element, numNodesPerElement, elementNodeIndices);
 
-			for (int subRow = 0; subRow < numNodesPerElement * 3; subRow++) {
-				int globalRow = elementNodeIndices[subRow];
-				if (globalRow >= 0) {
-					for (int subColumn = subRow; subColumn < numNodesPerElement * 3; subColumn++) {
-						int globalColumn = elementNodeIndices[subColumn];
-						if (globalColumn >= 0) {
-							int rowIndex = std::max(globalRow, globalColumn);
-							int columnIndex = std::min(globalRow, globalColumn);
-							localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = matrixIndices[columnIndex][rowIndex];
+			for (int subCol = 0; subCol < numNodesPerElement * 3; subCol++) {
+				int globalCol = elementNodeIndices[subCol];
+				if (globalCol >= 0) {
+					for (int subRow = subCol; subRow < numNodesPerElement * 3; subRow++) {
+						int globalRow = elementNodeIndices[subRow];
+						if (globalRow >= 0) {
+							int rowIndex = std::max(globalRow, globalCol);
+							int colIndex = std::min(globalRow, globalCol);
+							localIndices[element->getLocalMatrixIndex(subRow, subCol)] = matrixIndices[colIndex][rowIndex];
 						}
-						else 
-							localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = -1;
+						else
+							localIndices[element->getLocalMatrixIndex(subRow, subCol)] = -1;
 					}
 				}
 				else {
-					for (int subColumn = subRow; subColumn < numNodesPerElement * 3; subColumn++)
-						localIndices[element->getLocalMatrixIndex(subRow, subColumn)] = -1;
+					for (int subRow = subCol; subRow < numNodesPerElement * 3; subRow++)
+						localIndices[element->getLocalMatrixIndex(subRow, subCol)] = -1;
 				}
 			}
 		}
