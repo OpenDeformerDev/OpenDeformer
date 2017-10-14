@@ -33,7 +33,7 @@ namespace ODER {
 		uint8_t *memory;
 	};
 
-	template<class SpMatrix> class FullOrderNonlinearMaterial : public MechMaterial {
+	template<class SpMatrix> class FullOrderNonlinearMaterial : public MechMaterial, public ReferenceCounted {
 	public:
 		FullOrderNonlinearMaterial(Scalar rho, MarterialType t) : MechMaterial(rho, MarterialType(t | Marterial_NonLinear)) {}
 		virtual FullOrderNonlinearMaterialCache getPrecomputes(const Reference<Mesh> &mesh) const { return FullOrderNonlinearMaterialCache(); }

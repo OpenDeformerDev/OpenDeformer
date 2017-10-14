@@ -16,12 +16,15 @@
 
 namespace ODER{
 	class ReferenceCounted{
-	public:
+	protected:
 		ReferenceCounted() : nReference(0){}
 		std::atomic<int> nReference;
+
+		template <class T> friend class Reference;
 	};
 
 	template <class T> class Reference{
+		//static_assert(std::is_base_of<ReferenceCounted, T>::value, "class T Must be derived class of ReferenceCounted");
 	public:
 		Reference(T *ptr = NULL) noexcept{
 			p = ptr;

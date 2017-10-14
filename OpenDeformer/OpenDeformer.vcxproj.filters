@@ -168,9 +168,6 @@
     <ClInclude Include="material\fullOrderNonlinear.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
-    <ClInclude Include="solver\stubPreconditioner.h">
-      <Filter>头文件\solver</Filter>
-    </ClInclude>
     <ClInclude Include="material\invertibleStVK.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
@@ -262,9 +259,6 @@
     </ClCompile>
     <ClCompile Include="material\invertibleHyperelastic.cpp">
       <Filter>源文件\material</Filter>
-    </ClCompile>
-    <ClCompile Include="solver\stubPreconditioner.cpp">
-      <Filter>源文件\solver</Filter>
     </ClCompile>
     <ClCompile Include="material\invertibleStVK.cpp">
       <Filter>源文件\material</Filter>

@@ -219,7 +219,6 @@
     <ClInclude Include="solver\inCholeskyPreconditioner.h" />
     <ClInclude Include="solver\inLDLTPreconditioner.h" />
     <ClInclude Include="solver\jacobiPreconditioner.h" />
-    <ClInclude Include="solver\stubPreconditioner.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="core\constrainer.cpp" />
@@ -253,7 +252,6 @@
     <ClCompile Include="solver\inCholeskyPreconditioner.cpp" />
     <ClCompile Include="solver\inLDLTPreconditioner.cpp" />
     <ClCompile Include="solver\jacobiPreconditioner.cpp" />
-    <ClCompile Include="solver\stubPreconditioner.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

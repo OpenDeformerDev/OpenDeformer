@@ -6,23 +6,18 @@
 #define ODER_CORE_PRECONDITIONER_H
 
 #include "oder.h"
+#include "memory.h"
 
 namespace ODER{
-	class Preconditioner{
+	class Preconditioner : public ReferenceCounted {
 	public:
-		virtual void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const = 0;
-		virtual void resetPreconditionerSystem(const BlockedSymSpMatrix& mat){
-			Severe("unimplemented Preconditioner::resetPreconditionerSystem called");
+		virtual void solvePreconditionerSystem(int width, const Scalar *rhs, Scalar *result) const {
+			memcpy(result, rhs, width * sizeof(Scalar));
 		}
-		virtual void resetPreconditionerSystem(const SparseMatrix& mat){
-			Severe("unimplemented Preconditioner::resetPreconditionerSystem called");
-		}
-		virtual void Preprocess(const BlockedSymSpMatrix& mat) {
-			Severe("unimplemented Preconditioner::Preprocess called");
-		}
-		virtual void Preprocess(const SparseMatrix& mat) {
-			Severe("unimplemented Preconditioner::Preprocess called");
-		}
+		virtual void resetPreconditionerSystem(const BlockedSymSpMatrix& mat) {}
+		virtual void resetPreconditionerSystem(const SparseMatrix& mat) {}
+		virtual void Preprocess(const BlockedSymSpMatrix& mat) {}
+		virtual void Preprocess(const SparseMatrix& mat) {}
 		virtual ~Preconditioner() = default;
 	};
 }

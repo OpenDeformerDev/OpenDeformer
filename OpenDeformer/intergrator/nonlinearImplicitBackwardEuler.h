@@ -17,7 +17,8 @@ namespace ODER {
 	template<class SpMatrix> class NonlinearImplicitBackwardEuler : public Intergrator {
 	public:
 		NonlinearImplicitBackwardEuler(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
-			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> * mater, LinearSolver<SpMatrix>* linearSolver);
+			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, 
+			const Reference<FullOrderNonlinearMaterial<SpMatrix>>& mater, const Reference<LinearSolver<SpMatrix>>& linearSolver);
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
@@ -32,16 +33,17 @@ namespace ODER {
 		Scalar *memory;
 		Reference<Mesh> mesh;
 		Reference<NodeIndexer> indexer;
-		const FullOrderNonlinearMaterial<SpMatrix> *material;
+		const Reference<FullOrderNonlinearMaterial<SpMatrix>> material;
 		FullOrderNonlinearMaterialCache materialCache;
-		LinearSolver<SpMatrix> *solver;
+		Reference<LinearSolver<SpMatrix>> solver;
 		SpMatrix *tagentMatrix;
 		SpMatrix *massMatrix;
 		SparseSymMatrixIndicesPerElementCache matrixIndices;
 	};
 
 	template<class SpMatrix> NonlinearImplicitBackwardEuler<SpMatrix>::NonlinearImplicitBackwardEuler(int DOFS, Scalar massDamp, Scalar stiffDamp, Scalar ts,
-		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, const FullOrderNonlinearMaterial<SpMatrix> *mater, LinearSolver<SpMatrix> *linearSolver) 
+		const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, 
+		const Reference<FullOrderNonlinearMaterial<SpMatrix>>& mater, const Reference<LinearSolver<SpMatrix>>& linearSolver)
 		: Intergrator(DOFS, massDamp, stiffDamp, ts), mesh(m), indexer(nodeIndexer), material(mater), solver(linearSolver){
 		memory = new Scalar[5 * dofs];
 		Initiation(memory, 5 * dofs);

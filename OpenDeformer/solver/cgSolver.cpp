@@ -2,7 +2,6 @@
 #include "cgSolver.h"
 #include "numerMethod.h"
 #include "latool.h"
-#include "preconditioner.h"
 
 namespace ODER{
 	void CGSolver::resetLinearSystem(const BlockedSymSpMatrix* m) {
@@ -11,7 +10,7 @@ namespace ODER{
 			preconditioner->resetPreconditionerSystem(*this->mat);
 	}
 
-	void CGSolver::solveLinearSystem(const Scalar *rhs, Scalar *result) const{
+	void CGSolver::solveLinearSystem(const Scalar *rhs, Scalar *result) {
 		const int width = this->mat->getNumColumns();
 		Scalar *memory = new Scalar[3 * width];
 		Initiation(memory, 3 * width);
