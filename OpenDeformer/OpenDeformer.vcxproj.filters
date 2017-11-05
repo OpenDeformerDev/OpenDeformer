@@ -55,6 +55,12 @@
     <Filter Include="源文件\solver">
       <UniqueIdentifier>{8c2e63db-b1e9-45cc-9e6c-dd5569cbe781}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\collision">
+      <UniqueIdentifier>{864213df-3ef0-4fe9-9ea1-7155454b6e5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\collision">
+      <UniqueIdentifier>{d2052a1c-50db-4c22-8810-2a3c0afbc718}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mesher\delMesher.h">
@@ -192,6 +198,12 @@
     <ClInclude Include="material\corotationalPlastic.h">
       <Filter>头文件\material</Filter>
     </ClInclude>
+    <ClInclude Include="collision\collisionShapes.h">
+      <Filter>头文件\collision</Filter>
+    </ClInclude>
+    <ClInclude Include="collision\intersection.h">
+      <Filter>头文件\collision</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -280,6 +292,9 @@
     </ClCompile>
     <ClCompile Include="material\corotationalPlastic.cpp">
       <Filter>源文件\material</Filter>
+    </ClCompile>
+    <ClCompile Include="collision\intersection.cpp">
+      <Filter>源文件\collision</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
