@@ -61,6 +61,14 @@ namespace ODER{
 		}
 	}
 
+	void NodeIndexer::getElementNodesGlobalIndices(const Reference<Mesh> &mesh, int elementIndex, int nodeCounts, int *nodeIndices) const {
+		const int *indices = mesh->getElementNodeReference(elementIndex);
+		for (int nodeIndex = 0; nodeIndex < nodeCounts; nodeIndex++) {
+			for (int axis = 0; axis < 3; axis++)
+				nodeIndices[nodeIndex * 3 + axis] = getGlobalIndex(indices[nodeIndex], axis);
+		}
+	}
+
 	int NodeIndexer::getMatrixOrder(const Reference<Mesh> &mesh) const{
 		return 3 * mesh->getNodeCount() - constrainIndices.size();
 	}

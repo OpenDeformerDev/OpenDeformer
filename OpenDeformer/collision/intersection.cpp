@@ -44,8 +44,8 @@ namespace ODER {
 				centroid = (negPoints[0] + p0 + p1 + p2) * Scalar(0.25);
 
 				Vector3 ab = p0 - negPoints[0];
-				Vector3 ac = p1 - negPoints[1];
-				Vector3 ad = p2 - negPoints[2];
+				Vector3 ac = p1 - negPoints[0];
+				Vector3 ad = p2 - negPoints[0];
 
 				dir = Normalize((ab % ac) + (ac % ad) + (ad % ab));
 
@@ -61,7 +61,7 @@ namespace ODER {
 				Vector3 ab = negPoints[1] - negPoints[0];
 
 				Vector3 c0 = negPoints[0] + negPoints[1] + p2 + p3;
-				Scalar v0 = fabs((negPoints[1] - negPoints[0]) * ((p2 - negPoints[0]) % (p3 - negPoints[1])));
+				Scalar v0 = fabs((negPoints[1] - negPoints[0]) * ((p2 - negPoints[0]) % (p3 - negPoints[0])));
 
 				Vector3 c1 = negPoints[0] + p0 + p1 + p2;
 				Scalar v1 = fabs((p0 - negPoints[0]) * ((p1 - negPoints[0]) % (p2 - negPoints[0])));
@@ -85,24 +85,22 @@ namespace ODER {
 				Vector3 p1 = Intersection(plane, negPoints[1], posiPoints[0]);
 				Vector3 p2 = Intersection(plane, negPoints[2], posiPoints[0]);
 
-				Vector3 c0 = negPoints[0] + p0 + p1 + p2;
-				Scalar v0 = fabs((p0 - negPoints[0]) * ((p1 - negPoints[1]) % (p2 - negPoints[2])));
+				Vector3 ab = p0 - posiPoints[0];
+				Vector3 ac = p1 - posiPoints[0];
+				Vector3 ad = p2 - posiPoints[0];
 
-				Vector3 c1 = negPoints[0] + negPoints[1] + negPoints[2] + p1;
-				Scalar v1 = fabs((negPoints[1] - negPoints[0]) * ((negPoints[2] - negPoints[0]) % (p1 - negPoints[0])));
+				Vector3 c = tet.points[0] + tet.points[1] + tet.points[2] + tet.points[3];
+				Scalar sv = (tet.points[1] - tet.points[0]) * ((tet.points[2] - tet.points[0]) % (tet.points[3] - tet.points[0]));
+				Scalar v = fabs(sv);
 
-				Vector3 c2 = negPoints[0] + negPoints[2] + p1 + p2;
-				Scalar v2 = fabs((negPoints[2] - negPoints[0]) * ((p1 - negPoints[0]) % (p2 - negPoints[0])));
+				Vector3 c0 = posiPoints[0] + p0 + p1 + p2;
+				Scalar v0 = fabs(ab * (ac % ad));
 
-				centroid = (c0 * v0 + c1 * v1 + c2 * v2) / (v0 + v1 + v2) * Scalar(0.25);
+				centroid = (v * c - v0 * c0) / (v - v0) * Scalar(0.25);
 
-				dir = (negPoints[2] - negPoints[0]) % (negPoints[1] - negPoints[0]) + (p0 - negPoints[0]) % (p2 - negPoints[0]) +
-					(p2 - negPoints[0]) % (negPoints[2] - negPoints[0]) + (negPoints[1] - negPoints[0]) % (p2 - negPoints[0]) +
-					(p2 - negPoints[0]) % (p0 - negPoints[0]) + (negPoints[2] - negPoints[1]) % (p2 - negPoints[1]) +
-					(p2 - negPoints[1]) % (p1 - negPoints[1]);
+				dir = Normalize((ab % ac) + (ac % ad) + (ad % ab));
 
-				if ((negPoints[0] - posiPoints[0]) *
-					((negPoints[1] - posiPoints[0]) % (negPoints[2] - posiPoints[0])) < Scalar(0))
+				if (sv > Scalar(0))
 					dir = -dir;
 			}
 			else {
@@ -111,5 +109,36 @@ namespace ODER {
 			}
 		}
 
+		void computeBarycentricCoordinates(const DynamicTetrahedronShape& tet, const Vector3& p, Scalar coords[4]) {
+			Vector3 ab = tet.points[1] - tet.points[0];
+			Vector3 ac = tet.points[2] - tet.points[0];
+			Vector3 ad = tet.points[3] - tet.points[0];
+			Vector3 bc = tet.points[2] - tet.points[1];
+			Vector3 bd = tet.points[3] - tet.points[1];
+
+			Vector3 ap = p - tet.points[0];
+			Vector3 bp = p - tet.points[1];
+
+			Scalar va = fabs(bp * (bc % bd));
+			Scalar vb = fabs(ap * (ac % ad));
+			Scalar vc = fabs(ap * (ab % ad));
+			Scalar vd = fabs(ap * (ab % ac));
+
+			Scalar invVolume = 1 / fabs(ab * (ac % ad));
+
+			coords[0] = va * invVolume;
+			coords[1] = vb * invVolume;
+			coords[2] = vc * invVolume;
+			coords[3] = vd * invVolume;
+		}
+
+		Scalar computeRelativeSpeed(const Scalar speeds[12], const Vector3& dir, const Scalar coords[4]) {
+			Vector3 speed(0, 0, 0);
+			for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 3; j++)
+					speed[i] += coords[i] * speeds[i * 4 + j];
+
+			return speed * dir;
+		}
 	}
 }

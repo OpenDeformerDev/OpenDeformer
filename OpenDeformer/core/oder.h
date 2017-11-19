@@ -70,6 +70,7 @@ namespace ODER{
 	class MeshRelabeler;
 	class Intergrator;
 	class Forcer;
+	class DampingForcer;
 	class EigenSolver;
 	template<class SpMatrix> class LinearSolver;
 	class Preconditioner;

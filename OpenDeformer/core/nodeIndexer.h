@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace ODER{
-	class NodeIndexer : public ReferenceCounted{
+	class NodeIndexer : public ReferenceCounted {
 	public:
 		typedef std::vector<int>::const_iterator ConstrainIter;
 
@@ -19,6 +19,7 @@ namespace ODER{
 		int getGlobalIndex(const Facet& facet, int localVertIndex, int axis) const;
 		int getGlobalIndex(int nodeIndex, int axis) const;
 		void getElementNodesGlobalIndices(const Element& element, int nodeCounts, int *nodeIndices) const;
+		void getElementNodesGlobalIndices(const Reference<Mesh> &mesh, int elementIndex, int nodeCounts, int *nodeIndices) const;
 		int getMatrixOrder(const Reference<Mesh> &mesh) const;
 		ConstrainIter getConstrainIterBegin() const{ return constrainIndices.begin(); }
 		ConstrainIter getConstrainIterEnd() const{ return constrainIndices.end(); }

@@ -21,6 +21,13 @@ namespace ODER{
 		void addConstraint(int constraintCounts);
 		std::map<int, Scalar> virtualWorks;
 	};
+
+	class DampingForcer {
+	public:
+		virtual void getDampingMatrix(Scalar *subMat, int *indices) const = 0;
+		virtual int getDampingMatrixColumnCount() const { return 0; }
+		virtual ~DampingForcer() = default;
+	};
 }
 
 #endif

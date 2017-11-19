@@ -176,6 +176,7 @@
   <ItemGroup>
     <ClInclude Include="collision\collisionShapes.h" />
     <ClInclude Include="collision\intersection.h" />
+    <ClInclude Include="collision\penaltyDampingForcer.h" />
     <ClInclude Include="core\allocator.h" />
     <ClInclude Include="core\linearSolver.h" />
     <ClInclude Include="core\meshRelabeler.h" />
@@ -224,6 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="collision\intersection.cpp" />
+    <ClCompile Include="collision\penaltyDampingForcer.cpp" />
     <ClCompile Include="core\constrainer.cpp" />
     <ClCompile Include="core\mechMaterial.cpp" />
     <ClCompile Include="core\meshRelabler.cpp" />

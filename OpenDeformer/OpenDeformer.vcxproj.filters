@@ -204,6 +204,9 @@
     <ClInclude Include="collision\intersection.h">
       <Filter>头文件\collision</Filter>
     </ClInclude>
+    <ClInclude Include="collision\penaltyDampingForcer.h">
+      <Filter>头文件\collision</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mesher\delMesher.cpp">
@@ -294,6 +297,9 @@
       <Filter>源文件\material</Filter>
     </ClCompile>
     <ClCompile Include="collision\intersection.cpp">
+      <Filter>源文件\collision</Filter>
+    </ClCompile>
+    <ClCompile Include="collision\penaltyDampingForcer.cpp">
       <Filter>源文件\collision</Filter>
     </ClCompile>
   </ItemGroup>
