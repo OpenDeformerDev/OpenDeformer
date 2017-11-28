@@ -4,14 +4,13 @@
 
 namespace ODER {
 	namespace Collision {
-		void MeshPlaneCollisionDampingForcer::getDampingMatrix(Scalar *subMat, int *indices) const {
+		void MeshPlaneCollisionDampingForcer::addDampingMatrix(const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& mat) const {
 			Assert(elementIndex >= 0);
 			const int nodePerElementCount = mesh->getNodePerElementCount();
-			nodeIndexer->getElementNodesGlobalIndices(mesh, elementIndex, nodePerElementCount, indices);
+			const int *localIndices = matrixIndices.getElementMatIndices(elementIndex);
 
 			if (nodePerElementCount == 4) {
 				constexpr int diagIndices[12] = { 0, 12, 23, 33, 42, 50, 57, 63, 68, 72, 75, 77 };
-
 				DynamicTetrahedronShape tet;
 				const int *tetPointIndices = mesh->getElementNodeReference(elementIndex);
 				for (int i = 0; i < 4; i++)
@@ -26,14 +25,25 @@ namespace ODER {
 				Tensor2<Scalar> t = dir ^ dir;
 
 				for (int aNode = 0; aNode < 4; aNode++) {
-					for (int i = 0; i < 3; i++) 
-						for (int j = 0; j < 3 - i; j++)
-							subMat[diagIndices[aNode * 3 + i] + j] = coords[aNode] * coords[aNode] * t(i, j);
+					for (int i = 0; i < 3; i++) {
+						for (int j = 0; j < 3 - i; j++) {
+							int index = diagIndices[aNode * 3 + i] + j;
+							if (localIndices[index] >= 0)
+								mat.addEntry(localIndices[index], -coords[aNode] * coords[aNode] * t(i, j));
+						}
+					}
 
-					for (int bNode = aNode + 1; bNode < 4; bNode++)
-						for (int i = 0; i < 3; i++)
-							for (int j = 0; j < 3; j++)
-								subMat[diagIndices[aNode * 3 + i] + ((bNode - aNode) * 3 - i) + j] = coords[aNode] * coords[bNode] * t(i, j);
+
+					for (int bNode = aNode + 1; bNode < 4; bNode++) {
+						for (int i = 0; i < 3; i++) {
+							for (int j = 0; j < 3; j++) {
+								int index = diagIndices[aNode * 3 + i] + ((bNode - aNode) * 3 - i) + j;
+								if (localIndices[index] >= 0)
+									mat.addEntry(localIndices[index], -coords[aNode] * coords[bNode] * t(i, j));
+							}
+						}
+					}
+
 				}
 			}
 			else 

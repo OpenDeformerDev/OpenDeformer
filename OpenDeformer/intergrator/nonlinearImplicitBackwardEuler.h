@@ -20,6 +20,7 @@ namespace ODER {
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, 
 			const Reference<FullOrderNonlinearMaterial<SpMatrix>>& mater, const Reference<LinearSolver<SpMatrix>>& linearSolver);
 		void setExternalVirtualWork(const Forcer& forcer);
+		void setExternalDampingForceMatrix(const DampingForcer& forcer);
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
 		~NonlinearImplicitBackwardEuler();
@@ -38,6 +39,7 @@ namespace ODER {
 		Reference<LinearSolver<SpMatrix>> solver;
 		SpMatrix *tagentMatrix;
 		SpMatrix *massMatrix;
+		SpMatrix *dampMatrix;
 		SparseSymMatrixIndicesPerElementCache matrixIndices;
 	};
 
@@ -59,6 +61,7 @@ namespace ODER {
 
 		tagentMatrix = new SpMatrix(structureAssembler);
 		massMatrix = new SpMatrix(structureAssembler);
+		dampMatrix = new SpMatrix(structureAssembler);
 
 		matrixIndices = material->getMatrixIndicesPerElement(mesh, indexer, *tagentMatrix);
 
@@ -71,6 +74,7 @@ namespace ODER {
 		delete[] memory;
 		delete tagentMatrix;
 		delete massMatrix;
+		delete dampMatrix;
 	}
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::runOneTimeStep() {
@@ -80,12 +84,13 @@ namespace ODER {
 		material->generateMatrixAndVirtualWorks(mesh, indexer, materialCache, matrixIndices, *tagentMatrix, internalVirtualWork);
 		tagentMatrix->Scale(timeStep + stiffnessDamping);
 		tagentMatrix->Add(massDamping, *massMatrix);
+		tagentMatrix->Add(Scalar(1), *dampMatrix);
 		SpMDV(*tagentMatrix, v, rhs);
 		for (int i = 0; i < dofs; i++)
 			rhs[i] = timeStep * (externalVirtualWork[i] - internalVirtualWork[i] - rhs[i]);
 
 		tagentMatrix->Scale(timeStep);
-		tagentMatrix->Add(1.0, *massMatrix);
+		tagentMatrix->Add(Scalar(1), *massMatrix);
 
 		solver->solveLinearSystem(rhs, delta_v);
 
@@ -109,6 +114,11 @@ namespace ODER {
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::setExternalVirtualWork(const Forcer& forcer) {
 		forcer.getVirtualWorks(dofs, dofs, NULL, externalVirtualWork);
+	}
+
+	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::setExternalDampingForceMatrix(const DampingForcer& forcer) {
+		dampMatrix->setZeros();
+		forcer.addDampingMatrix(matrixIndices, *dampMatrix);
 	}
 }
 

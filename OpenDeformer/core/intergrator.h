@@ -16,6 +16,9 @@ namespace ODER{
 			:dofs(DOFS), massDamping(massDamp), stiffnessDamping(stiffDamp), timeStep(ts){}
 
 		virtual void setExternalVirtualWork(const Forcer& forcer) = 0;
+		virtual void setExternalDampingForceMatrix(const DampingForcer& forcer) {
+			Severe("Unimplemented features in Intergrator::setExternalDampingForceMatrix");
+		}
 		virtual void runOneTimeStep() = 0;
 		virtual void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const = 0;
 		virtual ~Intergrator() = default;

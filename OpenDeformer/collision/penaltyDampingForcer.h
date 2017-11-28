@@ -16,7 +16,6 @@ namespace ODER {
 		public:
 			PenaltyDampingForcer(Scalar dampingCoefficient, const Reference<Mesh>& mesh, const Reference<NodeIndexer>& indexer) 
 				: dampingCoeff(dampingCoefficient), mesh(mesh), nodeIndexer(indexer) {}
-			void getDampingMatrix(Scalar *subMat, int *indices) const = 0;
 		protected:
 			Reference<Mesh> mesh;
 			Reference<NodeIndexer> nodeIndexer;
@@ -27,8 +26,7 @@ namespace ODER {
 			MeshPlaneCollisionDampingForcer(Scalar dampingCoefficient, const Reference<Mesh>& mesh, const Reference<NodeIndexer>& indexer)
 				: PenaltyDampingForcer(dampingCoefficient, mesh, indexer), elementIndex(-1) {}
 			void setCollisionPair(const StaticPlaneShape& plane, int elementIndex);
-			void getDampingMatrix(Scalar *subMat, int *indices) const;
-			int getDampingMatrixColumnCount() const;
+			void addDampingMatrix(const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& mat) const;
 		private:
 			int elementIndex;
 			StaticPlaneShape plane;
@@ -37,10 +35,6 @@ namespace ODER {
 		inline void MeshPlaneCollisionDampingForcer::setCollisionPair(const StaticPlaneShape& plane, int elementIndex) {
 			this->plane = plane;
 			this->elementIndex = elementIndex;
-		}
-
-		inline int MeshPlaneCollisionDampingForcer::getDampingMatrixColumnCount() const {
-			return 3 * mesh->getNodePerElementCount();
 		}
 
 	}

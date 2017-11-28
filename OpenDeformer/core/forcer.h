@@ -24,8 +24,7 @@ namespace ODER{
 
 	class DampingForcer {
 	public:
-		virtual void getDampingMatrix(Scalar *subMat, int *indices) const = 0;
-		virtual int getDampingMatrixColumnCount() const { return 0; }
+		virtual void addDampingMatrix(const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& mat) const = 0;
 		virtual ~DampingForcer() = default;
 	};
 }
