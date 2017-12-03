@@ -66,9 +66,10 @@ namespace ODER{
 				delete p;
 			}
 		}
-		T *operator->() { return p; }
-		const T *operator->() const{ return p; }
-		operator bool() const{ return p != NULL; }
+		T& operator*() const noexcept { return *p; }
+		T *operator->() noexcept { return p; }
+		const T *operator->() const noexcept { return p; }
+		operator bool() const noexcept { return p != NULL; }
 
 	private:
 		T* p;

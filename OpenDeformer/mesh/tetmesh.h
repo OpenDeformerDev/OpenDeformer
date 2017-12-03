@@ -24,6 +24,8 @@ namespace ODER{
 		int getCloestElement(const Vector3f &v) const { return -1; }
 		~TetMesh() = default;
 	};
+
+	template<> void setMeshFacetElementMap(TetMesh& m);
 }
 
 #endif

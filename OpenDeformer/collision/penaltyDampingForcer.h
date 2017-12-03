@@ -23,6 +23,7 @@ namespace ODER {
 		};
 
 		class MeshPlaneCollisionDampingForcer : public PenaltyDampingForcer {
+		public:
 			MeshPlaneCollisionDampingForcer(Scalar dampingCoefficient, const Reference<Mesh>& mesh, const Reference<NodeIndexer>& indexer)
 				: PenaltyDampingForcer(dampingCoefficient, mesh, indexer), elementIndex(-1) {}
 			void setCollisionPair(const StaticPlaneShape& plane, int elementIndex);

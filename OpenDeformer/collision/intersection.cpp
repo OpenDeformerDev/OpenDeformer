@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "intersection.h"
+#include  <iostream>
 
 namespace ODER {
 	namespace Collision {
@@ -34,7 +35,7 @@ namespace ODER {
 						centroid = tet.points[i];
 					}
 				}
-				dir = plane.planeNormal;
+				dir = Vector3(0, 0, 0);
 			}
 			else if (negPointsCount == 1) {
 				Vector3 p0 = Intersection(plane, negPoints[0], posiPoints[0]);
@@ -47,9 +48,10 @@ namespace ODER {
 				Vector3 ac = p1 - negPoints[0];
 				Vector3 ad = p2 - negPoints[0];
 
-				dir = Normalize((ab % ac) + (ac % ad) + (ad % ab));
+				Scalar svol = ab * (ac % ad);
+				dir = fabs(svol) * Normalize((ab % ac) + (ac % ad) + (ad % ab));
 
-				if (ab * (ac % ad) < Scalar(0))
+				if (svol < Scalar(0))
 					dir = -dir;
 			}
 			else if (negPointsCount == 2) {
@@ -74,7 +76,7 @@ namespace ODER {
 				dir = (p0 - negPoints[0]) % (p1 - negPoints[0]) + (p3 - negPoints[1]) % (p2 - negPoints[1]) +
 					ab % (p2 - negPoints[0]) + (p2 - negPoints[0]) % (p0 - negPoints[0]) +
 					(p3 - negPoints[0]) % ab + (p1 - negPoints[0]) % (p3 - negPoints[0]);
-				dir = Normalize(dir);
+				dir = (v0 + v1 + v2) * Normalize(dir);
 
 				if ((negPoints[1] - negPoints[0]) *
 					((posiPoints[0] - negPoints[0]) % (posiPoints[1] - negPoints[0])) < Scalar(0))
@@ -90,7 +92,7 @@ namespace ODER {
 				Vector3 ad = p2 - posiPoints[0];
 
 				Vector3 c = tet.points[0] + tet.points[1] + tet.points[2] + tet.points[3];
-				Scalar sv = (tet.points[1] - tet.points[0]) * ((tet.points[2] - tet.points[0]) % (tet.points[3] - tet.points[0]));
+				Scalar sv = (negPoints[0] - posiPoints[0]) * ((negPoints[1] - posiPoints[0]) % (negPoints[2] - posiPoints[0]));
 				Scalar v = fabs(sv);
 
 				Vector3 c0 = posiPoints[0] + p0 + p1 + p2;
@@ -98,18 +100,21 @@ namespace ODER {
 
 				centroid = (v * c - v0 * c0) / (v - v0) * Scalar(0.25);
 
-				dir = Normalize((ab % ac) + (ac % ad) + (ad % ab));
+				dir = (v - v0) * Normalize((ab % ac) + (ac % ad) + (ad % ab));
 
 				if (sv > Scalar(0))
 					dir = -dir;
 			}
 			else {
 				centroid = (tet.points[0] + tet.points[1] + tet.points[2] + tet.points[3]) * Scalar(0.25);
-				dir = plane.planeNormal;
+				Scalar vol = fabs((tet.points[1] - tet.points[0]) * ((tet.points[2] - tet.points[0]) % (tet.points[3] - tet.points[0])));
+				dir = vol * plane.planeNormal;
 			}
 		}
 
 		void computeBarycentricCoordinates(const DynamicTetrahedronShape& tet, const Vector3& p, Scalar coords[4]) {
+			constexpr Scalar eps = Scalar(1e-6);
+
 			Vector3 ab = tet.points[1] - tet.points[0];
 			Vector3 ac = tet.points[2] - tet.points[0];
 			Vector3 ad = tet.points[3] - tet.points[0];
@@ -124,7 +129,13 @@ namespace ODER {
 			Scalar vc = fabs(ap * (ab % ad));
 			Scalar vd = fabs(ap * (ab % ac));
 
-			Scalar invVolume = 1 / fabs(ab * (ac % ad));
+			Scalar vol = fabs(ab * (ac % ad));
+			if (vol <= eps) {
+				coords[0] = coords[1] = coords[2] = coords[3] = Scalar(0.25);
+				return;
+			}
+
+			Scalar invVolume = 1 / vol;
 
 			coords[0] = va * invVolume;
 			coords[1] = vb * invVolume;

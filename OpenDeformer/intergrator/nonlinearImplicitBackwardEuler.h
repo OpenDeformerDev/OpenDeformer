@@ -20,7 +20,8 @@ namespace ODER {
 			const Reference<Mesh>& m, const Reference<NodeIndexer>& nodeIndexer, 
 			const Reference<FullOrderNonlinearMaterial<SpMatrix>>& mater, const Reference<LinearSolver<SpMatrix>>& linearSolver);
 		void setExternalVirtualWork(const Forcer& forcer);
-		void setExternalDampingForceMatrix(const DampingForcer& forcer);
+		void addExternalDampingForceMatrix(const DampingForcer& forcer);
+		void clearExternalDampingForceMatrix();
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
 		~NonlinearImplicitBackwardEuler();
@@ -116,9 +117,12 @@ namespace ODER {
 		forcer.getVirtualWorks(dofs, dofs, NULL, externalVirtualWork);
 	}
 
-	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::setExternalDampingForceMatrix(const DampingForcer& forcer) {
-		dampMatrix->setZeros();
+	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::addExternalDampingForceMatrix(const DampingForcer& forcer) {
 		forcer.addDampingMatrix(matrixIndices, *dampMatrix);
+	}
+
+	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::clearExternalDampingForceMatrix() {
+		dampMatrix->setZeros();
 	}
 }
 

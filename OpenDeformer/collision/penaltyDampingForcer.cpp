@@ -22,14 +22,17 @@ namespace ODER {
 				Scalar coords[4];
 				computeBarycentricCoordinates(tet, centroid, coords);
 
-				Tensor2<Scalar> t = dir ^ dir;
+				Vector3 normDir;
+				if (dir.length2() != Scalar(0)) normDir = Normalize(dir);
+
+				Tensor2<Scalar> t = (dampingCoeff * dir) ^ normDir;
 
 				for (int aNode = 0; aNode < 4; aNode++) {
 					for (int i = 0; i < 3; i++) {
 						for (int j = 0; j < 3 - i; j++) {
 							int index = diagIndices[aNode * 3 + i] + j;
 							if (localIndices[index] >= 0)
-								mat.addEntry(localIndices[index], -coords[aNode] * coords[aNode] * t(i, j));
+								mat.addEntry(localIndices[index], coords[aNode] * coords[aNode] * t(i, j));
 						}
 					}
 
@@ -39,7 +42,7 @@ namespace ODER {
 							for (int j = 0; j < 3; j++) {
 								int index = diagIndices[aNode * 3 + i] + ((bNode - aNode) * 3 - i) + j;
 								if (localIndices[index] >= 0)
-									mat.addEntry(localIndices[index], -coords[aNode] * coords[bNode] * t(i, j));
+									mat.addEntry(localIndices[index], coords[aNode] * coords[bNode] * t(i, j));
 							}
 						}
 					}

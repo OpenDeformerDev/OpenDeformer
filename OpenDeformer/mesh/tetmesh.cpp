@@ -35,4 +35,45 @@ namespace ODER{
 	Facet* TetMesh::getFacet() const{
 		return new TetFacet((TetMesh *)this);
 	}
+
+	template<> void setMeshFacetElementMap(TetMesh& m) {
+		int triangleCount = m.getFacetCount();
+		m.allocFacetElementMap();
+
+		std::tuple<int, int, int> triangle;
+		std::map<std::tuple<int, int, int>, int> triIndexMap;
+
+		for (int i = 0; i < triangleCount; i++) {
+			const int *tri = m.getFacetVertReference(i);
+			std::get<0>(triangle) = tri[0];
+			std::get<1>(triangle) = tri[1];
+			std::get<2>(triangle) = tri[2];
+
+			//sort index
+			if (std::get<0>(triangle) > std::get<1>(triangle)) std::swap(std::get<0>(triangle), std::get<1>(triangle));
+			if (std::get<1>(triangle) > std::get<2>(triangle)) std::swap(std::get<1>(triangle), std::get<2>(triangle));
+			if (std::get<0>(triangle) > std::get<1>(triangle)) std::swap(std::get<0>(triangle), std::get<1>(triangle));
+
+			triIndexMap.insert(std::make_pair(triangle, i));
+		}
+
+
+		int tetCount = m.getElementCount();
+		for (int i = 0; i < tetCount; i++) {
+			const int *tet = m.getElementNodeReference(i);
+			for (int j = 0; j < 4; j++) {
+				std::get<0>(triangle) = tet[j % 4];
+				std::get<1>(triangle) = tet[(j + 1) % 4];
+				std::get<2>(triangle) = tet[(j + 2) % 4];
+
+				//sort index
+				if (std::get<0>(triangle) > std::get<1>(triangle)) std::swap(std::get<0>(triangle), std::get<1>(triangle));
+				if (std::get<1>(triangle) > std::get<2>(triangle)) std::swap(std::get<1>(triangle), std::get<2>(triangle));
+				if (std::get<0>(triangle) > std::get<1>(triangle)) std::swap(std::get<0>(triangle), std::get<1>(triangle));
+
+				auto found = triIndexMap.find(triangle);
+				if (found != triIndexMap.end()) m.setFacetElementIndex(found->second, i);
+			}
+		}
+	}
 }

@@ -15,7 +15,7 @@ namespace ODER{
 	class Mesh : public ReferenceCounted{
 	public:
 		Mesh() :numNodes(0), numElements(0), numSurfaces(0), numNodesPerElement(0), numVertPerSur(0)
-		        ,vertices(NULL), elements(NULL), surfaces(NULL), displacements(NULL){}
+		        ,vertices(NULL), elements(NULL), surfaces(NULL), displacements(NULL), facetElementMap(NULL) {}
 		Mesh(int numN, int numE, int numS, int numNPE, int numVPS = 3);
 		Mesh(const Mesh& m) = delete;
 		Mesh& operator=(const Mesh& m) = delete;
@@ -44,6 +44,10 @@ namespace ODER{
 		void setElement(int elementIndex, int *nodeIndices);
 		void setFacet(int facetIndex, int *facetIndices);
 
+		void allocFacetElementMap() { facetElementMap = new int[numSurfaces]; }
+		void setFacetElementIndex(int facetIndex, int elementIndex) { facetElementMap[facetIndex] = elementIndex; }
+		int getMappedElementIndex(int facetIndex) const { return facetElementMap[facetIndex]; }
+
 		virtual ~Mesh();
 
 	private:
@@ -56,8 +60,14 @@ namespace ODER{
 		Vector3 *vertices;
 		int *elements;
 		int *surfaces;
+		int *facetElementMap;
 		Vector3 *displacements;
 	};
+
+	template <class MeshSubClass> void setMeshFacetElementMap(MeshSubClass& m) {
+		static_assert(std::is_base_of<Mesh, MeshSubClass>::value, "MeshSubClass must be sub-class of ODER::Mesh for ODER::setMeshFacetElementMap");
+		static_assert(false, "Unimplemented function for MeshSubClass");
+	}
 }
 
 #endif
