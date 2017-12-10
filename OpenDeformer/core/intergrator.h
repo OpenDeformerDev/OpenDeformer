@@ -24,6 +24,7 @@ namespace ODER{
 		}
 		virtual void runOneTimeStep() = 0;
 		virtual void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const = 0;
+		virtual void getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, const Reference<Mesh> &mesh, Vector3 *velocities) const = 0;
 		virtual ~Intergrator() = default;
 
 	protected:

@@ -24,6 +24,7 @@ namespace ODER {
 		void clearExternalDampingForceMatrix();
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {}
+		void getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, const Reference<Mesh> &mesh, Vector3 *velocities) const;
 		~NonlinearImplicitBackwardEuler();
 	private:
 		Scalar *v;
@@ -123,6 +124,24 @@ namespace ODER {
 
 	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::clearExternalDampingForceMatrix() {
 		dampMatrix->setZeros();
+	}
+
+	template<class SpMatrix> void NonlinearImplicitBackwardEuler<SpMatrix>::getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, 
+		const Reference<Mesh> &mesh, Vector3 *velocities) const {
+		auto constrainIter = indexer->getConstrainIterBegin();
+		auto constrainEnd = indexer->getConstrainIterEnd();
+		int dofIndex = 0;
+		int vertCount = mesh->getNodeCount();
+		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++) {
+			for (int axis = 0; axis < 3; axis++) {
+				if (constrainIter != constrainEnd && (3 * vertIndex + axis) == *constrainIter) {
+					velocities[vertIndex][axis] = Scalar(0);
+					constrainIter++;
+				}
+				else
+					velocities[vertIndex][axis] = v[dofIndex++];
+			}
+		}
 	}
 }
 

@@ -24,13 +24,14 @@ namespace ODER {
 
 		class MeshPlaneCollisionDampingForcer : public PenaltyDampingForcer {
 		public:
-			MeshPlaneCollisionDampingForcer(Scalar dampingCoefficient, const Reference<Mesh>& mesh, const Reference<NodeIndexer>& indexer)
-				: PenaltyDampingForcer(dampingCoefficient, mesh, indexer), elementIndex(-1) {}
+			MeshPlaneCollisionDampingForcer(Scalar dampingCoefficient, const Reference<Mesh>& mesh, const Reference<NodeIndexer>& indexer,
+				const Vector3 *velcities): PenaltyDampingForcer(dampingCoefficient, mesh, indexer), velocities(velcities), elementIndex(-1) {}
 			void setCollisionPair(const StaticPlaneShape& plane, int elementIndex);
 			void addDampingMatrix(const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& mat) const;
 		private:
 			int elementIndex;
 			StaticPlaneShape plane;
+			const Vector3 *velocities;
 		};
 
 		inline void MeshPlaneCollisionDampingForcer::setCollisionPair(const StaticPlaneShape& plane, int elementIndex) {

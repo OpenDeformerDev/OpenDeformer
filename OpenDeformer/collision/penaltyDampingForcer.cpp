@@ -25,28 +25,33 @@ namespace ODER {
 				Vector3 normDir;
 				if (dir.length2() != Scalar(0)) normDir = Normalize(dir);
 
-				Tensor2<Scalar> t = (dampingCoeff * dir) ^ normDir;
+				Vector3 vel(0, 0, 0);
+				for (int i = 0; i < 4; i++) vel += coords[i] * velocities[tetPointIndices[i]];
+				
+				if (vel * normDir < 0) {
+					Tensor2<Scalar> t = (dampingCoeff * dir) ^ normDir;
 
-				for (int aNode = 0; aNode < 4; aNode++) {
-					for (int i = 0; i < 3; i++) {
-						for (int j = 0; j < 3 - i; j++) {
-							int index = diagIndices[aNode * 3 + i] + j;
-							if (localIndices[index] >= 0)
-								mat.addEntry(localIndices[index], coords[aNode] * coords[aNode] * t(i, j));
-						}
-					}
-
-
-					for (int bNode = aNode + 1; bNode < 4; bNode++) {
+					for (int aNode = 0; aNode < 4; aNode++) {
 						for (int i = 0; i < 3; i++) {
-							for (int j = 0; j < 3; j++) {
-								int index = diagIndices[aNode * 3 + i] + ((bNode - aNode) * 3 - i) + j;
+							for (int j = 0; j < 3 - i; j++) {
+								int index = diagIndices[aNode * 3 + i] + j;
 								if (localIndices[index] >= 0)
-									mat.addEntry(localIndices[index], coords[aNode] * coords[bNode] * t(i, j));
+									mat.addEntry(localIndices[index], coords[aNode] * coords[aNode] * t(i, j));
 							}
 						}
-					}
 
+
+						for (int bNode = aNode + 1; bNode < 4; bNode++) {
+							for (int i = 0; i < 3; i++) {
+								for (int j = 0; j < 3; j++) {
+									int index = diagIndices[aNode * 3 + i] + ((bNode - aNode) * 3 - i) + j;
+									if (localIndices[index] >= 0)
+										mat.addEntry(localIndices[index], coords[aNode] * coords[bNode] * t(i, j));
+								}
+							}
+						}
+
+					}
 				}
 			}
 			else 

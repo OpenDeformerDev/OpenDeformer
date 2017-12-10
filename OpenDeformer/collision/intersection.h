@@ -11,7 +11,7 @@ namespace ODER {
 	namespace Collision {
 		void Intersection(const StaticPlaneShape& plane, const DynamicTetrahedronShape& tet, Vector3& centroid, Vector3& dir);
 		void computeBarycentricCoordinates(const DynamicTetrahedronShape& tet, const Vector3& p, Scalar coords[4]);
-		Scalar computeRelativeSpeed(const Scalar speeds[12], const Vector3& dir, const Scalar coords[4]);
+		Scalar computeRelativeSpeed(const Vector3 velocities[4], const Vector3& dir, const Scalar coords[4]);
 	}
 
 }

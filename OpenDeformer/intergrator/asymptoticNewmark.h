@@ -17,6 +17,9 @@ namespace ODER{
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const;
+		void getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, const Reference<Mesh> &mesh, Vector3 *velocities) const {
+			Severe("Unimplemented features in AsymptoticNewmark::getMeshVerticesVelocities");
+		}
 		~AsymptoticNewmark();
 
 	private:

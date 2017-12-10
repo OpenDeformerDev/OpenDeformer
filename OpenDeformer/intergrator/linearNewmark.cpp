@@ -78,13 +78,13 @@ namespace ODER{
 		}
 	}
 
-	void LinearNewmark::getRawDisplacements(Scalar *displacements) const{
-		memset(displacements, 0, totalDofs*sizeof(Scalar));
+	void LinearNewmark::getFullOrderProperties(const Scalar *reducedProperties, Scalar *fullOrderProperties) const {
+		memset(fullOrderProperties, 0, totalDofs * sizeof(Scalar));
 		Scalar *basis = basises;
-		for (int i = 0; i < dofs; i++){
-			Scalar displacement = d[i];
-			for (int j = 0; j < totalDofs; j++){
-				displacements[j] += displacement * basis[j];
+		for (int i = 0; i < dofs; i++) {
+			Scalar displacement = reducedProperties[i];
+			for (int j = 0; j < totalDofs; j++) {
+				fullOrderProperties[j] += displacement * basis[j];
 			}
 			basis += totalDofs;
 		}
@@ -92,7 +92,7 @@ namespace ODER{
 
 	void LinearNewmark::updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const {
 		Scalar *displacements = new Scalar[totalDofs];
-		getRawDisplacements(displacements);
+		getFullOrderProperties(d, displacements);
 
 		auto constrainIter = indexer->getConstrainIterBegin();
 		auto constrainEnd = indexer->getConstrainIterEnd();
@@ -108,6 +108,28 @@ namespace ODER{
 		}
 
 		delete[] displacements;
+	}
+
+	void LinearNewmark::getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, const Reference<Mesh> &mesh, Vector3 *velocities) const {
+		Scalar *rawVelcities = new Scalar[totalDofs];
+		getFullOrderProperties(v, rawVelcities);
+
+		auto constrainIter = indexer->getConstrainIterBegin();
+		auto constrainEnd = indexer->getConstrainIterEnd();
+		int dofIndex = 0;
+		int vertCount = mesh->getNodeCount();
+		for (int vertIndex = 0; vertIndex < vertCount; vertIndex++) {
+			for (int axis = 0; axis < 3; axis++) {
+				if (constrainIter != constrainEnd && (3 * vertIndex + axis) == *constrainIter) {
+					velocities[vertIndex][axis] = Scalar(0);
+					constrainIter++;
+				}
+				else
+					velocities[vertIndex][axis] = rawVelcities[dofIndex++];
+			}
+		}
+
+		delete[] rawVelcities;
 	}
 
 	LinearNewmark::~LinearNewmark(){

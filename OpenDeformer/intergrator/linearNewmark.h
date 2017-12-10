@@ -17,9 +17,10 @@ namespace ODER{
 		void setExternalVirtualWork(const Forcer& forcer);
 		void runOneTimeStep();
 		void updateMeshVerticesDisplacements(const Reference<NodeIndexer> &indexer, Reference<Mesh> &mesh) const;
+		void getMeshVerticesVelocities(const Reference<NodeIndexer> &indexer, const Reference<Mesh> &mesh, Vector3 *velocities) const;
 		~LinearNewmark();
 	private:
-		void getRawDisplacements(Scalar *displacements) const;
+		void getFullOrderProperties(const Scalar *reducedProperties, Scalar *fullOrderProperties) const;
 
 		Scalar *d;
 		Scalar *v;
