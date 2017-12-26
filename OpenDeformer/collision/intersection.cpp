@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "intersection.h"
 
+
 namespace ODER {
 	namespace Collision {
 		namespace {
@@ -129,6 +130,7 @@ namespace ODER {
 			Scalar vd = fabs(ap * (ab % ac));
 
 			Scalar vol = fabs(ab * (ac % ad));
+
 			if (vol <= eps) {
 				coords[0] = coords[1] = coords[2] = coords[3] = Scalar(0.25);
 				return;
@@ -142,12 +144,5 @@ namespace ODER {
 			coords[3] = vd * invVolume;
 		}
 
-		Scalar computeRelativeSpeed(const Vector3 velocities[4], const Vector3& dir, const Scalar coords[4]) {
-			Vector3 velocity(0, 0, 0);
-			for (int i = 0; i < 4; i++)
-					velocity += coords[i] * velocities[i];
-
-			return velocity * dir;
-		}
 	}
 }

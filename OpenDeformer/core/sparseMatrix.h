@@ -664,6 +664,31 @@ namespace ODER{
 		int symSubMatEntryCount;
 		int *indices;
 	};
+
+	template<class SpMatrix, int blockLength, int blockWidth> class AggregatedSparseMatrix {
+	public:
+		AggregatedSparseMatrix() = default;
+		void addSparseMatrix(const SpMatrix *mat) { mats.push_back(mat); }
+		void clearSparseMatrix() { mats.clear(); }
+		void addOffDiagBlock(int blockRow, int blockCol, Scalar *blockData);
+		~AggregatedSparseMatrix() = default;
+	private:
+		std::vector<const SpMatrix *> mats;
+		std::vector<Scalar *> blockDatas;
+		std::vector<std::pair<int, int>> blockCoords;
+		MemoryArena<Scalar> blockArena;
+
+		template<class SpMatrix, int blockLength, int blockWidth>
+		friend void SpMDV(const AggregatedSparseMatrix<SpMatrix, blockLength, blockWidth>& mat,
+			const Scalar *src, Scalar *dest);
+	};
+
+	template<class SpMatrix, int blockLength, int blockWidth> 
+	void AggregatedSparseMatrix<SpMatrix, blockLength, blockWidth>::addOffDiagBlock(int blockRow, int blockCol, Scalar *blockData) {
+		Scalar *data = blockArena.Alloc(blockLength * blockWidth);
+		memcpy(data, blockData, sizeof(Scalar) * blockLength * blockWidth);
+		blockCoords.push_back(std::make_pair(blockRow, blockCol));
+	}
 }
 
 #endif

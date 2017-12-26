@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "penaltyDampingForcer.h"
 #include "intersection.h"
+#include <iostream>
 
 namespace ODER {
 	namespace Collision {

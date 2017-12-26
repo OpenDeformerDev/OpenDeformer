@@ -299,6 +299,31 @@ namespace ODER{
 		}
 	}
 
+	template<class SpMatrix, int blockLength, int blockWidth>
+	void SpMDV(const AggregatedSparseMatrix<SpMatrix, blockLength, blockWidth>& mat,
+		const Scalar *src, Scalar *dest) {
+		const Scalar *currSrc = src;
+		Scalar *currDest = dest;
+		for (int i = 0; i < mat.mats.size(); i++) {
+			SpMDV(*mat.mats[i], currSrc, currDest);
+			int columnCount = mat.mats[i]->getNumColumns();
+			currDest += columnCount;
+			currSrc += columnCount;
+		}
+
+		for (int i = 0; i < mat.blockCoords.size(); i++) {
+			int col = mat.blockCoords[i].first * blockLength;
+			int row = mat.blockCoords[i].second * blockWidth;
+			Scalar *block = mat.blockDatas[i];
+
+			currSrc = src + col;
+			currDest = dest + row;
+			for (int subCol = 0; subCol < blockLength; subCol++)
+				for (int subRow = 0; subRow < blockWidth; subRow++)
+					currDest[subRow] += currSrc[subCol] * block[subCol * blockLength + subRow];
+		}
+	}
+
 	template<class FT> void eigenSym3x3(const FT *triMat, FT *eigenvalues, FT *eigenvectors) {
 		static_assert(std::is_same<FT, float>::value || std::is_same<FT, double>::value, "ODER::eigenSym3x3 support IEEE 754-1985 floating point only");
 		constexpr FT pi = FT(M_PI);
