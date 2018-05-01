@@ -67,6 +67,8 @@ public:
 
 	FT inDiametricBall(const VectorBase<FT> &u, const VectorBase<FT> &a, const VectorBase<FT> &b) const;
 
+	bool coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>& c) const;
+
 	bool fastCoPlane(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT>&c, const VectorBase<FT> &d) const{
 		VectorBase<FT> n = (b - a) % (c - a);
 		return fabs(n*(d - a)) <= arthemetricer.epsilon*std::max(fabs(n.x), std::max(fabs(n.y), fabs(n.z)));
@@ -1635,6 +1637,22 @@ template<class FT> FT Predicator<FT>::inDiametricBall(const VectorBase<FT> &u, c
 		return aubLen;
 
 	return inSegmentRangeHalfAdaptive(a, u, b, ub, ua, aubNorm);
+}
+
+template<class FT> bool Predicator<FT>::coLine(const VectorBase<FT> &a, const VectorBase<FT> &b, const VectorBase<FT> &c) const {
+	VectorBase<FT> ab(b.x - a.x, b.y - a.y, b.z - a.z);
+	VectorBase<FT> ac(c.x - a.x, c.y - a.y, c.z - a.z);
+
+	FT cabx = ac.x * ab.x; FT caby = ac.y * ab.y; FT cabz = ac.z * ab.z;
+	FT cabLen = cabx + caby + cabz;
+	FT cabNorm = fabs(cabx) + fabs(caby) + fabs(cabz);
+	if (fabs(cabLen) >= inSegRangeErrorBoundA * cabNorm)
+		return false;
+
+	if (inSegmentRangeHalfAdaptive(c, a, b, ab, ac, cabNorm) == FT(0))
+		return true;
+	else
+		return false;
 }
 
 template<class FT> bool Predicator<FT>::inSegmentRange(const VectorBase<FT>& u, const VectorBase<FT>& a, const VectorBase<FT>& b) const {
