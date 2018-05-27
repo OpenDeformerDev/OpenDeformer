@@ -347,22 +347,24 @@ namespace ODER {
 		link = NULL;
 
 		TriVertexListNode *node = vert->getFaceLink();
-		TriVertexListNode *nextNode = node->getNextNode();
+		if (node) {
+			TriVertexListNode *nextNode = node->getNextNode();
 
-		//find the first tiangle
-		while (nextNode != NULL) {
-			if (!nextNode->isPreFaceDeleted()) {
+			//find the first tiangle
+			while (nextNode != NULL) {
+				if (!nextNode->isPreFaceDeleted()) {
+					link = nextNode;
+					current = Triangle(vert, node->getVertex(), nextNode->getVertex());
+					return;
+				}
+				node = nextNode;
+				nextNode = node->getNextNode();
+			}
+			if (!node->isPreFaceDeleted()) {
+				nextNode = vert->getFaceLink();
 				link = nextNode;
 				current = Triangle(vert, node->getVertex(), nextNode->getVertex());
-				return;
 			}
-			node = nextNode;
-			nextNode = node->getNextNode();
-		}
-		if (!node->isPreFaceDeleted()) {
-			nextNode = vert->getFaceLink();
-			link = nextNode;
-			current = Triangle(vert, node->getVertex(), nextNode->getVertex());
 		}
 	}
 

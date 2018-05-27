@@ -207,8 +207,9 @@ namespace ODER {
 				if (maxIndex >= 0) {
 					p3 = verts[maxIndex];
 					std::swap(verts[3], verts[maxIndex]);
-				}
 
+					if (maxOrient < Scalar(0)) std::swap(p0, p1);
+				}
 			}
 
 			if (p3) {
@@ -230,7 +231,7 @@ namespace ODER {
 
 				for (int i = 4; i < verts.size(); i++) {
 					Vertex *v = verts[i];
-					for (int j = 4; j < verts.size(); j++) {
+					for (int j = 0; j < 4; j++) {
 						Scalar orient = predicator.orient3d(v->point, facets[j].v[0]->point, facets[j].v[1]->point, facets[j].v[2]->point);
 						if (orient > Scalar(0)) {
 							if (facets[j].index < 0) {
@@ -250,10 +251,11 @@ namespace ODER {
 						}
 					}
 				}
+				for (int i = 0; i < 4; i++) mesh.addTriangle(facets[i].v[0], facets[i].v[1], facets[i].v[2], facets[i].index);
 				
 				std::queue<TriangleWithIndex> conflictedTriangles;
 				for (int i = 0; i < 4; i++)
-					if (facets[i].index < 0)
+					if (facets[i].index >= 0)
 						conflictedTriangles.push(facets[i]);
 
 				while (!conflictedTriangles.empty()) {
@@ -336,7 +338,7 @@ namespace ODER {
 
 			Scalar *AA = new Scalar[(d + 1) * (n + 1)];
 
-			for (int i = 1; i < n; i++) {
+			for (int i = 0; i < n; i++) {
 				Scalar a[d + 2];
 				for (int j = 0; j < d + 2; j++) a[j] = A[i * (d + 2) + j];
 
@@ -365,6 +367,7 @@ namespace ODER {
 					for (int j = 0; j < i; j++) {
 						Scalar scale = A[j * (d + 2) + k] / ak;
 						int ind = 0;
+						Scalar aaaa = A[j * (d + 2) + k] - scale * a[k];
 						for (int l = 0; l < d + 2; l++) {
 							if (l != k) {
 								AA[j * (d + 1) + ind] = A[j * (d + 2) + l] - scale * a[l];
@@ -390,26 +393,31 @@ namespace ODER {
 						for (int j = 0; j < d + 1; j++) {
 							if (j != k) {
 								AA[i * (d + 1) + ind] = -scale * a[j];
-								AA[(i + 1) * (d + 1) + ind] = -scale * a[j];
+								AA[(i + 1) * (d + 1) + ind] = scale * a[j];
 								ind += 1;
 							}
 						}
 						AA[i * (d + 1) + d] = Scalar(1) - scale * a[d + 1];
-						AA[(i + 1) * (d + 1) + d] = Scalar(-1) - scale * a[d + 1];
+						AA[(i + 1) * (d + 1) + d] = Scalar(1) + scale * a[d + 1];
 					}
 
-					solveLinearProgramming<d - 1>(i + 2, cc, AA, uu, vv);
+ 					if (!solveLinearProgramming<d - 1>(i + 2, cc, AA, uu, vv)) {
+						delete[] AA;
+						return false;
+					}
 
 					//"lift" the solution
-					auu = Scalar(0); avv = Scalar(0);
-					for (int j = 0; j < d - 1; j++) {
-						auu += a[j] * uu[j];
-						avv += a[j] * vv[j];
-					}
-
-					for (int j = d - 2; j > k; j--) {
+					for (int j = d - 2; j >= k; j--) {
 						uu[j + 1] = uu[j];
 						vv[j + 1] = vv[j];
+					}
+					uu[k] = Scalar(0);
+					vv[k] = Scalar(0);
+
+					auu = Scalar(0); avv = Scalar(0);
+					for (int j = 0; j < d; j++) {
+						auu += a[j] * uu[j];
+						avv += a[j] * vv[j];
 					}
 					uu[k] = (a[d] - auu) / ak;
 					vv[k] = (a[d + 1] - avv) / ak;
@@ -428,6 +436,7 @@ namespace ODER {
 		template<> bool solveLinearProgramming<1>(int n, Scalar *c, Scalar *A, Scalar *u, Scalar *v) {
 			Scalar h = Scalar(0), h_lambda = Scalar(1);
 			Scalar l = Scalar(0), l_lambda = Scalar(-1);
+			Scalar z = Scalar(0), z_lambda = Scalar(0);
 
 			for (int i = 0; i < n; i++) {
 				Scalar a1 = A[i * 3];
@@ -455,12 +464,20 @@ namespace ODER {
 					}
 				}
 				else {
-					if ((a2 < Scalar(0)) || (a2 == Scalar(0) && a1 < Scalar(0)))
-						return false;
+					if (a3 < z_lambda) {
+						z_lambda = a3;
+						z = a2;
+					}
+					else if (a3 == z_lambda)
+						z = std::min(z, a2);
 				}
 			}
 
-			if (*c >= 0.f) {
+			if (z_lambda < Scalar(0) || (z_lambda == Scalar(0) && z < Scalar(0)) || 
+				l_lambda > h_lambda || (l_lambda == h_lambda && l > h)) 
+				return false;
+
+			if (*c >= Scalar(0)) {
 				*u = h; *v = h_lambda;
 			}
 			else {
@@ -481,12 +498,12 @@ namespace ODER {
 			Scalar constants[8];
 
 			normals[0] = Normalize(Geometer::triangleNormal(tetaPoints[1], tetaPoints[2], tetaPoints[3]));
-			normals[1] = Normalize(Geometer::triangleNormal(tetaPoints[0], tetaPoints[3], tetaPoints[1]));
+			normals[1] = Normalize(Geometer::triangleNormal(tetaPoints[0], tetaPoints[3], tetaPoints[2]));
 			normals[2] = Normalize(Geometer::triangleNormal(tetaPoints[0], tetaPoints[1], tetaPoints[3]));
 			normals[3] = Normalize(Geometer::triangleNormal(tetaPoints[0], tetaPoints[2], tetaPoints[1]));
 
 			normals[4] = Normalize(Geometer::triangleNormal(tetbPoints[1], tetbPoints[2], tetbPoints[3]));
-			normals[5] = Normalize(Geometer::triangleNormal(tetbPoints[0], tetbPoints[3], tetbPoints[1]));
+			normals[5] = Normalize(Geometer::triangleNormal(tetbPoints[0], tetbPoints[3], tetbPoints[2]));
 			normals[6] = Normalize(Geometer::triangleNormal(tetbPoints[0], tetbPoints[1], tetbPoints[3]));
 			normals[7] = Normalize(Geometer::triangleNormal(tetbPoints[0], tetbPoints[2], tetbPoints[1]));
 
@@ -511,6 +528,7 @@ namespace ODER {
 			}
 			Scalar c[4] = { 0, 0, 0, 1 };
 			Scalar u[4], v[4];
+
 			bool success = solveLinearProgramming<4>(8, c, A, u, v);
 
 			if (!success || u[3] <= Scalar(0)) {
@@ -551,31 +569,24 @@ namespace ODER {
 					Triangle triangle = *circulator;
 					Vector3 normal = Geometer::triangleNormal(triangle.v[0]->point, triangle.v[1]->point, triangle.v[2]->point);
 					Scalar constant = -(normal * triangle.v[0]->point);
-					Vector3 orgPrimalPoint = normal / -constant + origin;
-					polygon.push_back(orgPrimalPoint);
+					Vector3 primalPoint = normal / -constant + origin;
+					polygon.push_back(primalPoint);
 
-					if (++circulator != begin) {
+					while (++circulator != begin) {
 						triangle = *circulator;
 						normal = Geometer::triangleNormal(triangle.v[0]->point, triangle.v[1]->point, triangle.v[2]->point);
 						constant = -(normal * vert->point);
-						Vector3 destPrimalPoint = normal / -constant + origin;
-						polygon.push_back(orgPrimalPoint);
+						Vector3 nextPrimalPoint = normal / -constant + origin;
 
-						while (++circulator != begin) {
-							triangle = *circulator;
-							normal = Geometer::triangleNormal(triangle.v[0]->point, triangle.v[1]->point, triangle.v[2]->point);
-							constant = -(normal * vert->point);
-							Vector3 apexPrimalPoint = normal / -constant + origin;
+						Scalar e = (nextPrimalPoint - polygon.back()).length2();
 
-							if ((apexPrimalPoint - destPrimalPoint).length2() > eps)
-								polygon.push_back(destPrimalPoint);
-						}
+						if ((nextPrimalPoint - polygon.back()).length2() > eps)
+							polygon.push_back(nextPrimalPoint);
 					}
-
-					polyhedron.push_back(std::move(polygon));
+					
+					if (polygon.size() >= 3) polyhedron.push_back(std::move(polygon));
 				}
 			}
-
 			
 			Vector3 cent = Vector3(0, 0, 0), direction = Vector3(0, 0, 0);
 			Scalar volume = 0;
@@ -600,7 +611,7 @@ namespace ODER {
 				Vector3 orgPoint = polygon[0];
 				for (std::vector<Vector3>::size_type i = 1; i < polygon.size() - 1; i++) {
 					Vector3 destPoint = polygon[i];
-					Vector3 apexPoint = polygon[i];
+					Vector3 apexPoint = polygon[i + 1];
 
 					Vector3 normal = Geometer::triangleNormal(orgPoint, destPoint, apexPoint);
 					direction += normal;
