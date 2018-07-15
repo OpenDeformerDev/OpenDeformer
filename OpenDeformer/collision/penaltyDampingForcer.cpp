@@ -59,5 +59,32 @@ namespace ODER {
 				Severe("Unimplemented features in MeshPlaneCollisionDampingForcer::getDampingMatrix");
 
 		}
+
+		void MeshMeshCollisionDampingForcer::addDampingMatrix(AggSpMatrix<BlockedSymSpMatrix>& mat) const {
+			Assert(aElementIndex >= 0 && bElementIndex >= 0);
+
+			int anec = aColliderMesh->getNodePerElementCount(), bnec = bColliderMesh->getNodePerElementCount();
+
+			if (anec == 4 && bnec == 4) {
+				DynamicTetrahedronShape atet;
+				const int *aTetPointIndices = aColliderMesh->getElementNodeReference(aElementIndex);
+				for (int i = 0; i < 4; i++)
+					atet.points[i] = aColliderMesh->getVertex(aTetPointIndices[i]) + aColliderMesh->getVertexDisplacementConst(aTetPointIndices[i]);
+
+				DynamicTetrahedronShape btet;
+				const int *bTetPointIndices = bColliderMesh->getElementNodeReference(bElementIndex);
+				for (int i = 0; i < 4; i++)
+					btet.points[i] = bColliderMesh->getVertex(bTetPointIndices[i]) + bColliderMesh->getVertexDisplacementConst(bTetPointIndices[i]);
+
+				Vector3 centroid, dir;
+				Intersection(atet, btet, centroid, dir);
+
+				Scalar acoords[4], bcoords[4];
+				computeBarycentricCoordinates(atet, centroid, acoords);
+				computeBarycentricCoordinates(btet, centroid, bcoords);
+
+
+			}
+		}
 	}
 }

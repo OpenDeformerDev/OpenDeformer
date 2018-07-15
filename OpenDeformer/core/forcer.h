@@ -22,10 +22,16 @@ namespace ODER{
 		std::map<int, Scalar> virtualWorks;
 	};
 
-	class DampingForcer {
+	class StaDampingForcer {
 	public:
 		virtual void addDampingMatrix(const SparseSymMatrixIndicesPerElementCache& matrixIndices, BlockedSymSpMatrix& mat) const = 0;
-		virtual ~DampingForcer() = default;
+		virtual ~StaDampingForcer() = default;
+	};
+
+	template<class SpMatrix> class DynDampingForcer {
+	public:
+		virtual void addDampingMatrix(AggSpMatrix<SpMatrix>& mat) const = 0;
+		virtual ~DynDampingForcer() = default;
 	};
 }
 

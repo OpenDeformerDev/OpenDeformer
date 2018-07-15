@@ -540,9 +540,11 @@ namespace ODER {
 			vertices.reserve(8);
 			TriMeshDataStructure mesh;
 
+
+			constexpr Scalar aTetFlag = -1.f, bTetFlag = 1.f;
 			constexpr Scalar eps = 1e-8;
 			Vector3 origin(u[0], u[1], u[2]);
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; i < 4; i++) {
 				Vector3 dualPoint = normals[i] / (constants[i] + normals[i] * origin);
 
 				bool merged = false;
@@ -552,13 +554,30 @@ namespace ODER {
 						break;
 					}
 				}
-				if (!merged) vertices.push_back(mesh.allocVertex(dualPoint, 0));
+				if (!merged) vertices.push_back(mesh.allocVertex(dualPoint, aTetFlag));
+			}
+			for (int i = 4; i < 8; i++) {
+				Vector3 dualPoint = normals[i] / (constants[i] + normals[i] * origin);
+
+				bool merged = false;
+				for (auto& vert : vertices) {
+					if ((vert->point - dualPoint).length2() <= eps) {
+						merged = true;
+						vert->weight = bTetFlag;
+						break;
+					}
+				}
+				if (!merged) vertices.push_back(mesh.allocVertex(dualPoint, bTetFlag));
 			}
 
 			computeConvexHull(vertices, mesh);
 
+			std::vector<std::vector<Vertex *>::size_type> aTetFacetInds;
+			aTetFacetInds.reserve(8);
+
 			std::vector<std::vector<Vector3>> polyhedron;
-			for (auto vert : vertices) {
+			for (std::vector<Vertex *>::size_type i = 0; i < vertices.size(); i++) {
+				Vertex *vert = vertices[i];
 				auto begin = mesh.getIncidentTriangles(vert);
 				std::vector<Vector3> polygon;
 				polygon.reserve(8);
@@ -584,7 +603,10 @@ namespace ODER {
 							polygon.push_back(nextPrimalPoint);
 					}
 					
-					if (polygon.size() >= 3) polyhedron.push_back(std::move(polygon));
+					if (polygon.size() >= 3) {
+						polyhedron.push_back(std::move(polygon));
+						if (vert->weight == aTetFlag) aTetFacetInds.push_back(i);
+					}
 				}
 			}
 			
@@ -599,7 +621,6 @@ namespace ODER {
 					Vector3 destPoint = polyhedron[i][j];
 					Vector3 apexPoint = polyhedron[i][j + 1];
 
-
 					Scalar tetVolume = fabs(Geometer::triangleNormal(orgPoint, destPoint, apexPoint) * (orgPoint - oppoPoint));
 					cent += tetVolume * Scalar(0.25) * (oppoPoint + orgPoint + destPoint + apexPoint);
 					volume += tetVolume;
@@ -607,7 +628,8 @@ namespace ODER {
 			}
 			centroid = cent / volume;
 
-			for (auto &polygon : polyhedron) {
+			for (auto ind : aTetFacetInds) {
+				auto &polygon = polyhedron[ind];
 				Vector3 orgPoint = polygon[0];
 				for (std::vector<Vector3>::size_type i = 1; i < polygon.size() - 1; i++) {
 					Vector3 destPoint = polygon[i];

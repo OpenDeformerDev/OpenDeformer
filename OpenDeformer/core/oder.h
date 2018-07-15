@@ -53,6 +53,7 @@ namespace ODER{
 	class SparseMatrix;
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrix;
 	template<int blockLength, int blockWidth> class BlockedSymSparseMatrixAssembler;
+	template<class SpMatrix, int blockLength, int blockWidth> class AggregatedSparseMatrix;
 	class Mesh;
 	struct Element;
 	struct GeometricElement;
@@ -70,7 +71,8 @@ namespace ODER{
 	class MeshRelabeler;
 	class Intergrator;
 	class Forcer;
-	class DampingForcer;
+	class StaDampingForcer;
+	template<class SpMatrix> class DynDampingForcer;
 	class EigenSolver;
 	template<class SpMatrix> class LinearSolver;
 	class Preconditioner;
@@ -84,6 +86,7 @@ namespace ODER{
 
 	using BlockedSymSpMatrix = BlockedSymSparseMatrix< 3, 3 >;
 	using BlockedSymSpMatrixAssembler = BlockedSymSparseMatrixAssembler< 3, 3 > ;
+	template <class SpMatrix> using AggSpMatrix = AggregatedSparseMatrix< SpMatrix, 3, 3 >;
 
 	namespace RandomnationInternal { static unsigned int randomSeed = 23u; }
 	template<unsigned int choices> inline unsigned int Randomnation() {
